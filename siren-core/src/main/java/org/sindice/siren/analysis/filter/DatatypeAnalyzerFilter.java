@@ -28,13 +28,13 @@ package org.sindice.siren.analysis.filter;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CharArrayMap;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.analysis.util.CharArrayMap;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.TupleTokenizer;
@@ -166,7 +166,7 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
         } else {
           reusableCharArray.reset(termAtt.buffer(), 0, termAtt.length());
         }
-        currentStream = analyzer.reusableTokenStream("", reusableCharArray);
+        currentStream = analyzer.tokenStream("", reusableCharArray);
         this.initTokenAttributes();
       }
       // Consume the token with the registered analyzer

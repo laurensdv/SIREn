@@ -26,13 +26,12 @@
  */
 package org.sindice.siren.analysis;
 
-import java.io.IOException;
 import java.io.Reader;
 import java.util.Map.Entry;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CharArrayMap;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.util.CharArrayMap;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.filter.DatatypeAnalyzerFilter;
 import org.sindice.siren.analysis.filter.SirenDeltaPayloadFilter;
@@ -93,42 +92,17 @@ public class TupleAnalyzer extends Analyzer {
   }
 
   @Override
-  public final TokenStream tokenStream(final String fieldName, final Reader reader) {
-    final TupleTokenizer stream = new TupleTokenizer(reader, Integer.MAX_VALUE);
-    TokenStream result = new TokenTypeFilter(stream, new int[] {TupleTokenizer.BNODE,
-                                                                TupleTokenizer.DOT});
-    final DatatypeAnalyzerFilter tt = new DatatypeAnalyzerFilter(matchVersion, result, stringAnalyzer, anyURIAnalyzer);
+  protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+    final TupleTokenizer source = new TupleTokenizer(reader, Integer.MAX_VALUE);
+    
+    TokenStream sink = new TokenTypeFilter(source, new int[] {TupleTokenizer.BNODE,
+                                                              TupleTokenizer.DOT});
+    final DatatypeAnalyzerFilter tt = new DatatypeAnalyzerFilter(matchVersion, sink, stringAnalyzer, anyURIAnalyzer);
     for (Entry<Object, Analyzer> e : regLitAnalyzers.entrySet()) {
       tt.register((char[]) e.getKey(), e.getValue());
     }
-    result = new SirenDeltaPayloadFilter(tt);
-    return result;
-  }
-
-  @Override
-  public final TokenStream reusableTokenStream(final String fieldName, final Reader reader) throws IOException {
-    SavedStreams streams = (SavedStreams) this.getPreviousTokenStream();
-    if (streams == null) {
-      streams = new SavedStreams();
-      this.setPreviousTokenStream(streams);
-      streams.tokenStream = new TupleTokenizer(reader, Integer.MAX_VALUE);
-      streams.filteredTokenStream = new TokenTypeFilter(streams.tokenStream,
-        new int[] {TupleTokenizer.BNODE, TupleTokenizer.DOT});
-      final DatatypeAnalyzerFilter tt = new DatatypeAnalyzerFilter(matchVersion, streams.filteredTokenStream, stringAnalyzer, anyURIAnalyzer);
-      for (Entry<Object, Analyzer> e : regLitAnalyzers.entrySet()) {
-        tt.register((char[]) e.getKey(), e.getValue());
-      }
-      streams.filteredTokenStream = new SirenDeltaPayloadFilter(tt);
-
-    } else {
-      streams.tokenStream.reset(reader);
-    }
-    return streams.filteredTokenStream;
-  }
-
-  private static final class SavedStreams {
-    TupleTokenizer tokenStream;
-    TokenStream filteredTokenStream;
+    sink = new SirenDeltaPayloadFilter(tt);
+    return new TokenStreamComponents(source, sink);
   }
 
 }
