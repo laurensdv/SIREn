@@ -34,10 +34,11 @@ import java.io.IOException;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Version;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +54,9 @@ public class TestSirenPhraseQuery {
   @Before
   public void setUp()
   throws Exception {
-    _helper = new QueryTestingHelper(new TupleAnalyzer(Version.LUCENE_31, new StandardAnalyzer(Version.LUCENE_31), new AnyURIAnalyzer(Version.LUCENE_34)));
+    _helper = new QueryTestingHelper(new TupleAnalyzer(QueryTestingHelper.TEST_VERSION,
+      new StandardAnalyzer(QueryTestingHelper.TEST_VERSION),
+      new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION)));
   }
 
   @After
@@ -148,9 +151,10 @@ public class TestSirenPhraseQuery {
   @Test
   public void testPhraseQueryOnLocalname()
   throws Exception {
-    final AnyURIAnalyzer uri = new AnyURIAnalyzer(Version.LUCENE_34);
+    final AnyURIAnalyzer uri = new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION);
     uri.setUriNormalisation(URINormalisation.LOCALNAME);
-    _helper = new QueryTestingHelper(new TupleAnalyzer(Version.LUCENE_31, new StandardAnalyzer(Version.LUCENE_31), uri));
+    _helper = new QueryTestingHelper(new TupleAnalyzer(QueryTestingHelper.TEST_VERSION,
+      new StandardAnalyzer(QueryTestingHelper.TEST_VERSION), uri));
     
     final String triple = "<http://dbpedia.org/resource/The_Kingston_Trio> " +
                           "<http://purl.org/dc/terms/subject>  " +
@@ -176,36 +180,36 @@ public class TestSirenPhraseQuery {
   
   @Test
   public void testExplain() throws IOException {
-    _helper.addDocument("\"Renaud Delbru\" . ");
-    _helper.addDocument("\"Renaud Delbru\" . \"Renaud Delbru\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"Renaud Delbru\" . ",
+                                                    "\"Renaud Delbru\" . \"Renaud Delbru\" . "});
 
     final Term t1 = new Term(QueryTestingHelper.DEFAULT_FIELD, "renaud");
     final Term t2 = new Term(QueryTestingHelper.DEFAULT_FIELD, "delbru");
     final SirenPhraseQuery query = new SirenPhraseQuery();
     query.add(t1); query.add(t2);
-    final Weight w = query.weight(_helper.getSearcher());
+    final Weight w = query.createWeight(_helper.getIndexSearcher());
     final IndexReader reader = _helper.getIndexReader();
-
+    
     // Explain entity 0 : 1 match
-    Explanation explanation = w.explain(reader, 0);
+    Explanation explanation = w.explain((AtomicReaderContext) reader.getSequentialSubReaders()[0].getTopReaderContext(), 0);
     assertNotNull("explanation is null and it shouldn't be", explanation);
-    // System.out.println("Explanation: " + explanation.toString());
+    
+    final TFIDFSimilarity sim = (TFIDFSimilarity) _helper.getIndexSearcher().getSimilarityProvider().get(QueryTestingHelper.DEFAULT_FIELD);
+     System.out.println("Explanation: " + explanation.toString());
     //All this Explain does is return the term frequency
     assertEquals("term frq is not 1",
-      _helper.getSearcher().getSimilarity().tf(1),
-      explanation.getDetails()[1].getDetails()[0].getValue(), 0.01);
+      sim.tf(1), explanation.getDetails()[1].getDetails()[0].getValue(), 0.01);
 
     // Explain entity 1 : 2 match
-    explanation = w.explain(reader, 1);
+    explanation = w.explain((AtomicReaderContext) reader.getSequentialSubReaders()[0].getTopReaderContext(), 1);
     assertNotNull("explanation is null and it shouldn't be", explanation);
-    // System.out.println("Explanation: " + explanation.toString());
+     System.out.println("Explanation: " + explanation.toString());
     //All this Explain does is return the term frequency
     assertEquals("term frq is not 2",
-      _helper.getSearcher().getSimilarity().tf(2),
-      explanation.getDetails()[1].getDetails()[0].getValue(), 0f);
+      sim.tf(2), explanation.getDetails()[1].getDetails()[0].getValue(), 0f);
 
     // Explain non existing entity
-    explanation = w.explain(reader, 2);
+    explanation = w.explain((AtomicReaderContext) reader.getSequentialSubReaders()[0].getTopReaderContext(), 2);
     assertNotNull("explanation is null and it shouldn't be", explanation);
     //System.out.println("Explanation: " + explanation.toString());
     //All this Explain does is return the term frequency

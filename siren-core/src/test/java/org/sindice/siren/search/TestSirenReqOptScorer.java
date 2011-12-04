@@ -72,10 +72,7 @@ extends AbstractTestSirenScorer {
 
   @Override
   protected void assertTo(final AssertFunctor functor, final String[] input,
-                          final String[] terms, final int expectedNumDocs,
-                          final int[] expectedNumTuples, final int[] expectedNumCells,
-                          final int[] expectedEntityID, final int[] expectedTupleID,
-                          final int[] expectedCellID, final int[] expectedPos)
+                          final String[] terms, final int[][] deweyPath)
   throws Exception {
     // TODO Auto-generated method stub
 

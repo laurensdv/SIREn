@@ -30,18 +30,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.DocsAndPositionsEnum;
+import org.apache.lucene.index.MultiNorms;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermPositions;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
+import org.apache.lucene.index.IndexReader.ReaderContext;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.Explanation.IDFExplanation;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
 
 /**
@@ -89,7 +94,7 @@ extends SirenPrimitiveQuery {
     slop = s;
   }
 
-  /** Returns the slop. See setSlop(). */
+  /** Returns the slop. See {@link #setSlop(int)}. */
   public int getSlop() {
     return slop;
   }
@@ -145,7 +150,7 @@ extends SirenPrimitiveQuery {
   private class SirenPhraseWeight
   extends Weight {
 
-    private final Similarity similarity;
+    private final TFIDFSimilarity similarity;
 
     private float            value;
 
@@ -155,13 +160,40 @@ extends SirenPrimitiveQuery {
 
     private float            queryWeight;
 
-    private final IDFExplanation idfExp;
+    private final Explanation idfExp;
 
-    public SirenPhraseWeight(final Searcher searcher) throws IOException {
-      this.similarity = SirenPhraseQuery.this.getSimilarity(searcher);
+    private final Similarity.Stats stats;
+    private transient TermContext states[];
+    private Bits acceptDocs;
+    
+    public SirenPhraseWeight(final IndexSearcher searcher) throws IOException {
+      Similarity sim = searcher.getSimilarityProvider().get(field);
+      if (sim instanceof TFIDFSimilarity)
+        similarity = (TFIDFSimilarity) sim;
+      else
+        throw new RuntimeException("This scorer uses a TF-IDF scoring function");
 
-      idfExp = similarity.idfExplain(terms, searcher);
-      idf = idfExp.getIdf();
+      final ReaderContext context = searcher.getTopReaderContext();
+      states = new TermContext[terms.size()];
+      TermStatistics termStats[] = new TermStatistics[terms.size()];
+      for (int i = 0; i < terms.size(); i++) {
+        final Term term = terms.get(i);
+        states[i] = TermContext.build(context, term, true);
+        termStats[i] = searcher.termStatistics(term, states[i]);
+      }
+      stats = similarity.computeStats(searcher.collectionStatistics(field), getBoost(), termStats);
+
+      /*
+       * Default implementation in Lucene 3.4: Sum the IDF factor for each term
+       * in the phrase
+       */
+      float sum = 0;
+      for (Term t : terms) {
+        sum += similarity.idf(searcher.getIndexReader().docFreq(t), searcher.getIndexReader().numDocs());
+      }
+      idf = sum;
+
+      idfExp = similarity.idfExplain(searcher.collectionStatistics(field), termStats);
     }
 
     @Override
@@ -173,36 +205,33 @@ extends SirenPrimitiveQuery {
     public Query getQuery() {
       return SirenPhraseQuery.this;
     }
-
+    
     @Override
-    public float getValue() {
-      return value;
-    }
-
-    @Override
-    public float sumOfSquaredWeights() {
+    public float getValueForNormalization()
+    throws IOException {
       queryWeight = idf * SirenPhraseQuery.this.getBoost(); // compute query weight
       return queryWeight * queryWeight; // square it
     }
 
     @Override
-    public void normalize(final float queryNorm) {
+    public void normalize(float norm, float topLevelBoost) {
       this.queryNorm = queryNorm;
       queryWeight *= queryNorm; // normalize query weight
       value = queryWeight * idf; // idf for document
     }
 
     @Override
-    public Scorer scorer(final IndexReader reader,
-                         final boolean scoreDocsInOrder,
-                         final boolean topScorer)
+    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder,
+                         boolean topScorer, Bits acceptDocs)
     throws IOException {
       if (terms.size() == 0) // optimize zero-term case
         return null;
-
-      final TermPositions[] tps = new TermPositions[terms.size()];
+      this.acceptDocs = acceptDocs;
+      
+      final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[terms.size()];
       for (int i = 0; i < terms.size(); i++) {
-        final TermPositions p = reader.termPositions(terms.get(i));
+        final DocsAndPositionsEnum p = context.reader.termPositionsEnum(acceptDocs,
+          field, terms.get(i).bytes());
         if (p == null)
           return null;
         tps[i] = p;
@@ -210,7 +239,7 @@ extends SirenPrimitiveQuery {
 
       if (slop == 0) { // optimize exact case
         return new SirenExactPhraseScorer(this, tps,
-          SirenPhraseQuery.this.getPositions(), similarity, reader.norms(field));
+          SirenPhraseQuery.this.getPositions(), similarity, MultiNorms.norms(context.reader, field));
       }
       else {
         throw new UnsupportedOperationException();
@@ -218,9 +247,8 @@ extends SirenPrimitiveQuery {
     }
 
     @Override
-    public Explanation explain(final IndexReader reader, final int doc)
+    public Explanation explain(AtomicReaderContext context, int doc)
     throws IOException {
-
       final Explanation result = new Explanation();
       result.setDescription("weight(" + this.getQuery() + " in " + doc +
                             "), product of:");
@@ -228,7 +256,7 @@ extends SirenPrimitiveQuery {
       final StringBuffer docFreqs = new StringBuffer();
       final StringBuffer query = new StringBuffer();
       query.append('\"');
-      docFreqs.append(idfExp.explain());
+      docFreqs.append(idfExp.toString());
       for (int i = 0; i < terms.size(); i++) {
         if (i != 0) {
           query.append(" ");
@@ -255,8 +283,7 @@ extends SirenPrimitiveQuery {
       final Explanation queryNormExpl = new Explanation(queryNorm, "queryNorm");
       queryExpl.addDetail(queryNormExpl);
 
-      queryExpl.setValue(boostExpl.getValue() * idfExpl.getValue() *
-                         queryNormExpl.getValue());
+      queryExpl.setValue(boostExpl.getValue() * idfExpl.getValue() * queryNormExpl.getValue());
 
       result.addDetail(queryExpl);
 
@@ -265,7 +292,7 @@ extends SirenPrimitiveQuery {
       fieldExpl.setDescription("fieldWeight("+field+":"+query+" in "+doc+
                                "), product of:");
 
-      final SirenPhraseScorer scorer = (SirenPhraseScorer) this.scorer(reader, true, false);
+      final SirenPhraseScorer scorer = (SirenPhraseScorer) this.scorer(context, true, false, acceptDocs);
       if (scorer == null) {
         return new Explanation(0.0f, "no matching docs");
       }
@@ -279,9 +306,9 @@ extends SirenPrimitiveQuery {
       fieldExpl.addDetail(idfExpl);
 
       final Explanation fieldNormExpl = new Explanation();
-      final byte[] fieldNorms = reader.norms(field);
+      final byte[] fieldNorms = MultiNorms.norms(context.reader, field);
       final float fieldNorm =
-        fieldNorms != null && doc < fieldNorms.length ? Similarity.decodeNorm(fieldNorms[doc]) : 1.0f;
+        fieldNorms != null && doc < fieldNorms.length ? similarity.decodeNormValue(fieldNorms[doc]) : 1.0f;
       fieldNormExpl.setValue(fieldNorm);
       fieldNormExpl.setDescription("fieldNorm(field="+field+", doc="+doc+")");
       fieldExpl.addDetail(fieldNormExpl);
@@ -294,10 +321,11 @@ extends SirenPrimitiveQuery {
 
       return result;
     }
+
   }
 
   @Override
-  public Weight createWeight(final Searcher searcher)
+  public Weight createWeight(final IndexSearcher searcher)
   throws IOException {
     if (terms.size() == 1) { // optimize one-term case
       final Term term = terms.get(0);

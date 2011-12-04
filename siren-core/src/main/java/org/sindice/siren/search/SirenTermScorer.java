@@ -28,18 +28,21 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.TermPositions;
+import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Similarity;
 import org.apache.lucene.search.Weight;
-import org.sindice.siren.index.SirenTermPositions;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
+import org.sindice.siren.index.NodAndPosEnum;
+import org.sindice.siren.index.NodesConfig;
+import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
 
 class SirenTermScorer
 extends SirenPrimitiveScorer {
 
-  private final SirenTermPositions termPositions;
+  private final NodAndPosEnum napEnum;
 
-  private final Similarity    sim;
+  private final TFIDFSimilarity sim;
 
   private final byte[]        norms;
 
@@ -50,18 +53,19 @@ extends SirenPrimitiveScorer {
   private final float[]       scoreCache       = new float[SCORE_CACHE_SIZE];
 
   /** Current structural and positional information */
-  private int                 dataset = -1;
-  private int                 entity = -1;
-  private int                 tuple = -1;
-  private int                 cell = -1;
-  private int                 pos = -1;
-
+//  private int                 dataset = -1;
+//  private int                 docID = -1;
+//  private int                 tuple = -1;
+//  private int                 cell = -1;
+//  private int                 pos = -1;
+//  private final int[] node;
+  
   /**
    * Construct a <code>SirenTermScorer</code>.
    *
    * @param weight
    *          The weight of the <code>Term</code> in the query.
-   * @param tp
+   * @param napEnum
    *          An iterator over the documents and the positions matching the
    *          <code>Term</code>.
    * @param similarity
@@ -69,14 +73,23 @@ extends SirenPrimitiveScorer {
    *          computations.
    * @param norms
    *          The field norms of the document fields for the <code>Term</code>.
+   * @throws IOException 
    */
-  protected SirenTermScorer(final Weight weight, final TermPositions tp,
-                            final Similarity similarity, final byte[] norms) {
-    super(similarity);
-    sim = similarity;
-    this.termPositions = new SirenTermPositions(tp);
+  protected SirenTermScorer(final Weight weight, final DocsAndPositionsEnum napEnum,
+                            final Similarity similarity, final byte[] norms)
+  throws IOException {
+    super(weight);
+    if (similarity instanceof TFIDFSimilarity)
+      sim = (TFIDFSimilarity) similarity;
+    else
+      throw new RuntimeException("This scorer uses a TF-IDF scoring function");
+    
+    // TODO: don't instantiate the enum here! this should be done by the specific codec.
+    this.napEnum = new Siren020NodAndPosEnum(new NodesConfig(2), napEnum);
     this.norms = norms;
-    this.weightValue = weight.getValue();
+    // TODO: check if this API change provides the same value as before
+//    this.weightValue = weight.getValue();
+    this.weightValue = weight.getValueForNormalization();
 
     for (int i = 0; i < SCORE_CACHE_SIZE; i++)
       scoreCache[i] = sim.tf(i) * weightValue;
@@ -91,8 +104,8 @@ extends SirenPrimitiveScorer {
   @Override
   public boolean score(final Collector c, final int end, final int firstDocID) throws IOException {
     c.setScorer(this);
-    while (entity < end) {                           // for docs in window
-      c.collect(entity);                             // collect score
+    while (napEnum.docID() < end) {                           // for docs in window
+      c.collect(napEnum.docID());                             // collect score
       if (this.nextDoc() == NO_MORE_DOCS) {
         return false;
       }
@@ -102,13 +115,13 @@ extends SirenPrimitiveScorer {
 
   @Override
   public float score() throws IOException {
-    final int f = termPositions.freq();
+    final int f = napEnum.freq();
     final float raw =                                   // compute tf(f)*weight
       f < SCORE_CACHE_SIZE                              // check cache
       ? scoreCache[f]                                   // cache hit
       : sim.tf(f) * weightValue;                        // cache miss
 
-    return norms == null ? raw : raw * sim.decodeNormValue(norms[this.entity()]); // normalize for field
+    return norms == null ? raw : raw * sim.decodeNormValue(norms[this.docID()]); // normalize for field
   }
 
   /** Move to the next entity matching the query.
@@ -116,14 +129,13 @@ extends SirenPrimitiveScorer {
    */
   @Override
   public int nextDoc() throws IOException {
-    if (!termPositions.next()) {
-      termPositions.close();      // close stream
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+    if (napEnum.nextDoc() == NO_MORE_DOCS) {
+      napEnum.setToSentinel();
       return NO_MORE_DOCS;
     }
-    entity = termPositions.entity();
+//    docID = napEnum.docID();
     this.nextPosition(); // advance to the first cell [SRN-24]
-    return entity;
+    return napEnum.docID();
   }
 
   /**
@@ -137,94 +149,60 @@ extends SirenPrimitiveScorer {
    */
   @Override
   public int nextPosition() throws IOException {
-    if (termPositions.nextPosition() == NO_MORE_POS) {
-      tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+    if (napEnum.nextPosition() == NO_MORE_POS) {
+      // TODO: why not dataset ?
+      napEnum.setLayersToSentinel();
       return NO_MORE_POS;
     }
 
-    tuple = termPositions.tuple();
-    cell = termPositions.cell();
-    pos = termPositions.pos();
-    return pos;
+//    tuple = napEnum.tuple();
+//    cell = napEnum.cell();
+//    pos = napEnum.pos();
+    return napEnum.pos();
   }
 
   @Override
   public int advance(final int entityID)
   throws IOException {
-    if (!termPositions.skipTo(entityID)) {
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+    if (napEnum.advance(entityID) == NO_MORE_DOCS) {
+      napEnum.setToSentinel();
       return NO_MORE_DOCS;
     }
-    entity = termPositions.entity();
+//    docID = napEnum.entity();
     this.nextPosition(); // advance to the first cell [SRN-24]
-    return entity;
+    return napEnum.docID();
   }
 
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
-    if (!termPositions.skipTo(entityID, tupleID)) {
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+    if (napEnum.advance(docID, nodes) == NO_MORE_DOCS) {
+      napEnum.setToSentinel();
       return NO_MORE_DOCS;
     }
-    entity = termPositions.entity();
-    tuple = termPositions.tuple();
-    cell = termPositions.cell();
-    pos = termPositions.pos();
-    return entity;
+    return docID();
   }
-
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    if (!termPositions.skipTo(entityID, tupleID, cellID)) {
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
-      return NO_MORE_DOCS;
-    }
-    entity = termPositions.entity();
-    tuple = termPositions.tuple();
-    cell = termPositions.cell();
-    pos = termPositions.pos();
-    return entity;
-  }
-
+  
   /** Returns the current document number matching the query.
    * <p> Initially invalid, until {@link #next()} is called the first time.
    */
   @Override
-  public int docID() { return entity; }
-
-  /** Returns the current document number matching the query.
-   * <p> Initially invalid, until {@link #next()} is called the first time.
-   */
-  public int dataset() { return dataset; }
-
-  /** Returns the current entity identifier matching the query.
-   * <p> Initially invalid, until {@link #next()} is called the first time.
-   */
-  public int entity() { return entity; }
-
-  /** Returns the current tuple identifier matching the query.
-   * <p> Initially invalid, until {@link #nextPosition()} is
-   * called the first time.
-   */
-  public int tuple() { return tuple; }
-
-  /** Returns the current cell identifier matching the query.
-   * <p> Initially invalid, until {@link #nextPosition()} is
-   * called the first time.
-   */
-  public int cell() { return cell; }
+  public int docID() { return napEnum.docID(); }
 
   /** Returns the current position identifier matching the query.
    * <p> Initially invalid, until {@link #nextPosition()} is
    * called the first time.
    */
-  public int pos() { return pos; }
+  public int pos() { return napEnum.pos(); }
 
   @Override
   public String toString() {
-    return "TermScorer(" + dataset + "," + entity + "," + tuple + "," + cell + ")";
+    return "TermScorer(" + docID() + napEnum.toString() + ")";
+  }
+
+  @Override
+  public int[] node() {
+    return napEnum.node();
   }
 
 }

@@ -44,7 +44,6 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
-import org.sindice.siren.search.DocTupCelIdSetIterator;
 import org.sindice.siren.search.QueryTestingHelper;
 
 public class TestSiren020NodAndposEnum {
@@ -75,19 +74,19 @@ public class TestSiren020NodAndposEnum {
 
     assertTrue(termEnum.nextDoc() != Siren020NodAndPosEnum.NO_MORE_DOCS);
     assertEquals(0, termEnum.docID());
-    assertEquals(0, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
 
     assertEquals(1, termEnum.freq());
     assertEquals(0, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(0, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(0, termEnum.pos());
 
     // end of the list, should return NO_MORE_POS
-    assertEquals(DocTupCelIdSetIterator.NO_MORE_POS, termEnum.nextPosition());
+    assertEquals(NodAndPosEnum.NO_MORE_POS, termEnum.nextPosition());
   }
 
   @Test
@@ -101,21 +100,21 @@ public class TestSiren020NodAndposEnum {
 
     assertTrue(termEnum.nextDoc() != Siren020NodAndPosEnum.NO_MORE_DOCS);
     assertEquals(0, termEnum.docID());
-    assertEquals(0, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
 
     assertEquals(1, termEnum.freq());
     // here it is assumed that the position of the term in the global position
     // in the flow of tokens (and not within a cell).
     assertEquals(2, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(2, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(1, termEnum.node()[1]);
+    assertEquals(2, termEnum.pos());
 
     // end of the list, should return NO_MORE_POS
-    assertEquals(DocTupCelIdSetIterator.NO_MORE_POS, termEnum.nextPosition());
+    assertEquals(NodAndPosEnum.NO_MORE_POS, termEnum.nextPosition());
   }
 
   @Test
@@ -129,27 +128,27 @@ public class TestSiren020NodAndposEnum {
 
     assertTrue(termEnum.nextDoc() != Siren020NodAndPosEnum.NO_MORE_DOCS);
     assertEquals(0, termEnum.docID());
-    assertEquals(0, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
 
     assertEquals(3, termEnum.freq());
     assertEquals(0, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(0, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(0, termEnum.pos());
     assertEquals(1, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(1, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(1, termEnum.pos());
     assertEquals(2, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(2, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(2, termEnum.pos());
 
     // end of the list, should return NO_MORE_POS
-    assertEquals(DocTupCelIdSetIterator.NO_MORE_POS, termEnum.nextPosition());
+    assertEquals(NodAndPosEnum.NO_MORE_POS, termEnum.nextPosition());
   }
 
   @Test
@@ -163,31 +162,31 @@ public class TestSiren020NodAndposEnum {
 
     assertTrue(termEnum.nextDoc() != Siren020NodAndPosEnum.NO_MORE_DOCS);
     assertEquals(0, termEnum.docID());
-    assertEquals(0, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
 
     assertEquals(4, termEnum.freq());
     assertEquals(0, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(0, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(0, termEnum.pos());
     assertEquals(2, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(2, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(1, termEnum.node()[1]);
+    assertEquals(2, termEnum.pos());
     assertEquals(3, termEnum.nextPosition());
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(3, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(3, termEnum.pos());
     assertEquals(5, termEnum.nextPosition());
-    assertEquals(2, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(5, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(2, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(5, termEnum.pos());
 
     // end of the list, should return NO_MORE_POS
-    assertEquals(DocTupCelIdSetIterator.NO_MORE_POS, termEnum.nextPosition());
+    assertEquals(NodAndPosEnum.NO_MORE_POS, termEnum.nextPosition());
   }
 
   @Test
@@ -209,26 +208,26 @@ public class TestSiren020NodAndposEnum {
     
     termEnum.advance(16);
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     termEnum.advance(33, new int[] { 1, -1 });
     assertEquals(33, termEnum.docID());
-    assertEquals(33, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(2, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(2, termEnum.pos());
     assertEquals(2, termEnum.freq());
 
     termEnum.advance(96, new int[] { 1, 1 });
     assertEquals(96, termEnum.docID());
-    assertEquals(96, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(3, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(1, termEnum.node()[1]);
+    assertEquals(3, termEnum.pos());
     assertEquals(4, termEnum.freq());
   }
 
@@ -255,28 +254,28 @@ public class TestSiren020NodAndposEnum {
     // information
     assertTrue(termEnum.advance(16) != DocsAndPositionsEnum.NO_MORE_DOCS);
     assertEquals(17, termEnum.docID());
-    assertEquals(17, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(3, termEnum.freq());
 
     // Should jump to the third tuples
     assertTrue(termEnum.advance(17, new int[] { 1, -1 }) != DocsAndPositionsEnum.NO_MORE_DOCS);
     assertEquals(17, termEnum.docID());
-    assertEquals(17, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(2, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(5, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(2, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(5, termEnum.pos());
     assertEquals(3, termEnum.freq());
 
     // Should jump to the second cell
     assertTrue(termEnum.advance(17, new int[] { 3, 0 }) != DocsAndPositionsEnum.NO_MORE_DOCS);
     assertEquals(17, termEnum.docID());
-    assertEquals(17, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(3, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(9, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(3, termEnum.node()[0]);
+    assertEquals(1, termEnum.node()[1]);
+    assertEquals(9, termEnum.pos());
     assertEquals(3, termEnum.freq());
   }
 
@@ -297,26 +296,26 @@ public class TestSiren020NodAndposEnum {
 
     termEnum.advance(16);
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     termEnum.advance(16, new int[] { 1, -1 });
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(2, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(2, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     termEnum.advance(16, new int[] { 1, 1 });
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(3, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(1, termEnum.node()[1]);
+    assertEquals(3, termEnum.pos());
     assertEquals(4, termEnum.freq());
   }
 
@@ -337,16 +336,16 @@ public class TestSiren020NodAndposEnum {
 
     termEnum.advance(16);
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     for (int i = 0; i < termEnum.freq(); i++) {
       assertEquals(i, termEnum.nextPosition());
     }
-    assertEquals(DocTupCelIdSetIterator.NO_MORE_POS, termEnum.nextPosition());
+    assertEquals(NodAndPosEnum.NO_MORE_POS, termEnum.nextPosition());
   }
 
   @Test
@@ -366,19 +365,19 @@ public class TestSiren020NodAndposEnum {
 
     termEnum.advance(16, new int[] { 1, 0 });
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(2, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(2, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     assertEquals(3, termEnum.nextPosition());
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(3, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(1, termEnum.node()[1]);
+    assertEquals(3, termEnum.pos());
 
     // end of the list, should return NO_MORE_POS
-    assertEquals(DocTupCelIdSetIterator.NO_MORE_POS, termEnum.nextPosition());
+    assertEquals(NodAndPosEnum.NO_MORE_POS, termEnum.nextPosition());
   }
 
   @Test
@@ -398,26 +397,26 @@ public class TestSiren020NodAndposEnum {
 
     termEnum.nextDoc();
     assertEquals(0, termEnum.docID());
-    assertEquals(0, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     termEnum.advance(16);
     assertEquals(16, termEnum.docID());
-    assertEquals(16, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
     termEnum.nextDoc();
     assertEquals(17, termEnum.docID());
-    assertEquals(17, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(-1, termEnum.node()[NodesConfig.START_INDEX + 1]);
-    assertEquals(-1, termEnum.node()[NodesConfig.POS_INDEX]);
+    
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
     assertEquals(2, termEnum.freq());
   }
 
@@ -439,20 +438,20 @@ public class TestSiren020NodAndposEnum {
     // does not exist, should skip to entity 17 and to the first cell
     assertTrue(termEnum.advance(16, new int[] { 3, 2 }) != DocsAndPositionsEnum.NO_MORE_DOCS);
     assertEquals(17, termEnum.docID());
-    assertEquals(17, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
+    
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
 //    assertEquals(-1, termEnum.dataset());
-    assertEquals(0, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.pos());
 
     // does not exist, should skip to entity 19 and to the first cell
     assertTrue(termEnum.advance(18, new int[] { 2, 2 }) != DocsAndPositionsEnum.NO_MORE_DOCS);
     assertEquals(19, termEnum.docID());
-    assertEquals(19, termEnum.node()[NodesConfig.DOC_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX]);
-    assertEquals(0, termEnum.node()[NodesConfig.START_INDEX + 1]);
+    
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
 //    assertEquals(-1, termEnum.dataset());
-    assertEquals(0, termEnum.node()[NodesConfig.POS_INDEX]);
+    assertEquals(0, termEnum.pos());
 
     assertFalse(termEnum.advance(31, new int[] { 2, 0 }) != DocsAndPositionsEnum.NO_MORE_DOCS); // does not exist, reach end of list: should return false
   }

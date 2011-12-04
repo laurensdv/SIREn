@@ -71,7 +71,7 @@ public class QueryTestingHelper {
     final IndexWriterConfig config = new IndexWriterConfig(TEST_VERSION, _analyzer);
     // TODO: check where the max field length can be set
     _writer = new IndexWriter(_dir, config);
-    
+
     _storedWithNorm.setStored(true);
     _storedWithNorm.setOmitNorms(false);
     _storedWithNorm.setIndexed(true);
@@ -104,7 +104,7 @@ public class QueryTestingHelper {
    * Return a fresh searcher. This is necessary because the searcher cannot
    * found document added after its initialisation.
    */
-  public IndexSearcher getSearcher()
+  public IndexSearcher getIndexSearcher()
   throws IOException {
     // Instantiate a new searcher
     return new IndexSearcher(this.getIndexReader());
@@ -188,7 +188,7 @@ public class QueryTestingHelper {
   }
 
   public ScoreDoc[] search(final Query q) throws IOException {
-    return this.getSearcher().search(q, null, 1000).scoreDocs;
+    return this.getIndexSearcher().search(q, null, 1000).scoreDocs;
   }
 
 }

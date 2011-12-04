@@ -34,7 +34,6 @@ import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
 import org.sindice.siren.analysis.TupleTokenizer;
 
 /**
@@ -56,12 +55,12 @@ extends TokenFilter {
   private int    termLength;
   private CharBuffer termBuffer;
 
-  private final TermAttribute termAtt;
+  private final CharTermAttribute termAtt;
   private final PositionIncrementAttribute posIncrAtt;
 
   public URINormalisationFilter(final TokenStream input) {
     super(input);
-    termAtt = this.addAttribute(TermAttribute.class);
+    termAtt = this.addAttribute(CharTermAttribute.class);
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     termBuffer = CharBuffer.allocate(256);
   }
@@ -78,7 +77,7 @@ extends TokenFilter {
 
     // Otherwise, get next URI token and start normalisation
     if (input.incrementToken()) {
-      termLength = termAtt.termLength();
+      termLength = termAtt.length();
       this.updateBuffer();
       _isNormalising = true;
       start = end = 0;
@@ -93,17 +92,17 @@ extends TokenFilter {
   protected void updateBuffer() {
     if (termBuffer.capacity() > termLength) {
       termBuffer.clear();
-      termBuffer.put(termAtt.termBuffer(), 0, termLength);
+      termBuffer.put(termAtt.buffer(), 0, termLength);
     }
     else {
       termBuffer = CharBuffer.allocate(termLength);
-      termBuffer.put(termAtt.termBuffer(), 0, termLength);
+      termBuffer.put(termAtt.buffer(), 0, termLength);
     }
   }
 
   /**
    * Skip the scheme part. Added for SRN-66 in order to make the URI
-   * normalisation less agressive.
+   * normalisation less aggressive.
    */
   protected void skipScheme() {
     while (start < termLength) {
@@ -151,12 +150,12 @@ extends TokenFilter {
   }
 
   protected void updateToken() {
-    termAtt.setTermBuffer(termBuffer.array(), start, end - start);
+    termAtt.copyBuffer(termBuffer.array(), start, end - start);
     start = end;
   }
 
   protected void updateFinalToken() {
-    termAtt.setTermBuffer(termBuffer.array(), 0, termLength);
+    termAtt.copyBuffer(termBuffer.array(), 0, termLength);
     posIncrAtt.setPositionIncrement(0);
   }
 

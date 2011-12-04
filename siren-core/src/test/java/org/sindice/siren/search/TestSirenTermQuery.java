@@ -35,10 +35,10 @@ import java.io.IOException;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,9 +53,10 @@ public class TestSirenTermQuery {
   @Before
   public void setUp()
   throws Exception {
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(Version.LUCENE_34);
+    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION);
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    final TupleAnalyzer analyzer = new TupleAnalyzer(Version.LUCENE_31, new StandardAnalyzer(Version.LUCENE_31), uriAnalyzer);
+    final TupleAnalyzer analyzer = new TupleAnalyzer(QueryTestingHelper.TEST_VERSION,
+      new StandardAnalyzer(QueryTestingHelper.TEST_VERSION), uriAnalyzer);
     _helper = new QueryTestingHelper(analyzer);
   }
 
@@ -106,14 +107,18 @@ public class TestSirenTermQuery {
    */
   @Test
   public void testMatchTuple() throws Exception {
-    _helper.addDocument("<http://renaud.delbru.fr/rdf/foaf#me> <http://xmlns.com/foaf/0.1/name> \"Renaud Delbru\" . ");
+    /*
+     * TODO: before, this document was added with norms. However, the score
+     * expected score is the normalized one. Why is it so ? 
+     */
+    _helper.addDocumentNoNorms("<http://renaud.delbru.fr/rdf/foaf#me> <http://xmlns.com/foaf/0.1/name> \"Renaud Delbru\" . ");
 
     final SirenTermQuery query = new SirenTermQuery(new Term("content", "renaud"));
     final ScoreDoc[] hits = _helper.search(query);
     assertEquals(1, hits.length);
     assertEquals(0, hits[0].doc);
+    System.out.println(_helper.getIndexSearcher().createNormalizedWeight(query).explain((AtomicReaderContext) _helper.getIndexReader().getSequentialSubReaders()[0].getTopReaderContext(), 0));
     assertEquals(0.13, hits[0].score, 0.01f);
-    // System.out.println(query.weight(_helper.getSearcher()).explain(_helper.getIndexReader(), 0));
   }
 
   /**
@@ -133,17 +138,17 @@ public class TestSirenTermQuery {
    */
   @Test
   public void testWeight() throws Exception {
-    _helper.addDocument("\"Renaud Delbru\" . ");
-    _helper.addDocument("\"Renaud\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"Renaud Delbru\" . ",
+                                                    "\"Renaud\" . " });
 
     final SirenTermQuery query = new SirenTermQuery(new Term("content", "renaud"));
-    final Weight w = query.weight(_helper.getSearcher());
+    final Weight w = _helper.getIndexSearcher().createNormalizedWeight(query);
     assertNotNull(w);
-    final Explanation explain = w.explain(_helper.getIndexReader(), 0);
+    final Explanation explain = w.explain((AtomicReaderContext) _helper.getIndexReader().getSequentialSubReaders()[0].getTopReaderContext(), 0);
     assertNotNull(explain);
+//    System.out.println(explain.toString());
     assertTrue(explain.isMatch());
     assertEquals(0.37158427f, explain.getValue(), 0f);
-    //System.out.println(explain.toString());
   }
 
   @Test
@@ -152,18 +157,24 @@ public class TestSirenTermQuery {
 
     final Term t = new Term(QueryTestingHelper.DEFAULT_FIELD, "renaud");
     final SirenTermQuery query = new SirenTermQuery(t);
-    final Weight w = query.weight(_helper.getSearcher());
+    /*
+     * Query does not have anymore the method #weight. It was normalizing the weight
+     * of this query. In order to obtain the same result, use now the method
+     * #createNormalizedWeight from IndexSearcher.
+     */
+    final Weight w = _helper.getIndexSearcher().createNormalizedWeight(query);
     final IndexReader reader = _helper.getIndexReader();
+    final AtomicReaderContext atom = (AtomicReaderContext) reader.getSequentialSubReaders()[0].getTopReaderContext();
 
     // Explain entity 0
-    Explanation explanation = w.explain(reader, 0);
+    Explanation explanation = w.explain(atom, 0);
     assertNotNull("explanation is null and it shouldn't be", explanation);
-    // System.out.println("Explanation: " + explanation.toString());
+//     System.out.println("Explanation: " + explanation.toString());
     //All this Explain does is return the term frequency
     assertEquals("term frq is not 1", 1f, explanation.getDetails()[0].getValue(), 0f);
 
     // Explain non existing entity
-    explanation = w.explain(reader, 1);
+    explanation = w.explain(atom, 1);
     assertNotNull("explanation is null and it shouldn't be", explanation);
     //System.out.println("Explanation: " + explanation.toString());
     //All this Explain does is return the term frequency

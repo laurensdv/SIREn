@@ -30,25 +30,16 @@ import java.io.IOException;
 
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Similarity;
 import org.apache.lucene.search.Weight;
 
 /**
  * The Siren abstract {@link Scorer} class that implements the interface
- * {@link DocTupCelIdSetIterator}.
+ * {@link NodIdSetIterator}.
  */
-public abstract class SirenScorer extends Scorer implements DocTupCelIdSetIterator {
-
+public abstract class SirenScorer extends Scorer implements NodIdSetIterator {
+  
   protected SirenScorer(final Weight weight) {
     super(weight);
-  }
-
-  protected SirenScorer(final Similarity similarity) {
-    super(similarity);
-  }
-
-  protected SirenScorer(final Similarity similarity, final Weight weight) {
-    super(similarity, weight);
   }
 
   /**

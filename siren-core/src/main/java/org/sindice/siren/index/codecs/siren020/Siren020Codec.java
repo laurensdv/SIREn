@@ -41,7 +41,7 @@ public class Siren020Codec extends Codec {
 
   private final Lucene40Codec lucene40 = new Lucene40Codec();
     
-  public Siren020Codec(String name) {
+  public Siren020Codec() {
     super("Siren020");
   }
 

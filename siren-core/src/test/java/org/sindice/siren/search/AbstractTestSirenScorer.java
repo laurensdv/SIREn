@@ -34,16 +34,19 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermPositions;
-import org.apache.lucene.search.DefaultSimilarity;
+import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.MultiNorms;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Version;
+import org.apache.lucene.search.similarities.DefaultSimilarity;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Before;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
@@ -57,9 +60,9 @@ public abstract class AbstractTestSirenScorer {
   @Before
   public void setUp()
   throws Exception {
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(Version.LUCENE_34);
+    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION);
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    final TupleAnalyzer analyzer = new TupleAnalyzer(Version.LUCENE_31, new StandardAnalyzer(Version.LUCENE_31), uriAnalyzer);
+    final TupleAnalyzer analyzer = new TupleAnalyzer(QueryTestingHelper.TEST_VERSION, new StandardAnalyzer(QueryTestingHelper.TEST_VERSION), uriAnalyzer);
     _helper = new QueryTestingHelper(analyzer);
   }
 
@@ -70,20 +73,11 @@ public abstract class AbstractTestSirenScorer {
   }
 
   protected abstract void assertTo(final AssertFunctor functor, final String[] input,
-                        final String[] terms, final int expectedNumDocs,
-                        final int[] expectedNumTuples, final int[] expectedNumCells,
-                        final int[] expectedEntityID,
-                        final int[] expectedTupleID, final int[] expectedCellID,
-                        final int[] expectedPos)
+                        final String[] terms, final int[][] deweyPath)
   throws Exception;
 
   protected abstract class AssertFunctor {
-    protected abstract void run(final SirenScorer scorer, final int expectedNumDocs,
-                                final int[] expectedNumTuples, final int[] expectedNumCells,
-                                final int[] expectedEntityID,
-                                final int[] expectedTupleID,
-                                final int[] expectedCellID,
-                                final int[] expectedPos)
+    protected abstract void run(final SirenScorer scorer, int[][] deweyPaths)
     throws Exception;
   }
 
@@ -91,18 +85,15 @@ public abstract class AbstractTestSirenScorer {
   extends AssertFunctor {
 
     @Override
-    protected void run(final SirenScorer scorer,final int expectedNumDocs,
-                       final int[] expectedNumTuples, final int[] expectedNumCells,
-                       final int[] expectedEntityID,
-                       final int[] expectedTupleID, final int[] expectedCellID,
-                       final int[] expectedPos)
+    protected void run(final SirenScorer scorer,int[][] deweyPaths)
     throws Exception {
-      for (int i = 0; i < expectedNumDocs; i++) {
+      for (int i = 0; i < deweyPaths.length; i++) {
         assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-        assertEquals(expectedEntityID[i], scorer.entity());
-        assertEquals(expectedTupleID[i], scorer.tuple());
-        assertEquals(expectedCellID[i], scorer.cell());
-        assertEquals(expectedPos[i], scorer.pos());
+        assertEquals(deweyPaths[i][0], scorer.docID());
+        for (int j = 1; j < deweyPaths[i].length - 1; j++) {
+          assertEquals(deweyPaths[i][j], scorer.node()[j - 1]);
+        }
+        assertEquals(deweyPaths[i][deweyPaths[i].length - 1], scorer.pos());
       }
       assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
     }
@@ -112,30 +103,48 @@ public abstract class AbstractTestSirenScorer {
   extends AssertFunctor {
 
     @Override
-    protected void run(final SirenScorer scorer,final int expectedNumDocs,
-                       final int[] expectedNumTuples, final int[] expectedNumCells,
-                       final int[] expectedEntityID,
-                       final int[] expectedTupleID, final int[] expectedCellID,
-                       final int[] expectedPos)
+    protected void run(final SirenScorer scorer, int[][] deweyPaths)
     throws Exception {
       int index = 0;
-      for (int i = 0; i < expectedNumDocs; i++) {
+      int lastDocID = -1;
+      
+      while (index < deweyPaths.length) {
         assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-        for (int j = 0; j < expectedNumTuples[i]; j++) {
-          for (int k = 0; k < expectedNumCells[j]; k++) {
-            assertEquals(expectedEntityID[index], scorer.entity());
-            assertEquals(expectedTupleID[index], scorer.tuple());
-            assertEquals(expectedCellID[index], scorer.cell());
-            assertEquals(expectedPos[index], scorer.pos());
-            index++;
-            if (k < expectedNumCells[j] - 1)
-              assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+        while (true) {
+          lastDocID = deweyPaths[index][0];
+          assertEquals(deweyPaths[index][0], scorer.docID());
+          for (int i = 1; i < deweyPaths[index].length - 1; i++) {
+            assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
           }
-          if (j < expectedNumTuples[i] - 1)
-            assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+          assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
+          
+          index++;
+          if (index < deweyPaths.length && deweyPaths[index][0] == lastDocID) {
+            assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+          } else {
+            assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+            break;
+          }
         }
-        assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
       }
+      assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+//      for (int i = 0; i < expectedNumDocs; i++) {
+//        assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+//        for (int j = 0; j < expectedNumTuples[i]; j++) {
+//          for (int k = 0; k < expectedNumCells[j]; k++) {
+//            assertEquals(expectedEntityID[index], scorer.entity());
+//            assertEquals(expectedTupleID[index], scorer.tuple());
+//            assertEquals(expectedCellID[index], scorer.cell());
+//            assertEquals(expectedPos[index], scorer.pos());
+//            index++;
+//            if (k < expectedNumCells[j] - 1)
+//              assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+//          }
+//          if (j < expectedNumTuples[i] - 1)
+//            assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+//        }
+//        assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+//      }
     }
   }
 
@@ -143,18 +152,19 @@ public abstract class AbstractTestSirenScorer {
                                                   final String[] phraseTerms)
   throws IOException {
     final IndexReader reader = _helper.getIndexReader();
-    final TermPositions[] tps = new TermPositions[phraseTerms.length];
+    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
     final int[] positions = new int[phraseTerms.length];
     for (int i = 0; i < phraseTerms.length; i++) {
-      final TermPositions p = reader.termPositions(
-        new Term(QueryTestingHelper.DEFAULT_FIELD, phraseTerms[i]));
+      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
+        MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
+        new BytesRef(phraseTerms[i]));
       if (p == null) return null;
       tps[i] = p;
       positions[i] = i;
     }
 
     return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
-      new DefaultSimilarity(), reader.norms(field));
+      new DefaultSimilarity(), MultiNorms.norms(reader, field));
   }
 
   protected SirenExactPhraseScorer getExactScorer(final String field,
@@ -162,26 +172,27 @@ public abstract class AbstractTestSirenScorer {
                                                   final String[] phraseTerms)
   throws IOException {
     final IndexReader reader = _helper.getIndexReader();
-    final TermPositions[] tps = new TermPositions[phraseTerms.length];
+    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
     for (int i = 0; i < phraseTerms.length; i++) {
-      final TermPositions p = reader.termPositions(
-        new Term(QueryTestingHelper.DEFAULT_FIELD, phraseTerms[i]));
+      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
+        MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
+        new BytesRef(phraseTerms[i]));
       if (p == null) return null;
       tps[i] = p;
     }
 
     return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
-    new DefaultSimilarity(), reader.norms(field));
+    new DefaultSimilarity(), MultiNorms.norms(reader, field));
   }
 
   protected SirenTermScorer getTermScorer(final String field,
                                           final String term)
   throws IOException {
     final IndexReader reader = _helper.getIndexReader();
-    final TermPositions termPositions = reader.termPositions(
-      new Term(QueryTestingHelper.DEFAULT_FIELD, term));
-    return new SirenTermScorer(new ConstantWeight(), termPositions,
-      new DefaultSimilarity(), reader.norms(field));
+    final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
+      MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
+      new BytesRef(term));
+    return new SirenTermScorer(new ConstantWeight(), p, new DefaultSimilarity(), MultiNorms.norms(reader, field));
   }
 
   /**
@@ -191,9 +202,10 @@ public abstract class AbstractTestSirenScorer {
   protected SirenTermScorer getPositionedTermScorer(final String term)
   throws IOException {
     final IndexReader reader = _helper.getIndexReader();
-    final TermPositions termPositions = reader.termPositions(new Term(
-      QueryTestingHelper.DEFAULT_FIELD, term));
-    final SirenTermScorer s = new SirenTermScorer(new ConstantWeight(), termPositions,
+    final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
+      MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
+      new BytesRef(term));
+    final SirenTermScorer s = new SirenTermScorer(new ConstantWeight(), p,
       new DefaultSimilarity(), reader.norms(QueryTestingHelper.DEFAULT_FIELD));
     assertNotSame(DocIdSetIterator.NO_MORE_DOCS, s.nextDoc());
     return s;
@@ -282,25 +294,30 @@ public abstract class AbstractTestSirenScorer {
     private static final long serialVersionUID = 1L;
 
     @Override
-    public float getValue() { return 1; }
-
-    @Override
-    public Explanation explain(final IndexReader reader, final int doc)
-    throws IOException { return null; }
-
-    @Override
     public Query getQuery() { return null; }
 
     @Override
-    public void normalize(final float norm) {}
+    public Explanation explain(AtomicReaderContext context, int doc)
+    throws IOException {
+      return null;
+    }
 
     @Override
-    public float sumOfSquaredWeights() throws IOException { return 0; }
+    public float getValueForNormalization()
+    throws IOException {
+      return 1;
+    }
 
     @Override
-    public Scorer scorer(final IndexReader reader, final boolean scoreDocsInOrder,
-                         final boolean topScorer)
-    throws IOException { return null; }
+    public void normalize(float norm, float topLevelBoost) {
+    }
+
+    @Override
+    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder,
+                         boolean topScorer, Bits acceptDocs)
+    throws IOException {
+      return null;
+    }
   }
 
 }

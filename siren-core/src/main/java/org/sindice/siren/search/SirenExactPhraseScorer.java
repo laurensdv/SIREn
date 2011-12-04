@@ -27,43 +27,70 @@
 package org.sindice.siren.search;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.lucene.index.TermPositions;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.Similarity;
 
 class SirenExactPhraseScorer
 extends SirenPhraseScorer {
 
-  protected final List<Integer> tuples = new ArrayList<Integer>();
-  protected final List<Integer> cells = new ArrayList<Integer>();
+  // TODO: what was this used for ?
+//  protected final List<Integer> tuples = new ArrayList<Integer>();
+//  protected final List<Integer> cells = new ArrayList<Integer>();
 
-  SirenExactPhraseScorer(final Weight weight, final TermPositions[] docsEnums, final int[] offsets,
-                         final Similarity similarity, final byte[] norms) {
+  SirenExactPhraseScorer(final Weight weight, final DocsAndPositionsEnum[] docsEnums, final int[] offsets,
+                         final Similarity similarity, final byte[] norms) throws IOException {
     super(weight, docsEnums, offsets, similarity, norms);
   }
 
+  private boolean isBefore(int[] nodes) {
+    boolean res;
+    
+    for (int i = 0; i < nodes.length; i++) {
+      int index = i;
+      res = node()[index] < nodes[index];
+      
+      while (--index >= 0) {
+        res = node()[index] == nodes[index] && res;
+      }
+      if (res) return true;
+    }
+    res = node()[0] == nodes[0];
+    for (int i = 1; i < nodes.length; i++) {
+      res = node()[i] == nodes[i] && res;
+    }
+    return res && first.pos() < last.pos();
+  }
+  
   @Override
   public int doNextPosition() throws IOException {
-    while (first.tuple() < last.tuple() ||
-          (first.tuple() == last.tuple() && first.cell() < last.cell()) ||
-          (first.tuple() == last.tuple() && first.cell() == last.cell() && first.pos() < last.pos())) {
+    while (isBefore(last.node())) {
       do {
         if (first.nextPosition() == NO_MORE_POS)
           return NO_MORE_POS;
-      } while (first.tuple() < last.tuple() ||
-          (first.tuple() == last.tuple() && first.cell() < last.cell()) ||
-          (first.tuple() == last.tuple() && first.cell() == last.cell() && first.pos() < last.pos()));
+      } while (isBefore(last.node()));
       this.firstToLast();
     }
     // all equal: a match
-    tuple = first.tuple();
-    cell = first.cell();
     pos = first.pos();
     occurrences++; // increase occurrences
     return pos;
+  }
+
+  @Override
+  public String toString() {
+    return "PhraseScorer(" + docID + "," + first + ")";
+  }
+
+  @Override
+  public int pos() {
+    return pos;
+  }
+  
+  @Override
+  public int[] node() {
+    return first.node();
   }
 
 }

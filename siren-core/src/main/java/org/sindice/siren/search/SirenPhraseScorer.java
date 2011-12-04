@@ -28,9 +28,10 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.TermPositions;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
 
 /**
  * <p> An entity is considered matching if it contains the phrase-query terms at
@@ -45,7 +46,7 @@ import org.apache.lucene.search.Weight;
 abstract class SirenPhraseScorer
 extends SirenPrimitiveScorer {
 
-  private final Similarity   sim;
+  private final TFIDFSimilarity   sim;
 
   protected byte[]           norms;
 
@@ -65,19 +66,25 @@ extends SirenPrimitiveScorer {
   protected int              occurrences = 0;
 
   /** Current structural and positional information */
-  protected final int           dataset = -1;
-  protected int                 entity = -1;
-  protected int                 tuple = -1;
-  protected int                 cell = -1;
+//  protected final int           dataset = -1;
+//  protected int                 tuple = -1;
+//  protected int                 cell = -1;
   protected int                 pos = -1;
+  protected int                 docID = -1;
+//  protected int[]               curNode;
 
-  SirenPhraseScorer(final Weight weight, final TermPositions[] tps,
+  SirenPhraseScorer(final Weight weight, final DocsAndPositionsEnum[] tps,
                     final int[] offsets, final Similarity similarity,
-                    final byte[] norms) {
-    super(similarity);
-    sim = similarity;
+                    final byte[] norms) throws IOException {
+    super(weight);
+    if (similarity instanceof TFIDFSimilarity)
+      sim = (TFIDFSimilarity) similarity;
+    else
+      throw new RuntimeException("This scorer uses a TF-IDF scoring function");
     this.norms = norms;
-    this.value = weight.getValue();
+    // TODO: Check if this is the same thing
+//    this.value = weight.getValue();
+    this.value = weight.getValueForNormalization();
 
     // convert tps to a list of phrase positions.
     // note: phrase-position differs from term-position in that its position
@@ -94,38 +101,12 @@ extends SirenPrimitiveScorer {
         first = pp;
       last = pp;
     }
-
     pq = new SirenPhraseQueue(tps.length); // construct empty pq
   }
 
   @Override
   public int docID() {
-    return entity;
-  }
-
-  @Override
-  public int dataset() {
-    return dataset;
-  }
-
-  @Override
-  public int entity() {
-    return entity;
-  }
-
-  @Override
-  public int tuple() {
-    return tuple;
-  }
-
-  @Override
-  public int cell() {
-    return cell;
-  }
-
-  @Override
-  public int pos() {
-    return pos;
+    return docID;
   }
 
   public int phraseFreq() throws IOException {
@@ -159,16 +140,16 @@ extends SirenPrimitiveScorer {
   private int doNext()
   throws IOException {
     while (more) {
-      while (more && first.entity() < last.entity()) { // find entity w/ all the terms
-        more = (first.advance(last.entity()) != NO_MORE_DOCS); // skip first upto last
+      while (more && first.docID() < last.docID()) { // find entity w/ all the terms
+        more = (first.advance(last.docID()) != NO_MORE_DOCS); // skip first upto last
         this.firstToLast(); // and move it to the end
       }
 
       if (more) { // found an entity with all of the terms
         this.initQueue();
         if (this.doNextPosition() != NO_MORE_POS) { // check for phrase
-          entity = first.entity();
-          return entity;
+          docID = first.docID();
+          return docID;
         }
         else {
           more = (last.nextDoc() != NO_MORE_DOCS); // trigger further scanning
@@ -196,13 +177,13 @@ extends SirenPrimitiveScorer {
       throw new InvalidCallException("next or skipTo should be called first");
 
     final float raw = sim.tf(this.phraseFreq()) * value; // raw score
-    return norms == null ? raw : raw * sim.decodeNormValue(norms[first.entity()]); // normalize
+    return norms == null ? raw : raw * sim.decodeNormValue(norms[first.docID()]); // normalize
   }
 
   @Override
   public int advance(final int entityID) throws IOException {
-    if (entity == entityID) { // optimised case: do nothing
-      return entity;
+    if (docID == entityID) { // optimised case: do nothing
+      return docID;
     }
 
     firstTime = false;
@@ -215,42 +196,61 @@ extends SirenPrimitiveScorer {
     return this.doNext();
   }
 
+  /**
+   * Return true if the current node is after of equals to the one passed in argument
+   * @param nodes
+   * @return
+   */
+  private boolean isAfterOrEquals(int[] nodes) {
+    for (int i = 0; i < nodes.length; i++) {
+      int index = i;
+      boolean res;
+      if (index == 0) {
+        res = node()[index] > nodes[index];
+      } else {
+        res = node()[index] >= nodes[index]; 
+      }
+      while (--index >= 0) {
+        res = node()[index] == nodes[index] && res;
+      }
+      if (res) return true;
+    }
+    return false;
+  }
+  
+  /**
+   * Return true if the current node is before the one passed in argument
+   * @param nodes
+   * @return
+   */
+  private boolean isBefore(int[] nodes) {
+    for (int i = 0; i < nodes.length; i++) {
+      int index = i;
+      boolean res = node()[index] < nodes[index];
+      
+      while (--index >= 0) {
+        res = node()[index] == nodes[index] && res;
+      }
+      if (res) return true;
+    }
+    return false;
+  }
+  
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
-    if (entity == entityID) { // optimised case: find tuple in occurrences
-      while (tuple < tupleID && this.nextPosition() != NO_MORE_POS) {
+    if (this.docID == docID) { // optimised case: find tuple in occurrences
+      while (isBefore(nodes) && this.nextPosition() != NO_MORE_POS) {
         ;
       }
       // If tuple found, return true, if not, skip to next entity
-      return (tuple >= tupleID) ? entity : this.nextDoc();
-    }
-
-    firstTime = false;
-    for (SirenPhrasePositions pp = first; more && pp != null; pp = pp.next) {
-      more = (pp.advance(entityID, tupleID) != NO_MORE_DOCS);
-    }
-    if (more) {
-      this.sort(); // re-sort
-    }
-    return this.doNext(); // find next matching entity
-  }
-
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    if (entity == entityID) { // optimised case: find tuple in occurrences
-      while ((tuple < tupleID || (tuple == tupleID && cell < cellID))
-              && this.nextPosition() != NO_MORE_POS) {
-        ;
-      }
       // If tuple and cell found, return true, if not, skip to next entity
-      return (tuple > tupleID || (tuple == tupleID && cell >= cellID)) ? entity : this.nextDoc();
+      return (isAfterOrEquals(nodes)) ? docID : this.nextDoc();
     }
 
     firstTime = false;
     for (SirenPhrasePositions pp = first; more && pp != null; pp = pp.next) {
-      more = (pp.advance(entityID, tupleID, cellID) != NO_MORE_DOCS);
+      more = (pp.advance(docID, nodes) != NO_MORE_DOCS);
     }
     if (more) {
       this.sort(); // re-sort
@@ -309,8 +309,6 @@ extends SirenPrimitiveScorer {
   }
 
   @Override
-  public String toString() {
-    return "PhraseScorer(" + dataset + "," + entity + "," + tuple + "," + cell + ")";
-  }
+  public abstract String toString();
 
 }

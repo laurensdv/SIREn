@@ -29,19 +29,22 @@ package org.sindice.siren.search;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.DocsAndPositionsEnum;
+import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermDocs;
-import org.apache.lucene.index.TermPositions;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
+import org.apache.lucene.index.IndexReader.ReaderContext;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.Similarity;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.search.Explanation.IDFExplanation;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
 
 /**
@@ -55,25 +58,30 @@ extends SirenPrimitiveQuery {
 
   private final Term term;
 
-  protected class SirenTermWeight
-  extends Weight {
+  protected class SirenTermWeight extends Weight {
 
-    private final Similarity similarity;
-
+    private final TFIDFSimilarity similarity;
     private float            value;
-
-    private final float      idf;
-
     private float            queryNorm;
-
     private float            queryWeight;
+    private final Similarity.Stats stats;
+    private final TermContext termStates;
+    private final float idf;
+    private final Explanation idfExp;
 
-    private final IDFExplanation   idfExp;
-
-    public SirenTermWeight(final Searcher searcher) throws IOException {
-      this.similarity = SirenTermQuery.this.getSimilarity(searcher);
-      idfExp = similarity.idfExplain(term, searcher);
-      idf = idfExp.getIdf();
+    public SirenTermWeight(final IndexSearcher searcher, TermContext termStates) throws IOException {
+      assert termStates != null : "TermContext must not be null";
+      this.termStates = termStates;
+      Similarity sim = searcher.getSimilarityProvider().get(term.field());
+      if (sim instanceof TFIDFSimilarity)
+        similarity = (TFIDFSimilarity) sim;
+      else
+        throw new RuntimeException("This scorer uses a TF-IDF scoring function");
+      stats = similarity.computeStats(searcher.collectionStatistics(term.field()), 
+                                      getBoost(),
+                                      searcher.termStatistics(term, termStates));
+      idf = similarity.idf(searcher.getIndexReader().docFreq(term), searcher.getIndexReader().numDocs());
+      idfExp = similarity.idfExplain(searcher.collectionStatistics(term.field()), searcher.termStatistics(term, termStates));
     }
 
     @Override
@@ -87,45 +95,40 @@ extends SirenPrimitiveQuery {
     }
 
     @Override
-    public float getValue() {
-      return value;
-    }
-
-    @Override
-    public float sumOfSquaredWeights() {
+    public float getValueForNormalization()
+    throws IOException {
+//      return stats.getValueForNormalization();
       queryWeight = idf * SirenTermQuery.this.getBoost(); // compute query weight
       return queryWeight * queryWeight; // square it
     }
 
     @Override
-    public void normalize(final float queryNorm) {
-      this.queryNorm = queryNorm;
+    public void normalize(float norm, float topLevelBoost) {
+//      stats.normalize(norm, topLevelBoost);
+      this.queryNorm = norm;
       queryWeight *= queryNorm; // normalize query weight
       value = queryWeight * idf; // idf for document
     }
 
     @Override
-    public Scorer scorer(final IndexReader reader, final boolean scoreDocsInOrder,
-                         final boolean topScorer)
+    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder, boolean topScorer, Bits acceptDocs)
     throws IOException {
-      final TermPositions termPositions = reader.termPositions(term);
-      if (termPositions == null) {
+      final DocsAndPositionsEnum dapEnum = context.reader.termPositionsEnum(acceptDocs, term.field(), term.bytes());
+      if (dapEnum == null) {
         return null;
       }
 
-      return new SirenTermScorer(this, termPositions, similarity,
-        reader.norms(term.field()));
+      return new SirenTermScorer(this, dapEnum, similarity, context.reader.norms(term.field()));
     }
 
     @Override
-    public Explanation explain(final IndexReader reader, final int doc)
+    public Explanation explain(AtomicReaderContext context, int doc)
     throws IOException {
-
       final ComplexExplanation result = new ComplexExplanation();
       result.setDescription("weight(" + this.getQuery() + " in " + doc +
                             "), product of:");
 
-      final Explanation expl = new Explanation(idf, idfExp.explain());
+      final Explanation expl = new Explanation(idf, idfExp.toString());
 
       // explain query weight
       final Explanation queryExpl = new Explanation();
@@ -154,14 +157,10 @@ extends SirenPrimitiveQuery {
 
       final Explanation tfExplanation = new Explanation();
       int tf = 0;
-      final TermDocs termDocs = reader.termDocs(term);
+      final DocsEnum termDocs = context.reader.termDocsEnum(context.reader.getLiveDocs(), term.field(), term.bytes());
       if (termDocs != null) {
-        try {
-          if (termDocs.skipTo(doc) && termDocs.doc() == doc) {
-            tf = termDocs.freq();
-          }
-        } finally {
-          termDocs.close();
+        if (termDocs.advance(doc) != DocsEnum.NO_MORE_DOCS && termDocs.docID() == doc) {
+          tf = termDocs.freq();
         }
         tfExplanation.setValue(similarity.tf(tf));
         tfExplanation.setDescription("tf(termFreq("+term+")="+tf+")");
@@ -173,9 +172,9 @@ extends SirenPrimitiveQuery {
       fieldExpl.addDetail(expl);
 
       final Explanation fieldNormExpl = new Explanation();
-      final byte[] fieldNorms = reader.norms(field);
+      final byte[] fieldNorms = context.reader.norms(field);
       final float fieldNorm =
-        fieldNorms != null && doc < fieldNorms.length ? Similarity.decodeNorm(fieldNorms[doc]) : 1.0f;
+        fieldNorms != null && doc < fieldNorms.length ? similarity.decodeNormValue(fieldNorms[doc]) : 1.0f;
       fieldNormExpl.setValue(fieldNorm);
       fieldNormExpl.setDescription("fieldNorm(field="+field+", doc="+doc+")");
       fieldExpl.addDetail(fieldNormExpl);
@@ -210,9 +209,12 @@ extends SirenPrimitiveQuery {
   }
 
   @Override
-  public Weight createWeight(final Searcher searcher)
+  public Weight createWeight(final IndexSearcher searcher)
   throws IOException {
-    return new SirenTermWeight(searcher);
+    final ReaderContext context = searcher.getTopReaderContext();
+    // make TermQuery single-pass if we don't have a PRTS or if the context differs!
+    final TermContext termState = TermContext.build(context, term, true); // cache term lookups!
+    return new SirenTermWeight(searcher, termState);
   }
 
   @Override
@@ -247,5 +249,5 @@ extends SirenPrimitiveQuery {
   public int hashCode() {
     return Float.floatToIntBits(this.getBoost()) ^ term.hashCode();
   }
-
+  
 }

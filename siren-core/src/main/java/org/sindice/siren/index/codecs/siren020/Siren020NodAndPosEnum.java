@@ -30,32 +30,28 @@ import java.util.Arrays;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.util.BytesRef;
+import org.sindice.siren.index.AbstractNodAndPos;
 import org.sindice.siren.index.AbstractSirenPayload;
-import org.sindice.siren.index.NodAndPosEnum;
 import org.sindice.siren.index.NodesConfig;
 import org.sindice.siren.index.PackedIntSirenPayload;
 
 /**
  * 
  */
-public class Siren020NodAndPosEnum extends NodAndPosEnum {
+public class Siren020NodAndPosEnum extends AbstractNodAndPos {
 
   private final DocsAndPositionsEnum _dAndpEnum;
   private final PackedIntSirenPayload payload = new PackedIntSirenPayload();
   private final byte[] firstNode = new byte[1]; // cannot directly access the attributes of the siren payload
-  private final int[] _curNode;
   
   /** 
    * Flag to know if {@link #nextDoc()}, {@link #advance(int)}
    * or {@link #advance(int, int[])} has been called
    */
 //  private boolean             _isFirstTime = true;
-
-  /** index of the next element to be read or written */
-  private int                 _posPtr = -1;
   
   public Siren020NodAndPosEnum(final NodesConfig config, final DocsAndPositionsEnum e) {
-    _curNode = new int[2 + config.getNbLayers()];
+    super(config);
     _dAndpEnum = e;
     firstNode[0] = 0;
   }
@@ -63,11 +59,6 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   @Override
   public int freq() {
     return _dAndpEnum.freq();
-  }
-
-  @Override
-  public int docID() {
-    return _curNode[NodesConfig.DOC_INDEX];
   }
   
   @Override
@@ -97,8 +88,9 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   @Override
   public int advance(int target)
   throws IOException {
-    if (target == _curNode[NodesConfig.DOC_INDEX]) { // optimised case: reset buffer
+    if (target == _docID) { // optimised case: reset buffer
       Arrays.fill(_curNode, -1);
+      _pos = -1;
       _posPtr = -1;
       return target;
     }
@@ -109,7 +101,8 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
       return NO_MORE_DOCS;
     }
     Arrays.fill(_curNode, -1);
-    _curNode[NodesConfig.DOC_INDEX] = nodeID;
+    _pos = -1;
+    _docID = nodeID;
 //    _isFirstTime = false;
     _posPtr = -1;
     return nodeID;
@@ -118,15 +111,15 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   @Override
   public int advance(int target, int[] nodes)
   throws IOException {
-    if (nodes.length + 2 != _curNode.length) // 2 == the document ID and the position: they are here by default
-      throw new RuntimeException("Invalid argument, received array with size=" + nodes.length + ", should be " + (_curNode.length - 2));
+    if (nodes.length != _curNode.length)
+      throw new RuntimeException("Invalid argument, received array with size=" + nodes.length + ", should be " + _curNode.length);
     
     // optimisation: if current entity is the right one, don't call advance
     // and avoid to reset buffer
-    if (target == _curNode[NodesConfig.DOC_INDEX] || advance(target) != NO_MORE_DOCS) {
+    if (target == _docID || advance(target) != NO_MORE_DOCS) {
       // If we skipped to the right entity, load the tuples and let's try to
       // find the right one
-      if (target == _curNode[NodesConfig.DOC_INDEX]) {
+      if (target == _docID) {
         // If tuple and cell are not found, just move to the next entity
         // (SRN-17), and to the next cell (SRN-24)
         if (!findNode(nodes)) {
@@ -136,6 +129,7 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
           }
           // position stream exhausted
           Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
+          _docID = _pos = NO_MORE_DOCS;
           return NO_MORE_DOCS;
         }
       }
@@ -143,59 +137,8 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
     }
     // position stream exhausted
     Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
+    _docID = _pos = NO_MORE_DOCS;
     return NO_MORE_DOCS;
-  }
-  
-  /**
-   * Return true if the searched node hasn't been reached yet.
-   * @param nodes
-   * @param index
-   * @return
-   */
-  private boolean compare(int[] nodes, int index) {
-    boolean res = _curNode[NodesConfig.START_INDEX + index] < nodes[index];
-    
-    while (--index >= 0) {
-      res = _curNode[NodesConfig.START_INDEX + index] == nodes[index] && res;
-    }
-    return res;
-  }
-  
-  /**
-   * Advance to the node right after the one passed in argument
-   * @param nodes
-   * @return
-   * @throws IOException
-   */
-  private boolean findNode(int[] nodes)
-  throws IOException {
-    if (nodes[0] == -1) {
-      return true;
-    }
-    
-    int maxIndex = 0;
-    for (int i = 0; i < nodes.length; i++) {
-      if (nodes[i] == -1) {
-        break;
-      }
-      maxIndex = i;
-    }
-    while (++_posPtr < freq()) {
-      this.loadTuple();
-      boolean match = true;
-      for (int i = 0; i <= maxIndex; i++) {
-        if (compare(nodes, i)) {
-          match = false;
-          break;
-        }
-      }
-      if (!match) {
-        continue;
-      } else {
-        return true;
-      }
-    }
-    return false;
   }
   
   @Override
@@ -205,22 +148,24 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
 //      throw new RuntimeException("Invalid call, nextDoc should be called first.");
 
     if (++_posPtr < freq()) {
-      this.loadTuple();
-      return _curNode[NodesConfig.POS_INDEX];
+      this.loadBranch();
+      return _pos;
     }
 
     return NO_MORE_POS;
   }
 
-  protected void loadTuple() throws IOException {
-    _curNode[NodesConfig.POS_INDEX] = _dAndpEnum.nextPosition();
+  @Override
+  protected void loadBranch()
+  throws IOException {
+    _pos = _dAndpEnum.nextPosition();
     final AbstractSirenPayload payload = getSirenPayload();
-    _curNode[NodesConfig.START_INDEX] = _curNode[NodesConfig.START_INDEX] == -1 ? payload.getTupleID() : _curNode[NodesConfig.START_INDEX] + payload.getTupleID();
-    if (_curNode[NodesConfig.START_INDEX + 1] == -1 || payload.getTupleID() != 0) {
-      _curNode[NodesConfig.START_INDEX + 1] = payload.getCellID();
+    _curNode[0] = _curNode[0] == -1 ? payload.getTupleID() : _curNode[0] + payload.getTupleID();
+    if (_curNode[1] == -1 || payload.getTupleID() != 0) {
+      _curNode[1] = payload.getCellID();
     }
     else { // if (payload.getTupleID() == 0)
-      _curNode[NodesConfig.START_INDEX + 1] += payload.getCellID();
+      _curNode[1] += payload.getCellID();
     }
   }
 
@@ -230,18 +175,15 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
     final int nodeID;
     if ((nodeID = _dAndpEnum.nextDoc()) == NO_MORE_DOCS) {
       Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
+      _docID = _pos = NO_MORE_DOCS;
       return NO_MORE_DOCS;
     }
     Arrays.fill(_curNode, -1);
-    _curNode[NodesConfig.DOC_INDEX] = nodeID;
+    _pos = -1;
+    _docID = nodeID;
 //    _isFirstTime = false;
     _posPtr = -1;
     return nodeID;
-  }
-
-  @Override
-  public int[] node() {
-    return _curNode;
   }
 
 }

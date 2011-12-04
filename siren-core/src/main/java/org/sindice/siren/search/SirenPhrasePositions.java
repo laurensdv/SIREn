@@ -28,14 +28,16 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.TermPositions;
+import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
-import org.sindice.siren.index.SirenTermPositions;
+import org.sindice.siren.index.NodAndPosEnum;
+import org.sindice.siren.index.NodesConfig;
+import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
 
 /**
  * Code taken from {@link PhrasePositions} and adapted for the Siren use case.
  */
-class SirenPhrasePositions implements DocTupCelIdSetIterator {
+class SirenPhrasePositions implements NodIdSetIterator {
 
   /**
    * Flag to know if {@link #advance(int, int)} or {@link #advance(int, int, int)}
@@ -44,34 +46,38 @@ class SirenPhrasePositions implements DocTupCelIdSetIterator {
    **/
   protected boolean             _hasSkippedPosition = false;
 
-  private int dataset = -1;           // current dataset
-  private int entity = -1;            // current entity
-  private int tuple = -1;             // current tuple
-  private int cell = -1;              // current cell
+//  private int dataset = -1;           // current dataset
+//  private int entity = -1;            // current entity
+//  private int tuple = -1;             // current tuple
+//  private int cell = -1;              // current cell
   private int pos = -1;               // current position
   private final int offset;           // position in phrase
 
-  private final SirenTermPositions termPositions; // stream of positions
+  private final NodAndPosEnum napEnum; // stream of positions
   protected SirenPhrasePositions next;            // used to make lists
 
-  SirenPhrasePositions(final TermPositions t, final int o) {
-    termPositions = new SirenTermPositions(t);
+  SirenPhrasePositions(final DocsAndPositionsEnum t, final int o) {
+    // TODO: don't instantiate the enum here! this should be done by the specific codec.
+    napEnum = new Siren020NodAndPosEnum(new NodesConfig(2), t);
     offset = o;
   }
 
-  public int nextDoc() throws IOException {    // increments to next entity
-    if (!termPositions.next()) {
-      termPositions.close();                   // close stream
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+  public int nextDoc()
+  throws IOException {
+    // increments to next entity
+    if (napEnum.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
+      napEnum.setToSentinel();
       return DocIdSetIterator.NO_MORE_DOCS;
     }
-    entity = termPositions.doc();
-    dataset = tuple = cell = pos = -1;
+//    entity = napEnum.doc();
+//    dataset = tuple = cell = pos = -1;
+    pos = -1;
     _hasSkippedPosition = false;
-    return entity;
+    return napEnum.docID();
   }
 
-  public final void firstPosition() throws IOException {
+  public final void firstPosition()
+  throws IOException {
     if (!_hasSkippedPosition)
       this.nextPosition();
   }
@@ -83,87 +89,58 @@ class SirenPhrasePositions implements DocTupCelIdSetIterator {
    * have exactly the same <code>position</code>.
    */
   public final int nextPosition() throws IOException {
-    if (termPositions.nextPosition() != NO_MORE_POS) { // read subsequent pos's
-      pos = termPositions.pos() - offset;
-      tuple = termPositions.tuple();
-      cell = termPositions.cell();
+    if (napEnum.nextPosition() != NO_MORE_POS) { // read subsequent pos's
+      pos = napEnum.pos() - offset;
+//      tuple = napEnum.tuple();
+//      cell = napEnum.cell();
       return pos;
     }
     return NO_MORE_POS;
   }
 
   public int advance(final int entityID) throws IOException {
-    if (!termPositions.skipTo(entityID)) {
-      termPositions.close();
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+    if (napEnum.advance(entityID) == DocIdSetIterator.NO_MORE_DOCS) {
+      napEnum.setToSentinel();
       return DocIdSetIterator.NO_MORE_DOCS;
     }
-    entity = termPositions.doc();
+//    entity = napEnum.doc();
     _hasSkippedPosition = false;
-    return entity;
+    return napEnum.docID();
   }
 
-  public int advance(final int entityID, final int tupleID)
+  @Override
+  public int advance(int docID, int[] nodes)
   throws IOException {
-    if (!termPositions.skipTo(entityID, tupleID)) {
-      termPositions.close();
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
+    if (napEnum.advance(docID, nodes) == DocIdSetIterator.NO_MORE_DOCS) {
+      napEnum.setToSentinel();
       return DocIdSetIterator.NO_MORE_DOCS;
     }
-    entity = termPositions.entity();
-    tuple = termPositions.tuple();
-    cell = termPositions.cell();
-    pos = termPositions.pos() - offset;
+    pos = napEnum.pos() - offset;
     _hasSkippedPosition = true;
-    return entity;
-  }
-
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    if (!termPositions.skipTo(entityID, tupleID, cellID)) {
-      dataset = entity = tuple = cell = pos = Integer.MAX_VALUE; // set to sentinel value
-      return DocIdSetIterator.NO_MORE_DOCS;
-    }
-    entity = termPositions.entity();
-    tuple = termPositions.tuple();
-    cell = termPositions.cell();
-    pos = termPositions.pos() - offset;
-    _hasSkippedPosition = true;
-    return entity;
-  }
-
-  @Override
-  public int cell() {
-    return cell;
-  }
-
-  @Override
-  public int dataset() {
-    return dataset;
-  }
-
-  @Override
-  public int entity() {
-    return entity;
+    return napEnum.docID();
   }
 
   @Override
   public int pos() {
     return pos;
   }
-
-  @Override
-  public int tuple() {
-    return tuple;
-  }
-
   public int offset() {
     return offset;
   }
 
   @Override
   public String toString() {
-    return "PhrasePosition(" + dataset + "," + entity + "," + tuple + "," + cell + ")";
+    return "PhrasePosition(" + napEnum.docID() + ", " + napEnum.toString() + ", " + pos + ")";
+  }
+
+  @Override
+  public int docID() {
+    return napEnum.docID();
+  }
+
+  @Override
+  public int[] node() {
+    return napEnum.node();
   }
 
 }

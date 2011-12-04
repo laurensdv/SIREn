@@ -29,10 +29,6 @@ package org.sindice.siren.index;
  * 
  */
 public class NodesConfig {
-
-  public static int DOC_INDEX = 0;
-  public static int POS_INDEX = 1;
-  public static int START_INDEX = 2;
   
   private final int nbLayers;
   

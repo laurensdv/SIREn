@@ -26,6 +26,7 @@
 package org.sindice.siren.index;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
 
@@ -34,6 +35,17 @@ import org.apache.lucene.index.DocsAndPositionsEnum;
  */
 public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
 
+  protected final int[] _curNode;
+  
+  /**
+   * 
+   */
+  public NodAndPosEnum(NodesConfig config) {
+    _curNode = new int[config.getNbLayers()];
+    // initialize the current node identifiers.
+    Arrays.fill(_curNode, -1);
+  }
+  
   /**
    * When returned by {@link #nextPosition()} it means there are no more
    * positions in the iterator.
@@ -51,6 +63,29 @@ public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
    */
   public abstract int advance(int target, int[] nodes) throws IOException;
   
+  /**
+   * Returns the current node identifiers
+   * @return
+   */
   public abstract int[] node();
+  
+  /**
+   * Set the current node to the sentinel value, indicating that there is no more
+   * documents to read.
+   */
+  public abstract void setToSentinel();
+  
+  /**
+   * Set the current layer and the position to the sentinel value, indicating that
+   * there is no more occurrences to read.
+   */
+  public abstract void setLayersToSentinel();
+  
+  public abstract int pos();
 
+  @Override
+  public String toString() {
+    return Arrays.toString(_curNode);
+  }
+  
 }
