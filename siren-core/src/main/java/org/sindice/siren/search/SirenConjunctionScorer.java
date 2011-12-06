@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
 
 /**
  * Scorer for conjunctions, sets of queries, within a cell. All the queries
@@ -55,51 +55,29 @@ extends SirenScorer {
 
   private final float         coord;
 
-  private final int           lastDataset   = -1;
+  private int[]               lastNode;
 
   private int                 lastEntity   = -1;
-
-  private int                 lastTuple   = -1;
-
-  private int                 lastCell   = -1;
-
-  public SirenConjunctionScorer(final Similarity similarity,
-                                final Collection<SirenPrimitiveScorer> scorers)
+  
+  public SirenConjunctionScorer(final Weight weight,
+                                final Collection<SirenPrimitiveScorer> scorers,
+                                float coord)
   throws IOException {
-    this(similarity, scorers.toArray(new SirenPrimitiveScorer[scorers.size()]));
+    this(weight, scorers.toArray(new SirenPrimitiveScorer[scorers.size()]), coord);
   }
 
-  public SirenConjunctionScorer(final Similarity similarity,
-                                final SirenPrimitiveScorer[] scorers)
+  public SirenConjunctionScorer(final Weight weight,
+                                final SirenPrimitiveScorer[] scorers,
+                                float coord)
   throws IOException {
-    super(similarity);
+    super(weight);
     this.scorers = scorers;
-    coord = this.getSimilarity().coord(this.scorers.length, this.scorers.length);
-  }
-
-  @Override
-  public int dataset() {
-    return lastDataset;
+    this.coord = coord;
   }
 
   @Override
   public int docID() {
     return lastEntity;
-  }
-
-  @Override
-  public int entity() {
-    return lastEntity;
-  }
-
-  @Override
-  public int tuple() {
-    return lastTuple;
-  }
-
-  @Override
-  public int cell() {
-    return lastCell;
   }
 
   /**
@@ -122,6 +100,19 @@ extends SirenScorer {
     return this.doNext();
   }
 
+  private boolean isBefore(int aDocID, int[] aNodes, int bDocID, int[] bNodes) {
+    for (int i = 0; i < bNodes.length; i++) {
+      int index = i;
+      boolean res = aDocID == bDocID && aNodes[index] < bNodes[index];
+      
+      while (--index >= 0) {
+        res = aNodes[index] == bNodes[index] && res;
+      }
+      if (res) return true;
+    }
+    return false;
+  }
+  
   /**
    * Perform a next without initial increment
    */
@@ -132,27 +123,39 @@ extends SirenScorer {
     SirenScorer firstScorer = scorers[first];
 
     while (more &&
-           (firstScorer.entity() < lastScorer.entity() ||
-           (firstScorer.entity() == lastScorer.entity() && firstScorer.tuple() < lastScorer.tuple()) ||
-           (firstScorer.entity() == lastScorer.entity() && firstScorer.tuple() == lastScorer.tuple() && firstScorer.cell() < lastScorer.cell()))) {
-      more = (firstScorer.advance(lastScorer.entity(), lastScorer.tuple(), lastScorer.cell()) != NO_MORE_DOCS);
+           (firstScorer.docID() < lastScorer.docID() ||
+            isBefore(firstScorer.docID(), firstScorer.node(), lastScorer.docID(), lastScorer.node()))) {
+      more = (firstScorer.advance(lastScorer.docID(), lastScorer.node()) != NO_MORE_DOCS);
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
     }
 
     if (more) {
-      lastEntity = lastScorer.entity();
-      lastTuple = lastScorer.tuple();
-      lastCell = lastScorer.cell();
+      lastEntity = lastScorer.docID();
+      lastNode = lastScorer.node().clone();
       return lastEntity;
     }
     else {
-      lastEntity = lastTuple = lastCell = Integer.MAX_VALUE; // sentinel value
+      lastEntity = Integer.MAX_VALUE; // sentinel value
+      lastNode = lastScorer.node().clone();
       return NO_MORE_DOCS;
     }
   }
 
+  private boolean isBefore(int[] aNodes, int[] bNodes) {
+    for (int i = 0; i < bNodes.length; i++) {
+      int index = i;
+      boolean res = aNodes[index] < bNodes[index];
+      
+      while (--index >= 0) {
+        res = aNodes[index] == bNodes[index] && res;
+      }
+      if (res) return true;
+    }
+    return false;
+  }
+  
   @Override
   public int nextPosition() throws IOException {
     int first = 0;
@@ -163,20 +166,17 @@ extends SirenScorer {
       return NO_MORE_POS;
     }
 
-    while (firstScorer.tuple() < lastScorer.tuple() ||
-          (firstScorer.tuple() == lastScorer.tuple() && firstScorer.cell() < lastScorer.cell())) { // scan forward in first
+    while (isBefore(firstScorer.node(), lastScorer.node())) { // scan forward in first
       do {
         if (firstScorer.nextPosition() == NO_MORE_POS)
           return NO_MORE_POS;
-      } while (firstScorer.tuple() < lastScorer.tuple() ||
-              (firstScorer.tuple() == lastScorer.tuple() && firstScorer.cell() < lastScorer.cell()));
+      } while (isBefore(firstScorer.node(), lastScorer.node()));
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
     }
     // all equal: a match
-    lastTuple = firstScorer.tuple();
-    lastCell = firstScorer.cell();
+    lastNode = firstScorer.node().clone();
     return -1; // position is invalid in this scorer, returns -1
   }
 
@@ -191,23 +191,12 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
     if (firstTime)
-      return this.init(entityID); //TODO: should not skip to the right tuple in certain case
+      return this.init(docID); //TODO: should not skip to the right tuple in certain case
     else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(entityID, tupleID) != NO_MORE_DOCS);
-    }
-    return this.doNext();
-  }
-
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    if (firstTime)
-      return this.init(entityID); //TODO: should not skip to the right position in certain case
-    else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(entityID, tupleID, cellID) != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].advance(docID, nodes) != NO_MORE_DOCS);
     }
     return this.doNext();
   }
@@ -235,12 +224,15 @@ extends SirenScorer {
     // note that this comparator is not consistent with equals!
     Arrays.sort(scorers, new Comparator<SirenScorer>() { // sort the array
         public int compare(final SirenScorer o1, final SirenScorer o2) {
-          if (o1.entity() != o2.entity())
-            return o1.entity() - o2.entity();
-          else if (o1.tuple() != o2.tuple())
-            return o1.tuple() - o2.tuple();
-          else
-            return o1.cell() - o2.cell();
+          if (o1.docID() != o2.docID()) {
+            return o1.docID() - o2.docID(); 
+          }
+          final int maxIndex = o1.node().length - 1;
+          for (int i = 0; i < maxIndex; i++) {
+            if (o1.node()[i] != o2.node()[i])
+              return o1.node()[i] - o2.node()[i];
+          }
+          return o1.node()[maxIndex] - o2.node()[maxIndex];
         }
       });
 
@@ -279,7 +271,12 @@ extends SirenScorer {
 
   @Override
   public String toString() {
-    return "SirenConjunctionScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+    return "SirenConjunctionScorer(" + this.docID() + "," + Arrays.toString(lastNode) + ")";
+  }
+
+  @Override
+  public int[] node() {
+    return lastNode;
   }
 
 }

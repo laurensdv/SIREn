@@ -39,29 +39,29 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextReq()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . "});
 
     final SirenBooleanScorer scorer = this.getBooleanScorer(
       new String[] {"aaa", "bbb"},
       null, null);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(1, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(1, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -69,24 +69,24 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextReqWithConstraints()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenCellScorer scorer = this.getCellScorer(0, 0,
       new String[] {"aaa", "bbb"},
       null, null);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(1, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(1, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -94,30 +94,30 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextReqExcl()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenBooleanScorer scorer = this.getBooleanScorer(
       new String[] {"aaa"}, null, new String[] {"ccc"});
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -125,18 +125,18 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextReqExclWithConstraints()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenCellScorer scorer = this.getCellScorer(1, 1,
       new String[] {"aaa"}, null, new String[] {"ccc"});
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -144,45 +144,45 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextOpt()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc ddd\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc ddd\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenBooleanScorer scorer = this.getBooleanScorer(null,
       new String[] {"aaa", "ddd"}, null);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(1, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(1, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(1, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(1, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -190,30 +190,30 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextOptWithConstraints()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc ddd\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc ddd\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenCellScorer scorer = this.getCellScorer(1, 1, null,
       new String[] {"aaa", "ddd"}, null);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(1, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(1, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -221,35 +221,35 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextReqOpt()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenBooleanScorer scorer = this.getBooleanScorer(new String[] {"aaa"},
       new String[] {"bbb"}, null);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -257,25 +257,25 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextOptExcl()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenBooleanScorer scorer = this.getBooleanScorer(null,
       new String[] {"bbb"}, new String[] {"ccc"});
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
@@ -283,30 +283,30 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextReqOptExcl()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenBooleanScorer scorer = this.getBooleanScorer(new String[] {"aaa"},
       new String[] {"bbb"}, new String[] {"ccc"});
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
 
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }

@@ -37,27 +37,7 @@ class NonMatchingScorer extends SirenPrimitiveScorer {
   public int docID() { throw new UnsupportedOperationException(); }
 
   @Override
-  public int cell() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public int dataset() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public int entity() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public int pos() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public int tuple() {
     throw new UnsupportedOperationException();
   }
 
@@ -76,17 +56,15 @@ class NonMatchingScorer extends SirenPrimitiveScorer {
   @Override
   public int advance(final int target) { return NO_MORE_DOCS; }
 
-
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
     return NO_MORE_DOCS;
   }
 
   @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    return NO_MORE_DOCS;
+  public int[] node() {
+    throw new UnsupportedOperationException();
   }
 
 //  @Override

@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
 import org.sindice.siren.util.ScorerCellQueue;
 
 /**
@@ -69,14 +69,14 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   /** used to avoid size() method calls on scorerDocQueue */
   private int                                queueSize      = -1;
 
-  /** The dataset that currently matches. */
-  private final int                          dataset     = -1;
+//  /** The dataset that currently matches. */
+//  private final int                          dataset     = -1;
 
   /** The entity that currently matches. */
   private int                                entity     = -1;
 
   /** The tuple that currently matches. */
-  private int                                tuple      = -1;
+  private final int[]                        tuple      = new int[2];
 
   /** The number of subscorers that provide the current match. */
   protected int                              nrMatchers     = -1;
@@ -89,9 +89,9 @@ class SirenCellDisjunctionScorer extends SirenScorer {
    * @param subScorers
    *          A collection of at least two boolean cell scorers.
    */
-  public SirenCellDisjunctionScorer(final Similarity similarity,
+  public SirenCellDisjunctionScorer(final Weight weight,
                                     final Collection<SirenCellScorer> scorers) {
-    super(similarity);
+    super(weight);
     nrScorers = scorers.size();
     if (nrScorers <= 1) {
       throw new IllegalArgumentException("There must be at least 2 subScorers");
@@ -105,9 +105,9 @@ class SirenCellDisjunctionScorer extends SirenScorer {
    * @param scorers
    *          An array of at least two boolean cell scorers.
    */
-  public SirenCellDisjunctionScorer(final Similarity similarity,
+  public SirenCellDisjunctionScorer(final Weight weight,
                                     final SirenCellScorer[] scorers) {
-    this(similarity, Arrays.asList(scorers));
+    this(weight, Arrays.asList(scorers));
   }
 
   /**
@@ -142,7 +142,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   public void score(final Collector collector) throws IOException {
     collector.setScorer(this);
     while (this.nextDoc() != NO_MORE_DOCS) {
-      collector.collect(entity);
+      collector.collect(docID());
     }
   }
 
@@ -163,8 +163,8 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   throws IOException {
     // firstDocID is ignored since nextDoc() sets 'currentDoc'
     collector.setScorer(this);
-    while (entity < max) {
-      collector.collect(entity);
+    while (docID() < max) {
+      collector.collect(docID());
       if (this.nextDoc() == NO_MORE_DOCS) {
         return false;
       }
@@ -180,7 +180,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
         entity = scorerCellQueue.topEntity();
         currentScore = scorerCellQueue.scoreSum();
         this.nextPosition(); // advance to the first position [SRN-24]
-        return entity;
+        return docID();
       }
       return NO_MORE_DOCS;
     }
@@ -190,14 +190,15 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   @Override
   public int nextPosition() throws IOException {
     // if tuple or cell have been set to sentinel value, there is no more position
-    if (scorerCellQueue.topTuple() == Integer.MAX_VALUE) {
+    if (scorerCellQueue.topNodes()[0] == Integer.MAX_VALUE) {
       return NO_MORE_POS;
     }
-    tuple = scorerCellQueue.topTuple();
+    entity = scorerCellQueue.topEntity();
+    tuple[0] = scorerCellQueue.topNodes()[0];
     currentScore = 0;
     nrMatchers = 0;
     while (scorerCellQueue.topEntity() == entity &&
-           scorerCellQueue.topTuple() == tuple) { // while top is a match, advance
+           scorerCellQueue.topNodes()[0] == tuple[0]) { // while top is a match, advance
       currentScore += scorerCellQueue.topScore();
       nrMatchers++;
       if (!scorerCellQueue.topNextPositionAndAdjust()) {
@@ -226,7 +227,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
       entity = scorerCellQueue.topEntity();
       currentScore = scorerCellQueue.scoreSum();
       this.nextPosition(); // advance to the first position [SRN-24]
-      return entity;
+      return docID();
     }
     return NO_MORE_DOCS;
   }
@@ -265,13 +266,13 @@ class SirenCellDisjunctionScorer extends SirenScorer {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
-    if (entityID <= entity) {
-      return entity;
+    if (entityID <= docID()) {
+      return docID();
     }
     while (queueSize > 0) {
       if (scorerCellQueue.topEntity() >= entityID) {
         entity = scorerCellQueue.topEntity();
-        return entity;
+        return docID();
       }
       else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID)) {
         if (--queueSize == 0) {
@@ -291,27 +292,32 @@ class SirenCellDisjunctionScorer extends SirenScorer {
    *
    * @param entityID
    *          The target entity number.
-   * @param tupleID
+   * @param nodes
    *          The target tuple number.
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int entityID, int[] nodes)
   throws IOException {
+    // Unsupported operations in high level scorers
+    if (nodes.length != 1) { // only valid when advancing on tuple
+      throw new UnsupportedOperationException();
+    }
+    
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
-    if (entityID < entity || (entityID == entity && tupleID <= tuple)) {
-      return entity;
+    if (entityID < docID() || (entityID == docID() && nodes[0] <= node()[0])) {
+      return docID();
     }
     while (queueSize > 0) {
       if (scorerCellQueue.topEntity() > entityID ||
-         (scorerCellQueue.topEntity() == entityID && scorerCellQueue.topTuple() >= tupleID)) {
+         (scorerCellQueue.topEntity() == entityID && scorerCellQueue.topNodes()[0] >= node()[0])) {
         entity = scorerCellQueue.topEntity();
-        tuple = scorerCellQueue.topTuple();
-        return entity;
+        tuple[0] = scorerCellQueue.topNodes()[0];
+        return docID();
       }
-      else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID, tupleID)) {
+      else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID, nodes)) {
         if (--queueSize == 0) {
           return NO_MORE_DOCS;
         }
@@ -320,41 +326,9 @@ class SirenCellDisjunctionScorer extends SirenScorer {
     return NO_MORE_DOCS;
   }
 
-  /**
-   * Unsupported operations in high level scorers
-   */
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public int dataset() {
-    return dataset;
-  }
-
   @Override
   public int docID() {
-    return entity;
-  }
-
-  @Override
-  public int entity() {
-    return entity;
-  }
-
-  @Override
-  public int tuple() {
-    return tuple;
-  }
-
-  /**
-   * Cell is invalid in high-level scorers. It will always return
-   * {@link Integer.MAX_VALUE}.
-   */
-  @Override
-  public int cell() {
-    return Integer.MAX_VALUE;
+    return scorerCellQueue.topEntity();
   }
 
   /**
@@ -364,6 +338,16 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   @Override
   public int pos() {
     return Integer.MAX_VALUE;
+  }
+
+  @Override
+  public int[] node() {
+    /**
+     * Cell is invalid in high-level scorers. It will always return
+     * {@link Integer.MAX_VALUE}.
+     */
+    tuple[1] = Integer.MAX_VALUE;
+    return tuple;
   }
 
 }

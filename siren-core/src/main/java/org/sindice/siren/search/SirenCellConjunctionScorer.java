@@ -31,7 +31,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.SimilarityProvider;
 
 /**
  * Scorer for conjunctions, sets of cell, within a tuple. All the queries
@@ -60,51 +61,29 @@ extends SirenScorer {
 
   private final int           lastDataset   = -1;
 
-  private int                 lastEntity   = -1;
+  private int                 lastEntity    = -1;
 
-  private int                 lastTuple   = -1;
+  private final int[]         lastNodes     = new int[2];
 
-  public SirenCellConjunctionScorer(final Similarity similarity,
+  public SirenCellConjunctionScorer(final SimilarityProvider simProvider,
+                                    final Weight weight,
                                     final Collection<SirenCellScorer> scorers)
   throws IOException {
-    this(similarity, scorers.toArray(new SirenCellScorer[scorers.size()]));
+    this(simProvider, weight, scorers.toArray(new SirenCellScorer[scorers.size()]));
   }
 
-  public SirenCellConjunctionScorer(final Similarity similarity,
+  public SirenCellConjunctionScorer(final SimilarityProvider simProvider,
+                                    final Weight weight,
                                     final SirenCellScorer[] scorers)
   throws IOException {
-    super(similarity);
+    super(weight);
     this.scorers = scorers;
-    coord = this.getSimilarity().coord(this.scorers.length, this.scorers.length);
-  }
-
-  @Override
-  public int dataset() {
-    return lastDataset;
+    coord = simProvider.coord(this.scorers.length, this.scorers.length);
   }
 
   @Override
   public int docID() {
     return lastEntity;
-  }
-
-  @Override
-  public int entity() {
-    return lastEntity;
-  }
-
-  @Override
-  public int tuple() {
-    return lastTuple;
-  }
-
-  /**
-   * Cell is invalid in high-level scorers. It will always return
-   * {@link Integer.MAX_VALUE}.
-   */
-  @Override
-  public int cell() {
-    return Integer.MAX_VALUE;
   }
 
   /**
@@ -134,21 +113,28 @@ extends SirenScorer {
     SirenScorer lastScorer = scorers[scorers.length - 1];
     SirenScorer firstScorer = scorers[first];
     while (more &&
-           (firstScorer.entity() < lastScorer.entity() ||
-           (firstScorer.entity() == lastScorer.entity() && firstScorer.tuple() < lastScorer.tuple()))) {
-      more = (firstScorer.advance(lastScorer.entity(), lastScorer.tuple()) != NO_MORE_DOCS);
+           (firstScorer.docID() < lastScorer.docID() ||
+           (firstScorer.docID() == lastScorer.docID() && firstScorer.node()[0] < lastScorer.node()[0]))) {
+      // TODO: Remove this new!
+      more = (firstScorer.advance(lastScorer.docID(), new int[] { lastScorer.node()[0] }) != NO_MORE_DOCS);
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
     }
 
     if (more) {
-      lastEntity = lastScorer.entity();
-      lastTuple = lastScorer.tuple();
+      lastEntity = lastScorer.docID();
+      lastNodes[0] = lastScorer.node()[0];
+      /**
+       * Cell is invalid in high-level scorers. It will always return
+       * {@link Integer.MAX_VALUE}.
+       */
+      lastNodes[1] = Integer.MAX_VALUE;
       return lastEntity;
     }
     else {
-      lastEntity = lastTuple = Integer.MAX_VALUE; // sentinel value
+      lastEntity = Integer.MAX_VALUE; // sentinel value
+      Arrays.fill(lastNodes, Integer.MAX_VALUE);
       return NO_MORE_DOCS;
     }
   }
@@ -163,17 +149,22 @@ extends SirenScorer {
       return NO_MORE_POS;
     }
 
-    while (firstScorer.tuple() < lastScorer.tuple()) {
+    while (firstScorer.node()[0] < lastScorer.node()[0]) {
       do {  // scan forward in first scorer
         if (firstScorer.nextPosition() == NO_MORE_POS)
           return NO_MORE_POS;
-      } while (firstScorer.tuple() < lastScorer.tuple());
+      } while (firstScorer.node()[0] < lastScorer.node()[0]);
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
     }
     // all equal: a match
-    lastTuple = firstScorer.tuple();
+    lastNodes[0] = firstScorer.node()[0];
+    /**
+     * Cell is invalid in high-level scorers. It will always return
+     * {@link Integer.MAX_VALUE}.
+     */
+    lastNodes[1] = Integer.MAX_VALUE;
     return -1; // position is invalid in this scorer, returns -1
   }
 
@@ -188,19 +179,17 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
+    if (nodes.length != 1) {
+      throw new UnsupportedOperationException();  
+    }
     if (firstTime)
-      return this.init(entityID); //TODO: should not skip to the right tuple in certain case
+      return this.init(docID); //TODO: should not skip to the right tuple in certain case
     else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(entityID, tupleID) != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].advance(docID, nodes) != NO_MORE_DOCS);
     }
     return this.doNext();
-  }
-
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID) {
-    throw new UnsupportedOperationException();
   }
 
   // Note... most of this could be done in the constructor
@@ -227,12 +216,12 @@ extends SirenScorer {
     // note that this comparator is not consistent with equals!
     Arrays.sort(scorers, new Comparator<SirenScorer>() { // sort the array
         public int compare(final SirenScorer o1, final SirenScorer o2) {
-          if (o1.entity() != o2.entity())
-            return o1.entity() - o2.entity();
-          else if (o1.tuple() != o2.tuple())
-            return o1.tuple() - o2.tuple();
+          if (o1.docID() != o2.docID())
+            return o1.docID() - o2.docID();
+          else if (o1.node()[0] != o2.node()[0])
+            return o1.node()[0] - o2.node()[0];
           else
-            return o1.cell() - o2.cell();
+            return o1.node()[1] - o2.node()[1];
         }
       });
 
@@ -267,6 +256,11 @@ extends SirenScorer {
       sum += scorer.score();
     }
     return sum * coord;
+  }
+
+  @Override
+  public int[] node() {
+    return lastNodes;
   }
 
 }

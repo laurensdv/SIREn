@@ -27,6 +27,7 @@
 package org.sindice.siren.util;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
@@ -53,25 +54,26 @@ public class ScorerCellQueue {
 
     SirenScorer scorer;
 
-    int    entity;
-    int    tuple;
-    int    cell;
-
+    int    docID;
+//    int    tuple;
+//    int    cell;
+    final int[] nodes;
+    
     HeapedScorerCell(final SirenScorer s) {
-      this(s, s.entity(), s.tuple(), s.cell());
+      this(s, s.docID(), s.node());
     }
 
-    HeapedScorerCell(final SirenScorer scorer, final int entity, final int tuple, final int cell) {
+    HeapedScorerCell(final SirenScorer scorer, final int entity, final int[] nodes) {
       this.scorer = scorer;
-      this.entity = entity;
-      this.tuple = tuple;
-      this.cell = cell;
+      this.docID = entity;
+      this.nodes = nodes.clone();
     }
 
     void adjust() {
-      entity = scorer.entity();
-      tuple = scorer.tuple();
-      cell = scorer.cell();
+      docID = scorer.docID();
+      for (int i = 0; i < scorer.node().length; i++) {
+        nodes[i] = scorer.node()[i];
+      }
     }
 
     /**
@@ -81,19 +83,15 @@ public class ScorerCellQueue {
      * scorer.
      */
     private int compareTo(final HeapedScorerCell other) {
-      if (entity < other.entity)
+      if (docID < other.docID)
         return -1;
-      else if (entity > other.entity)
+      else if (docID > other.docID)
         return 1;
-      else if (entity == other.entity) {
-        if (tuple < other.tuple)
-          return -1;
-        else if (tuple > other.tuple)
-          return 1;
-        else if (tuple == other.tuple) {
-          if (cell < other.cell)
+      else if (docID == other.docID) {
+        for (int i = 0; i < nodes.length; i++) {
+          if (nodes[i] < other.nodes[i])
             return -1;
-          else if (cell > other.cell)
+          else if (nodes[i] > other.nodes[i])
             return 1;
         }
       }
@@ -136,12 +134,8 @@ public class ScorerCellQueue {
       return true;
     }
     else {
-      final int entity = scorer.entity();
-      final int tuple = scorer.tuple();
-      final int cell = scorer.cell();
-
       if ((size > 0) && this.compareTo(scorer, topHSC) != -1) { // heap[1] is top()
-        heap[1] = new HeapedScorerCell(scorer, entity, tuple, cell);
+        heap[1] = new HeapedScorerCell(scorer);
         this.downHeap();
         return true;
       }
@@ -164,23 +158,15 @@ public class ScorerCellQueue {
    * constant time. Should not be used when the queue is empty.
    */
   public final int topEntity() {
-    return topHSC.entity;
+    return topHSC.docID;
   }
 
   /**
-   * Returns tuple number of the least SirenScorer of the ScorerCellQueue in
-   * constant time. Should not be used when the queue is empty.
+   * Returns for each layer the number of the least SirenScorer of the ScorerCellQueue
+   * in constant time. Should not be used when the queue is empty.
    */
-  public final int topTuple() {
-    return topHSC.tuple;
-  }
-
-  /**
-   * Returns cell number of the least SirenScorer of the ScorerCellQueue in
-   * constant time. Should not be used when the queue is empty.
-   */
-  public final int topCell() {
-    return topHSC.cell;
+  public final int[] topNodes() {
+    return topHSC.nodes;
   }
 
   /**
@@ -215,7 +201,7 @@ public class ScorerCellQueue {
     if (size == 0) return 0;
     int counter = 1; // init counter at 1 to include the top
     for (int i = 2; i < size + 1; i++) { // index 1 is the top, start at 2
-      if (topHSC.entity == heap[i].entity)
+      if (topHSC.docID == heap[i].docID)
         counter++;
       else
         return counter;
@@ -232,7 +218,7 @@ public class ScorerCellQueue {
   public float scoreSum() throws IOException {
     float score = topHSC.scorer.score();
     for (int i = 2; i < size + 1; i++) { // index 1 is the top, start at 2
-      if (topHSC.entity == heap[i].entity)
+      if (topHSC.docID == heap[i].docID)
         score += heap[i].scorer.score();
       else
         return score;
@@ -261,8 +247,8 @@ public class ScorerCellQueue {
   public final int nextAndAdjustElsePop()
   throws IOException {
     int counter = 0;
-    final int entity = topHSC.entity;
-    while (size > 0 && topHSC.entity == entity) {
+    final int entity = topHSC.docID;
+    while (size > 0 && topHSC.docID == entity) {
       if (topHSC.scorer.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
         this.checkAdjustElsePop(true);
       }
@@ -286,17 +272,16 @@ public class ScorerCellQueue {
   throws IOException {
     // SRN-25: Need to record tuple and cell to check if next position is not
     // identical.
-    final int curTuple = topHSC.scorer.tuple();
-    final int curCell = topHSC.scorer.cell();
-
+    final int[] nodes = topHSC.scorer.node().clone();
+    
     // If one of the scorer does not have more positions, the subscorer will
     // assign the sentinel values (Integer.MAX_VALUE) to tuple and cell. Then,
     // the heap will be readjusted and the subscorer will be pushed down if
     // another subscorer has more positions.
     topHSC.scorer.nextPosition();
 
-    // SRN-25: Check if new position is identical than the previous one
-    if (topHSC.scorer.tuple() == curTuple && topHSC.scorer.cell() == curCell) {
+    // SRN-25: Check if new position is identical to the previous one
+    if (Arrays.equals(topHSC.scorer.node(), nodes)) {
       mustIncMatchers = false;
     }
     else {
@@ -307,7 +292,7 @@ public class ScorerCellQueue {
     this.adjustTop();
 
     // if top has sentinel value, it means that there is no more positions
-    if (topHSC.tuple == Integer.MAX_VALUE)
+    if (topHSC.nodes[0] == Integer.MAX_VALUE)
       return false;
     return true;
   }
@@ -317,21 +302,17 @@ public class ScorerCellQueue {
     return this.checkAdjustElsePop(topHSC.scorer.advance(entity) != DocIdSetIterator.NO_MORE_DOCS);
   }
 
-  public final boolean topSkipToAndAdjustElsePop(final int entity, final int tuple)
+  public final boolean topSkipToAndAdjustElsePop(final int entity, final int[] nodes)
   throws IOException {
-    return this.checkAdjustElsePop(topHSC.scorer.advance(entity, tuple) != DocIdSetIterator.NO_MORE_DOCS);
-  }
-
-  public final boolean topSkipToAndAdjustElsePop(final int entity, final int tuple, final int cell)
-  throws IOException {
-    return this.checkAdjustElsePop(topHSC.scorer.advance(entity, tuple, cell) != DocIdSetIterator.NO_MORE_DOCS);
+    return this.checkAdjustElsePop(topHSC.scorer.advance(entity, nodes) != DocIdSetIterator.NO_MORE_DOCS);
   }
 
   private boolean checkAdjustElsePop(final boolean cond) {
     if (cond) { // see also adjustTop
-      topHSC.entity = topHSC.scorer.entity();
-      topHSC.tuple = topHSC.scorer.tuple();
-      topHSC.cell = topHSC.scorer.cell();
+      topHSC.docID = topHSC.scorer.docID();
+      for (int i = 0; i < topHSC.nodes.length; i++) {
+        topHSC.nodes[i] = topHSC.scorer.node()[i];
+      }
     }
     else { // see also popNoResult
       heap[1] = heap[size]; // move last to first
@@ -437,23 +418,19 @@ public class ScorerCellQueue {
   }
 
   private int compareTo(final SirenScorer scorer, final HeapedScorerCell heapedScorer) {
-    if (scorer.entity() < topHSC.entity)
+    if (scorer.docID() < topHSC.docID)
       return -1;
-    else if (scorer.entity() > topHSC.entity)
+    else if (scorer.docID() > topHSC.docID)
       return 1;
-    else if (scorer.entity() == topHSC.entity) {
-      if (scorer.tuple() < topHSC.tuple)
-        return -1;
-      else if (scorer.tuple() > topHSC.tuple)
-        return 1;
-      else if (scorer.tuple() == topHSC.tuple) {
-        if (scorer.cell() < topHSC.cell)
+    else if (scorer.docID() == topHSC.docID) {
+      for (int i = 0; i < scorer.node().length; i++) {
+        if (scorer.node()[i] < topHSC.nodes[i])
           return -1;
-        else if (scorer.cell() > topHSC.cell)
+        else if (scorer.node()[i] > topHSC.nodes[i])
           return 1;
       }
     }
     return 0;
   }
-
+  
 }

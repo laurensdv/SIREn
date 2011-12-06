@@ -62,7 +62,7 @@ extends SirenScorer {
    */
   public SirenCellReqExclScorer(final SirenScorer reqScorer,
                                 final SirenScorer exclScorer) {
-    super(null, null); // No similarity used.
+    super(null); // No weight used.
     this.reqScorer = reqScorer;
     this.exclScorer = exclScorer;
   }
@@ -83,7 +83,7 @@ extends SirenScorer {
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.entity(); // reqScorer.nextDoc() already returned true
+      return reqScorer.docID(); // reqScorer.nextDoc() already returned != NO_MORE_DOCS
     }
     return this.toNonExcluded();
   }
@@ -104,9 +104,9 @@ extends SirenScorer {
    */
   private int toNonExcluded()
   throws IOException {
-    int exclEntity = exclScorer.entity();
+    int exclEntity = exclScorer.docID();
     do {
-      final int reqEntity = reqScorer.entity(); // may be excluded
+      final int reqEntity = reqScorer.docID(); // may be excluded
       if (reqEntity < exclEntity) {
         return reqEntity; // reqScorer advanced to before exclScorer, ie. not excluded
       }
@@ -115,7 +115,7 @@ extends SirenScorer {
           exclScorer = null; // exhausted, no more exclusions
           return reqEntity;
         }
-        exclEntity = exclScorer.entity();
+        exclEntity = exclScorer.docID();
         if (reqEntity < exclEntity) {
           return reqEntity; // not excluded
         }
@@ -154,17 +154,17 @@ extends SirenScorer {
    */
   private int toNonExcludedPosition() throws IOException {
     do {
-      final int reqTuple = reqScorer.tuple(); // may be excluded
+      final int reqTuple = reqScorer.node()[0]; // may be excluded
 
       // exclScorer is maybe exhausted (set to null)
       if (exclScorer == null) {
         return 0; // position is invalid in this scorer, return 0.
       }
 
-      final int exclTuple = exclScorer.tuple();
+      final int exclTuple = exclScorer.node()[0];
 
       // exclScorer entity number cannot be inferior to reqScorer entity number
-      if (reqScorer.entity() < exclScorer.entity()) {
+      if (reqScorer.docID() < exclScorer.docID()) {
         return 0; // position is invalid in this scorer, return 0.
       }
       else if (reqTuple < exclTuple) {
@@ -192,27 +192,12 @@ extends SirenScorer {
   }
 
   @Override
-  public int dataset() {
-    return reqScorer.dataset();
-  }
-
-  @Override
-  public int entity() {
-    return reqScorer.entity();
-  }
-
-  @Override
-  public int tuple() {
-    return reqScorer.tuple();
-  }
-
-  /**
-   * Cell is invalid in high-level scorers. It will always return
-   * {@link Integer.MAX_VALUE}.
-   */
-  @Override
-  public int cell() {
-    return Integer.MAX_VALUE;
+  public int[] node() {
+    /**
+     * Cell is invalid in high-level scorers. It will always return
+     * {@link Integer.MAX_VALUE}.
+     */
+    return new int[] { reqScorer.node()[0], Integer.MAX_VALUE };
   }
 
   /**
@@ -269,11 +254,14 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
+    if (nodes.length != 1) {
+      throw new UnsupportedOperationException();  
+    }
     if (firstTime) {
       firstTime = false;
-      if (exclScorer.advance(entityID, tupleID) == NO_MORE_DOCS) {
+      if (exclScorer.advance(docID, nodes) == NO_MORE_DOCS) {
         exclScorer = null; // exhausted
       }
     }
@@ -281,22 +269,13 @@ extends SirenScorer {
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.advance(entityID, tupleID);
+      return reqScorer.advance(docID, nodes);
     }
-    if (reqScorer.advance(entityID, tupleID) == NO_MORE_DOCS) {
+    if (reqScorer.advance(docID, nodes) == NO_MORE_DOCS) {
       reqScorer = null;
       return NO_MORE_DOCS;
     }
     return this.toNonExcluded();
-  }
-
-  /**
-   * Unsupported operations in high level scorers
-   */
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    throw new UnsupportedOperationException();
   }
 
 }

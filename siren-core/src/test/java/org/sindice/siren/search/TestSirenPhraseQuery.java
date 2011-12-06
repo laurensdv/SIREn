@@ -70,8 +70,8 @@ public class TestSirenPhraseQuery {
    */
   @Test
   public void testExact1() throws Exception {
-    _helper.addDocument("\"Renaud Delbru\" . ");
-    _helper.addDocument("\"Renaud\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"Renaud Delbru\" . ",
+                                                    "\"Renaud\" . " });
 
     SirenPhraseQuery query = new SirenPhraseQuery();
     // slop is zero by default
@@ -93,8 +93,9 @@ public class TestSirenPhraseQuery {
    */
   @Test
   public void testExact2() throws Exception {
-    _helper.addDocument("\"word1 word2 Renaud Delbru word3 \" . ");
-    _helper.addDocument("\"Renaud word1 Delbru\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"word1 word2 Renaud Delbru word3 \" . ",
+                                                    "\"Renaud word1 Delbru\" . "                            
+    });
 
     SirenPhraseQuery query = new SirenPhraseQuery();
     // slop is zero by default
@@ -116,9 +117,9 @@ public class TestSirenPhraseQuery {
    */
   @Test
   public void testExact3() throws Exception {
-    _helper.addDocument("\"word1 word2\" \"Renaud Delbru word3 \" . ");
-    _helper.addDocument("\"Renaud\" \"Delbru\" . ");
-    _helper.addDocument("\"Renaud\" . \"Delbru\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"word1 word2\" \"Renaud Delbru word3 \" . ",
+                                                    "\"Renaud\" \"Delbru\" . ",
+                                                    "\"Renaud\" . \"Delbru\" . " });
 
     final SirenPhraseQuery query = new SirenPhraseQuery();
     // slop is zero by default
@@ -136,9 +137,9 @@ public class TestSirenPhraseQuery {
    */
   @Test
   public void testExact3WithNoNorms() throws Exception {
-    _helper.addDocumentNoNorms("\"word1 word2\" \"Renaud Delbru word3 \" . ");
-    _helper.addDocumentNoNorms("\"Renaud\" \"Delbru\" . ");
-    _helper.addDocumentNoNorms("\"Renaud\" . \"Delbru\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"word1 word2\" \"Renaud Delbru word3 \" . ",
+                                                    "\"Renaud\" \"Delbru\" . ",
+                                                    "\"Renaud\" . \"Delbru\" . " });
 
     final SirenPhraseQuery query = new SirenPhraseQuery();
     // slop is zero by default

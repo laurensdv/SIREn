@@ -31,13 +31,14 @@ import java.util.Set;
 
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.Similarity;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
 
 /**
@@ -75,12 +76,13 @@ extends Query {
     return this.primitive;
   }
 
-  // Implement coord disabling.
-  // Inherit javadoc.
-  @Override
-  public Similarity getSimilarity(final Searcher searcher) {
-    return super.getSimilarity(searcher);
-  }
+  // TODO: where was this used ?
+//  // Implement coord disabling.
+//  // Inherit javadoc.
+//  @Override
+//  public Similarity getSimilarity(final Searcher searcher) {
+//    return super.getSimilarity(searcher);
+//  }
 
   private int cellConstraintStart = 0;
   private int cellConstraintEnd = Integer.MAX_VALUE;
@@ -106,13 +108,18 @@ extends Query {
 
     private static final long serialVersionUID = 1L;
 
-    protected Similarity  similarity;
+//    protected Similarity  similarity;
 
     protected Weight      primitiveWeight;
 
-    public SirenCellWeight(final Searcher searcher) throws IOException {
-      this.similarity = SirenCellQuery.this.getSimilarity(searcher);
-      primitiveWeight = primitive.createWeight(searcher);
+    public SirenCellWeight(final IndexSearcher searcher) throws IOException {
+//      Similarity sim = searcher.getSimilarityProvider().get();
+//      if (sim instanceof TFIDFSimilarity)
+//        similarity = (TFIDFSimilarity) sim;
+//      else
+//        throw new RuntimeException("This scorer uses a TF-IDF scoring function");
+      // TODO: the previous implementation of weight in Query was normalising the weight.
+      primitiveWeight = searcher.createNormalizedWeight(primitive);
     }
 
     @Override
@@ -120,46 +127,59 @@ extends Query {
       return SirenCellQuery.this;
     }
 
-    @Override
-    public float getValue() {
-      return SirenCellQuery.this.getBoost();
-    }
+    // TODO: where to put this getValue method in the new Lucene API ?
+//    @Override
+//    public float getValue() {
+//      return SirenCellQuery.this.getBoost();
+//    }
 
     @Override
-    public float sumOfSquaredWeights()
+    public float getValueForNormalization()
     throws IOException {
-      float sum = primitiveWeight.sumOfSquaredWeights();
+      float sum = primitiveWeight.getValueForNormalization();
       sum *= SirenCellQuery.this.getBoost() * SirenCellQuery.this.getBoost();
       return sum;
     }
 
     @Override
-    public void normalize(float norm) {
+    public void normalize(float norm, float topLevelBoost) {
       norm *= SirenCellQuery.this.getBoost(); // incorporate boost
-      primitiveWeight.normalize(norm);
+      primitiveWeight.normalize(norm, topLevelBoost);
     }
 
     @Override
-    public Explanation explain(final IndexReader reader, final int doc)
+    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder,
+                         boolean topScorer, Bits acceptDocs)
     throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Scorer scorer(final IndexReader reader, final boolean scoreDocsInOrder, final boolean topScorer)
-    throws IOException {
-      final SirenCellScorer result = new SirenCellScorer(similarity,
+      final SirenCellScorer result = new SirenCellScorer(this,
                                                          cellConstraintStart,
                                                          cellConstraintEnd);
       // by default, we always return 'doc in order' and use the scorer #advance()
-      result.setScorer((SirenPrimitiveScorer) primitiveWeight.scorer(reader, true, false));
+      final SirenPrimitiveScorer primitiveScorer = (SirenPrimitiveScorer) primitiveWeight.scorer(context, true, false, acceptDocs);
+      if (primitiveScorer == null) {
+        /*
+         * this primitive scorer can be null in Lucene 4.0. For instance if a term doesn't exist,
+         * IndexReader.termPositionsEnum will return null. The difference from Lucene 3.4
+         * is it was seeking to the term, even if it was not present. That function didn't
+         * return null. Now, it can return null when it doesn't exist because Lucene 4.0
+         * uses TermsEnum#seekExact.
+         */
+        return null;
+      }
+      result.setScorer(primitiveScorer);
       return result;
+    }
+    
+    @Override
+    public Explanation explain(AtomicReaderContext context, int doc)
+    throws IOException {
+      throw new UnsupportedOperationException();
     }
 
   }
 
   @Override
-  public Weight createWeight(final Searcher searcher)
+  public Weight createWeight(final IndexSearcher searcher)
   throws IOException {
     return new SirenCellWeight(searcher);
   }

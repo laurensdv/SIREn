@@ -157,7 +157,7 @@ extends SirenPrimitiveQuery {
 
       final Explanation tfExplanation = new Explanation();
       int tf = 0;
-      final DocsEnum termDocs = context.reader.termDocsEnum(context.reader.getLiveDocs(), term.field(), term.bytes());
+      final DocsEnum termDocs = context.reader.termDocsEnum(context.reader.getLiveDocs(), term.field(), term.bytes(), true);
       if (termDocs != null) {
         if (termDocs.advance(doc) != DocsEnum.NO_MORE_DOCS && termDocs.docID() == doc) {
           tf = termDocs.freq();

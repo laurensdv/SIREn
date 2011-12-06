@@ -199,7 +199,7 @@ extends AbstractTestSirenScorer {
     assertEquals(0, scorer.node()[1]);
 //    assertEquals(-1, scorer.dataset());
     assertEquals(4, scorer.pos());
-    assertFalse(scorer.advance(0, new int[] { 0, -1 }) == DocIdSetIterator.NO_MORE_DOCS);
+    assertFalse(scorer.advance(0, new int[] { 0 }) == DocIdSetIterator.NO_MORE_DOCS);
     assertEquals(0, scorer.docID());
     assertEquals(0, scorer.docID());
     assertEquals(1, scorer.node()[0]);
@@ -244,7 +244,7 @@ extends AbstractTestSirenScorer {
     for (int i = 0; i < 32; i++)
       _helper.addDocument("<http://renaud.delbru.fr/> . \"renaud delbru\" . \"renaud delbru\" . ");
     final SirenScorer scorer = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, new String[] {"renaud", "delbru"});
-    assertFalse(scorer.advance(16, new int[] { 2, -1 }) == DocIdSetIterator.NO_MORE_DOCS);
+    assertFalse(scorer.advance(16, new int[] { 2 }) == DocIdSetIterator.NO_MORE_DOCS);
     assertEquals(16, scorer.docID());
 
     assertEquals(2, scorer.node()[0]);

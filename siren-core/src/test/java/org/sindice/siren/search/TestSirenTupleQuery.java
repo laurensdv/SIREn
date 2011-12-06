@@ -37,7 +37,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.util.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +56,9 @@ public class TestSirenTupleQuery {
   @Before
   public void setUp()
   throws Exception {
-    _helper = new QueryTestingHelper(new TupleAnalyzer(Version.LUCENE_31, new StandardAnalyzer(Version.LUCENE_31), new AnyURIAnalyzer(Version.LUCENE_34)));
+    _helper = new QueryTestingHelper(new TupleAnalyzer(QueryTestingHelper.TEST_VERSION,
+      new StandardAnalyzer(QueryTestingHelper.TEST_VERSION),
+      new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION)));
   }
 
   @After

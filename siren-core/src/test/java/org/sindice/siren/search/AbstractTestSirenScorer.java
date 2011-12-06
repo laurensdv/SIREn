@@ -45,6 +45,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
+import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.junit.After;
@@ -217,7 +218,7 @@ public abstract class AbstractTestSirenScorer {
     for (int i = 0; i < terms.length; i++) {
       scorers[i] = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, terms[i]);
     }
-    return new SirenConjunctionScorer(new DefaultSimilarity(), scorers);
+    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
   }
 
   protected SirenConjunctionScorer getConjunctionScorer(final String[][] phraseTerms)
@@ -226,7 +227,7 @@ public abstract class AbstractTestSirenScorer {
     for (int i = 0; i < phraseTerms.length; i++) {
       scorers[i] = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, phraseTerms[i]);
     }
-    return new SirenConjunctionScorer(new DefaultSimilarity(), scorers);
+    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
   }
 
   protected SirenDisjunctionScorer getDisjunctionScorer(final String[] terms)
@@ -235,7 +236,7 @@ public abstract class AbstractTestSirenScorer {
     for (int i = 0; i < terms.length; i++) {
       scorers[i] = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, terms[i]);
     }
-    return new SirenDisjunctionScorer(new DefaultSimilarity(), scorers);
+    return new SirenDisjunctionScorer(scorers[0].getWeight(), scorers);
   }
 
   protected SirenReqExclScorer getReqExclScorer(final String reqTerm, final String exclTerm)
@@ -263,7 +264,7 @@ public abstract class AbstractTestSirenScorer {
                                                 final String[] optTerms,
                                                 final String[] exclTerms)
   throws IOException {
-    final SirenBooleanScorer scorer = new SirenBooleanScorer(new DefaultSimilarity());
+    final SirenBooleanScorer scorer = new SirenBooleanScorer(new ConstantWeight());
     if (reqTerms != null) {
       for (final String term : reqTerms)
         scorer.add(this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, term), true, false);
@@ -283,7 +284,7 @@ public abstract class AbstractTestSirenScorer {
                                           final String[] reqTerms, final String[] optTerms,
                                           final String[] exclTerms)
   throws IOException {
-    final SirenCellScorer cscorer = new SirenCellScorer(new DefaultSimilarity(), startCell, endCell);
+    final SirenCellScorer cscorer = new SirenCellScorer(new ConstantWeight(), startCell, endCell);
     final SirenBooleanScorer bscorer = this.getBooleanScorer(reqTerms, optTerms, exclTerms);
     cscorer.setScorer(bscorer);
     return cscorer;

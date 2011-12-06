@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.DefaultSimilarity;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
 
 /**
  * A Query that matches tuples matching boolean combinations of cell
@@ -58,11 +58,11 @@ extends SirenScorer {
    */
   private SirenScorer            countingSumScorer = null;
 
-  private static Similarity defaultSimilarity = new DefaultSimilarity();
+  private static DefaultSimilarityProvider defaultSimProvider = new DefaultSimilarityProvider();
 
-  private final int dataset = -1;
+//  private final int dataset = -1;
   private int entity = -1;
-  private int tuple = -1;
+  private final int[] tuple = new int[2];
 
   /**
    * The tuple index constraints
@@ -78,17 +78,17 @@ extends SirenScorer {
    * This constructor accepts a tuple index constraint, to force the scorers
    * to match only a certain tuple.
    *
-   * @param similarity
+   * @param weight
    *          The similarity to be used.
    * @param tupleConstraintStart
    *          The minimum cell index that should match (inclusive)
    * @param tupleConstraintEnd
    *          The maximum cell index that should match (inclusive)
    */
-  public SirenCellBooleanScorer(final Similarity similarity,
+  public SirenCellBooleanScorer(final Weight weight,
                                 final int tupleConstraintStart,
                                 final int tupleConstraintEnd) {
-    super(similarity);
+    super(weight);
     coordinator = new Coordinator();
     this.tupleConstraintStart = tupleConstraintStart;
     this.tupleConstraintEnd = tupleConstraintEnd;
@@ -99,11 +99,11 @@ extends SirenScorer {
    * siren boolean scorers. In no required scorers are added, at least one of
    * the optional scorers will have to match during the search.
    *
-   * @param similarity
+   * @param weight
    *          The similarity to be used.
    */
-  public SirenCellBooleanScorer(final Similarity similarity) {
-    this(similarity, 0, Integer.MAX_VALUE);
+  public SirenCellBooleanScorer(final Weight weight) {
+    this(weight, 0, Integer.MAX_VALUE);
   }
 
   public void add(final SirenCellScorer scorer, final boolean required,
@@ -144,14 +144,14 @@ extends SirenScorer {
   private SirenScorer countingDisjunctionSumScorer(final List<SirenCellScorer> scorers)
   // each scorer from the list counted as a single matcher
   {
-    return new SirenCellDisjunctionScorer(defaultSimilarity, scorers) {
+    return new SirenCellDisjunctionScorer(this.getWeight(), scorers) {
 
       private int lastScoredEntity = -1;
 
       @Override
       public float score() throws IOException {
-        if (this.entity() >= lastScoredEntity) {
-          lastScoredEntity = this.entity();
+        if (this.docID() >= lastScoredEntity) {
+          lastScoredEntity = this.docID();
           coordinator.nrMatchers += super.nrMatchers;
         }
         return super.score();
@@ -164,14 +164,14 @@ extends SirenScorer {
     // each scorer from the list counted as a single matcher
     final int requiredNrMatchers = requiredScorers.size();
 
-    return new SirenCellConjunctionScorer(defaultSimilarity, requiredScorers) {
+    return new SirenCellConjunctionScorer(defaultSimProvider, this.getWeight(), requiredScorers) {
 
       private int lastScoredEntity = -1;
 
       @Override
       public float score() throws IOException {
-        if (this.entity() >= lastScoredEntity) {
-          lastScoredEntity = this.entity();
+        if (this.docID() >= lastScoredEntity) {
+          lastScoredEntity = this.docID();
           coordinator.nrMatchers += requiredNrMatchers;
         }
         // All scorers match, so defaultSimilarity super.score() always has 1 as
@@ -244,7 +244,7 @@ extends SirenScorer {
         prohibitedScorers.get(0));
     }
     return new SirenCellReqExclScorer(requiredCountingSumScorer,
-      new SirenCellDisjunctionScorer(defaultSimilarity, prohibitedScorers));
+      new SirenCellDisjunctionScorer(getWeight(), prohibitedScorers));
   }
 
   /**
@@ -291,32 +291,18 @@ extends SirenScorer {
   }
 
   @Override
-  public int dataset() {
-    return dataset;
-  }
-
-  @Override
   public int docID() {
     return entity;
   }
 
   @Override
-  public int entity() {
-    return entity;
-  }
-
-  @Override
-  public int tuple() {
+  public int[] node() {
+    /**
+     * Cell is invalid in high-level scorers. It will always return
+     * {@link Integer.MAX_VALUE}.
+     */
+    tuple[1] = Integer.MAX_VALUE;
     return tuple;
-  }
-
-  /**
-   * Cell is invalid in high-level scorers. It will always return
-   * {@link Integer.MAX_VALUE}.
-   */
-  @Override
-  public int cell() {
-    return Integer.MAX_VALUE;
   }
 
   /**
@@ -349,18 +335,18 @@ extends SirenScorer {
    */
   private int doNext() throws IOException {
     boolean more = true;
-    tuple = countingSumScorer.tuple();
+    node()[0] = countingSumScorer.node()[0];
 
-    while (more && (tuple < tupleConstraintStart ||
-                    tuple > tupleConstraintEnd)) {
+    while (more && (node()[0] < tupleConstraintStart ||
+                    node()[0] > tupleConstraintEnd)) {
       if (countingSumScorer.nextPosition() == NO_MORE_POS) {
         more = (countingSumScorer.nextDoc() != NO_MORE_DOCS);
       }
-      tuple = countingSumScorer.tuple();
+      node()[0] = countingSumScorer.node()[0];
     }
 
     if (more) {
-      entity = countingSumScorer.entity();
+      entity = countingSumScorer.docID();
     }
     else {
       entity = NO_MORE_DOCS;
@@ -373,9 +359,9 @@ extends SirenScorer {
     boolean more = false;
     do {
       more = (countingSumScorer.nextPosition() != NO_MORE_POS);
-      tuple = countingSumScorer.tuple();
-    } while (more && (tuple < tupleConstraintStart ||
-                      tuple > tupleConstraintEnd));
+      node()[0] = countingSumScorer.node()[0];
+    } while (more && (node()[0] < tupleConstraintStart ||
+                      node()[0] > tupleConstraintEnd));
     if (more) {
       return 0; // position is invalid in this scorer, return 0
     }
@@ -400,7 +386,7 @@ extends SirenScorer {
 
     if (countingSumScorer.advance(entity) != NO_MORE_DOCS) {
       this.entity = this.doNext();
-      this.tuple = countingSumScorer.tuple();
+      node()[0] = countingSumScorer.node()[0];
     }
     else {
       this.entity = NO_MORE_DOCS;
@@ -409,25 +395,24 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entity, final int tuple)
+  public int advance(int docID, int[] nodes)
   throws IOException {
+    if (nodes.length != 1) {
+      throw new UnsupportedOperationException();
+    }
+    
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.advance(entity, tuple) != NO_MORE_DOCS) {
+    if (countingSumScorer.advance(entity, nodes) != NO_MORE_DOCS) {
       this.entity = this.doNext();
-      this.tuple = countingSumScorer.tuple();
+      this.tuple[0] = countingSumScorer.node()[0];
     }
     else {
       this.entity = NO_MORE_DOCS;
     }
     return this.entity;
-  }
-
-  @Override
-  public int advance(final int entity, final int tuple, final int cell) {
-    throw new UnsupportedOperationException();
   }
 
   private class Coordinator {
@@ -439,9 +424,8 @@ extends SirenScorer {
 
     void init() { // use after all scorers have been added.
       coordFactors = new float[maxCoord + 1];
-      final Similarity sim = SirenCellBooleanScorer.this.getSimilarity();
       for (int i = 0; i <= maxCoord; i++) {
-        coordFactors[i] = sim.coord(i, maxCoord);
+        coordFactors[i] = SirenCellBooleanScorer.this.defaultSimProvider.coord(i, maxCoord);
       }
     }
 
@@ -464,23 +448,18 @@ extends SirenScorer {
     private int          lastScoredEntity = -1;
 
     SingleMatchScorer(final SirenCellScorer scorer) {
-      super(scorer.getSimilarity());
+      super(scorer.getWeight());
       this.scorer = scorer;
     }
 
     @Override
     public float score()
     throws IOException {
-      if (this.entity() >= lastScoredEntity) {
-        lastScoredEntity = this.entity();
+      if (this.docID() >= lastScoredEntity) {
+        lastScoredEntity = this.docID();
         coordinator.nrMatchers++;
       }
       return scorer.score();
-    }
-
-    @Override
-    public int dataset() {
-      return scorer.dataset();
     }
 
     @Override
@@ -489,22 +468,13 @@ extends SirenScorer {
     }
 
     @Override
-    public int entity() {
-      return scorer.entity();
-    }
-
-    @Override
-    public int tuple() {
-      return scorer.tuple();
-    }
-
-    /**
-     * Cell is invalid in high-level scorers. It will always return
-     * {@link Integer.MAX_VALUE}.
-     */
-    @Override
-    public int cell() {
-      return Integer.MAX_VALUE;
+    public int[] node() {
+      /**
+       * Cell is invalid in high-level scorers. It will always return
+       * {@link Integer.MAX_VALUE}.
+       */
+      // TODO: REMOVE this new!
+      return new int[] { scorer.node()[0], Integer.MAX_VALUE };
     }
 
     /**
@@ -529,18 +499,18 @@ extends SirenScorer {
      */
     private int doNext() throws IOException {
       boolean more = true;
-      int tupleID = scorer.tuple();
+      int tupleID = scorer.node()[0];
 
       while (more && (tupleID < tupleConstraintStart ||
                       tupleID > tupleConstraintEnd)) {
         if (scorer.nextPosition() == NO_MORE_POS) {
           more = (scorer.nextDoc() != NO_MORE_DOCS);
         }
-        tupleID = scorer.tuple();
+        tupleID = scorer.node()[0];
       }
 
       if (more) {
-        return scorer.entity();
+        return scorer.docID();
       }
       else {
         return NO_MORE_DOCS;
@@ -552,8 +522,8 @@ extends SirenScorer {
       boolean more = false;
       do {
         more = (scorer.nextPosition() != NO_MORE_POS);
-      } while (more && (scorer.tuple() < tupleConstraintStart ||
-                        scorer.tuple() > tupleConstraintEnd));
+      } while (more && (scorer.node()[0] < tupleConstraintStart ||
+                        scorer.node()[0] > tupleConstraintEnd));
       if (more) {
         return 0; // position is invalid in this scorer, return 0.
       }
@@ -570,16 +540,9 @@ extends SirenScorer {
     }
 
     @Override
-    public int advance(final int entityID, final int tupleID) throws IOException {
-      if (scorer.advance(entityID, tupleID) != NO_MORE_DOCS)
-        return this.doNext();
-      return NO_MORE_DOCS;
-    }
-
-    @Override
-    public int advance(final int entityID, final int tupleID, final int cellID)
+    public int advance(int docID, int[] nodes)
     throws IOException {
-      if (scorer.advance(entityID, tupleID, cellID) != NO_MORE_DOCS)
+      if (scorer.advance(docID, nodes) != NO_MORE_DOCS)
         return this.doNext();
       return NO_MORE_DOCS;
     }

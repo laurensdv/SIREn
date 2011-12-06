@@ -27,6 +27,7 @@
 package org.sindice.siren.search;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * A Scorer for queries with a required part and an optional part. Delays
@@ -60,7 +61,8 @@ extends SirenScorer {
    *          The optional scorer. This is used for scoring only.
    */
   public SirenReqOptScorer(final SirenScorer reqScorer, final SirenScorer optScorer) {
-    super(null, null); // No similarity used.
+    super(null); // No similarity used.
+//    super(reqScorer.getWeight());
     this.reqScorer = reqScorer;
     this.optScorer = optScorer;
   }
@@ -81,40 +83,19 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entity, final int tuple)
+  public int advance(int docID, int[] nodes)
   throws IOException {
-    return reqScorer.advance(entity, tuple);
+    return reqScorer.advance(docID, nodes);
   }
 
   @Override
-  public int advance(final int entity, final int tuple, final int cell)
-  throws IOException {
-    return reqScorer.advance(entity, tuple, cell);
+  public int[] node() {
+    return reqScorer.node();
   }
-
-  @Override
-  public int dataset() {
-    return reqScorer.dataset();
-  }
-
+  
   @Override
   public int docID() {
     return reqScorer.docID();
-  }
-
-  @Override
-  public int entity() {
-    return reqScorer.entity();
-  }
-
-  @Override
-  public int tuple() {
-    return reqScorer.tuple();
-  }
-
-  @Override
-  public int cell() {
-    return reqScorer.cell();
   }
 
   @Override
@@ -132,15 +113,15 @@ extends SirenScorer {
   @Override
   public float score()
   throws IOException {
-    final int curEntity = reqScorer.entity();
-    final int curTuple = reqScorer.tuple();
-    final int curCell= reqScorer.cell();
+//    final int curEntity = reqScorer.entity();
+//    final int curTuple = reqScorer.tuple();
+//    final int curCell= reqScorer.cell();
     final float reqScore = reqScorer.score();
 
     if (firstTimeOptScorer) {
       firstTimeOptScorer = false;
       // Advance to the matching cell
-      if (optScorer.advance(curEntity, curTuple, curCell) == NO_MORE_DOCS) {
+      if (optScorer.advance(docID(), node()) == NO_MORE_DOCS) {
         optScorer = null;
         return reqScore;
       }
@@ -148,22 +129,21 @@ extends SirenScorer {
     else if (optScorer == null) {
       return reqScore;
     }
-    else if ((optScorer.entity() < curEntity) &&
-             (optScorer.advance(curEntity) == NO_MORE_DOCS)) {
+    else if ((optScorer.docID() < docID()) &&
+             (optScorer.advance(docID()) == NO_MORE_DOCS)) {
       optScorer = null;
       return reqScore;
     }
 
     // If the optional scorer matches the same cell, increase the score
-    return (optScorer.entity() == curEntity &&
-            optScorer.tuple() == curTuple &&
-            optScorer.cell() == curCell) ? reqScore + optScorer.score()
-                                         : reqScore;
+    return (optScorer.docID() == docID() && Arrays.equals(optScorer.node(), node()))
+           ? reqScore + optScorer.score()
+           : reqScore;
   }
 
   @Override
   public String toString() {
-    return "SirenReqOptScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+    return "SirenReqOptScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
   }
 
 }

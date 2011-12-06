@@ -54,8 +54,8 @@ public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
   
   /**
    * The node array keeps the tree hierarchy: the cell at index 0 is the root,
-   * and as we advance up in the array, we go deeper into the tree. A cell with
-   * value -1 stops the advance into the array.
+   * and as we advance up in the array, we go deeper into the tree. The nodes array
+   * must have a size lower than or equal to the number of layers of this enum.
    * @param target
    * @param nodes
    * @return
@@ -70,16 +70,15 @@ public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
   public abstract int[] node();
   
   /**
-   * Set the current node to the sentinel value, indicating that there is no more
-   * documents to read.
-   */
-  public abstract void setToSentinel();
-  
-  /**
    * Set the current layer and the position to the sentinel value, indicating that
    * there is no more occurrences to read.
    */
   public abstract void setLayersToSentinel();
+  
+  /**
+   * set all the layers number and the position to -1.
+   */
+  public abstract void resetLayers();
   
   public abstract int pos();
 

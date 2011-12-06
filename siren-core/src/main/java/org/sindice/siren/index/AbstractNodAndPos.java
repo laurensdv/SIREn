@@ -87,29 +87,19 @@ public abstract class AbstractNodAndPos extends NodAndPosEnum {
   }
   
   /**
-   * Advance to the node right after the one passed in argument
+   * Advance to the node right after the one passed in argument.
+   * Returns true if the current node is still before the one passed in argument.
+   * Returns true if nodes is empty
    * @param nodes
    * @return
    * @throws IOException
    */
   protected boolean findNode(int[] nodes)
   throws IOException {
-    if (nodes[0] == -1) {
-      return true;
-    }
-    
-    // Index of the deepest node we can go
-    int maxIndex = 0;
-    for (int i = 0; i < nodes.length; i++) {
-      if (nodes[i] == -1) {
-        break;
-      }
-      maxIndex = i;
-    }
     while (++_posPtr < freq()) {
       this.loadBranch();
       boolean match = true;
-      for (int i = 0; i <= maxIndex; i++) {
+      for (int i = 0; i < nodes.length; i++) {
         if (isBefore(nodes, i)) {
           match = false;
           break;
@@ -124,18 +114,16 @@ public abstract class AbstractNodAndPos extends NodAndPosEnum {
   
   protected abstract void loadBranch() throws IOException;
 
-
   @Override
-  public void setToSentinel() {
-    _pos = _docID = NO_MORE_DOCS;
+  public void setLayersToSentinel() {
+    _pos = NO_MORE_DOCS;
     Arrays.fill(_curNode, NO_MORE_DOCS);
   }
 
-
   @Override
-  public void setLayersToSentinel() {
-    _docID = NO_MORE_DOCS;
-    Arrays.fill(_curNode, NO_MORE_DOCS);
+  public void resetLayers() {
+    _pos = -1;
+    Arrays.fill(_curNode, -1);
   }
 
 }

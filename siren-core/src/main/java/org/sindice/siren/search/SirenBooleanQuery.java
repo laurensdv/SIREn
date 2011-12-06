@@ -33,16 +33,17 @@ import java.util.Set;
 
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.FuzzyQuery;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.Similarity;
-import org.apache.lucene.search.SimilarityDelegator;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
 
 /**
@@ -122,24 +123,25 @@ extends SirenPrimitiveQuery {
     return disableCoord;
   }
 
+  // TODO: find out where this is used and how to replace it
   // Implement coord disabling.
   // Inherit javadoc.
-  @Override
-  public Similarity getSimilarity(final Searcher searcher) {
-    Similarity result = super.getSimilarity(searcher);
-    if (disableCoord) { // disable coord as requested
-      result = new SimilarityDelegator(result) {
-
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public float coord(final int overlap, final int maxOverlap) {
-          return 1.0f;
-        }
-      };
-    }
-    return result;
-  }
+//  @Override
+//  public Similarity getSimilarity(final Searcher searcher) {
+//    Similarity result = super.getSimilarity(searcher);
+//    if (disableCoord) { // disable coord as requested
+//      result = new SimilarityDelegator(result) {
+//
+//        private static final long serialVersionUID = 1L;
+//
+//        @Override
+//        public float coord(final int overlap, final int maxOverlap) {
+//          return 1.0f;
+//        }
+//      };
+//    }
+//    return result;
+//  }
 
   /**
    * Adds a clause to a boolean query.
@@ -178,12 +180,12 @@ extends SirenPrimitiveQuery {
 
     private static final long serialVersionUID = 1L;
 
-    protected Similarity similarity;
+//    protected Similarity similarity;
 
     protected ArrayList<Weight>  weights;
 
-    public SirenBooleanWeight(final Searcher searcher) throws IOException {
-      this.similarity = SirenBooleanQuery.this.getSimilarity(searcher);
+    public SirenBooleanWeight(final IndexSearcher searcher) throws IOException {
+//      this.similarity = SirenBooleanQuery.this.getSimilarity(searcher);
       weights = new ArrayList<Weight>(clauses.size());
       for (int i = 0; i < clauses.size(); i++) {
         final SirenBooleanClause c = clauses.get(i);
@@ -196,20 +198,27 @@ extends SirenPrimitiveQuery {
       return SirenBooleanQuery.this;
     }
 
+    // TODO: where to put this getValue method in the new Lucene API ?
+//    @Override
+//    public float getValue() {
+//      return SirenBooleanQuery.this.getBoost();
+//    }
+
     @Override
-    public float getValue() {
-      return SirenBooleanQuery.this.getBoost();
+    public Explanation explain(AtomicReaderContext context, int doc)
+    throws IOException {
+      throw new UnsupportedOperationException();
     }
 
     @Override
-    public float sumOfSquaredWeights()
+    public float getValueForNormalization()
     throws IOException {
       float sum = 0.0f;
       for (int i = 0; i < weights.size(); i++) {
         final SirenBooleanClause c = clauses.get(i);
         final Weight w = weights.get(i);
         // call sumOfSquaredWeights for all clauses in case of side effects
-        final float s = w.sumOfSquaredWeights(); // sum sub weights
+        final float s = w.getValueForNormalization(); // sum sub weights
         if (!c.isProhibited()) {
         // only add to sum for non-prohibited clauses
           sum += s;
@@ -222,29 +231,24 @@ extends SirenPrimitiveQuery {
     }
 
     @Override
-    public void normalize(float norm) {
+    public void normalize(float norm, float topLevelBoost) {
       norm *= SirenBooleanQuery.this.getBoost(); // incorporate boost
       for (final Weight weight : weights) {
         // normalize all clauses, (even if prohibited in case of side affects)
-        weight.normalize(norm);
+        weight.normalize(norm, topLevelBoost);
       }
     }
 
     @Override
-    public Explanation explain(final IndexReader reader, final int doc)
+    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder,
+                         boolean topScorer, Bits acceptDocs)
     throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Scorer scorer(final IndexReader reader, final boolean scoreDocsInOrder, final boolean topScorer)
-    throws IOException {
-      final SirenBooleanScorer result = new SirenBooleanScorer(similarity);
+      final SirenBooleanScorer result = new SirenBooleanScorer(this);
 
       for (int i = 0 ; i < weights.size(); i++) {
         final SirenBooleanClause c = clauses.get(i);
         final Weight w = weights.get(i);
-        final SirenPrimitiveScorer subScorer = (SirenPrimitiveScorer) w.scorer(reader, true, false);
+        final SirenPrimitiveScorer subScorer = (SirenPrimitiveScorer) w.scorer(context, true, false, acceptDocs);
         if (subScorer != null) {
           result.add(subScorer, c.isRequired(), c.isProhibited());
         }
@@ -259,7 +263,7 @@ extends SirenPrimitiveQuery {
   }
 
   @Override
-  public Weight createWeight(final Searcher searcher)
+  public Weight createWeight(final IndexSearcher searcher)
   throws IOException {
     return new SirenBooleanWeight(searcher);
   }

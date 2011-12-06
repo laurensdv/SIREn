@@ -29,7 +29,7 @@ package org.sindice.siren.search;
 import java.io.IOException;
 
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
 
 /**
  * A Query that matches cells matching boolean combinations of other primitive
@@ -43,10 +43,10 @@ extends SirenScorer {
 
   private SirenPrimitiveScorer primitiveScorer;
 
-  private final int dataset = -1;
-  private int entity = -1;
-  private int tuple = -1;
-  private int cell = -1;
+//  private final int dataset = -1;
+  private int docID = -1;
+//  private int tuple = -1;
+//  private int cell = -1;
 
   /**
    * The cell index constraints
@@ -59,17 +59,17 @@ extends SirenScorer {
    * primitive siren scorers. In no required scorers are added, at least one of
    * the optional scorers will have to match during the search.
    *
-   * @param similarity
+   * @param weight
    *          The similarity to be used.
    * @param cellConstraintStart
    *          The minimum cell index that should match (inclusive)
    * @param cellConstraintEnd
    *          The maximum cell index that should match (inclusive)
    */
-  public SirenCellScorer(final Similarity similarity,
+  public SirenCellScorer(final Weight weight,
                          final int cellConstraintStart,
                          final int cellConstraintEnd) {
-    super(similarity);
+    super(weight);
     this.cellConstraintStart = cellConstraintStart;
     this.cellConstraintEnd = cellConstraintEnd;
   }
@@ -79,11 +79,11 @@ extends SirenScorer {
    * primitive siren scorers. In no required scorers are added, at least one of
    * the optional scorers will have to match during the search.
    *
-   * @param similarity
+   * @param weight
    *          The similarity to be used.
    */
-  public SirenCellScorer(final Similarity similarity) {
-    this(similarity, 0, Integer.MAX_VALUE);
+  public SirenCellScorer(final Weight weight) {
+    this(weight, 0, Integer.MAX_VALUE);
   }
 
   public void setScorer(final SirenPrimitiveScorer scorer) {
@@ -133,28 +133,8 @@ extends SirenScorer {
   }
 
   @Override
-  public int dataset() {
-    return dataset;
-  }
-
-  @Override
   public int docID() {
-    return entity;
-  }
-
-  @Override
-  public int entity() {
-    return entity;
-  }
-
-  @Override
-  public int tuple() {
-    return tuple;
-  }
-
-  @Override
-  public int cell() {
-    return cell;
+    return docID;
   }
 
   /**
@@ -169,12 +149,12 @@ extends SirenScorer {
   @Override
   public int nextDoc() throws IOException {
     if (primitiveScorer.nextDoc() != NO_MORE_DOCS) {
-      entity = this.doNext();
+      docID = this.doNext();
     }
     else {
-      entity = NO_MORE_DOCS;
+      docID = NO_MORE_DOCS;
     }
-    return entity;
+    return docID;
   }
 
   /**
@@ -183,24 +163,25 @@ extends SirenScorer {
    */
   private int doNext() throws IOException {
     boolean more = true;
-    cell = primitiveScorer.cell();
+//    int cell = primitiveScorer.node()[1];
 
     // while cell are not within the constraints, iterate
-    while (more && (cell < cellConstraintStart || cell > cellConstraintEnd)) {
+    while (more && (primitiveScorer.node()[1] < cellConstraintStart ||
+                    primitiveScorer.node()[1] > cellConstraintEnd)) {
       if (primitiveScorer.nextPosition() == NO_MORE_POS) {
         more = (primitiveScorer.nextDoc() != NO_MORE_DOCS);
       }
-      cell = primitiveScorer.cell();
+//      cell = primitiveScorer.node()[1];
     }
 
     if (more) {
-      entity = primitiveScorer.entity();
-      tuple = primitiveScorer.tuple();
+      docID = primitiveScorer.docID();
+//      tuple = primitiveScorer.node()[0];
     }
     else {
-      entity = NO_MORE_DOCS;
+      docID = NO_MORE_DOCS;
     }
-    return entity;
+    return docID;
   }
 
   @Override
@@ -208,15 +189,18 @@ extends SirenScorer {
     boolean more = false;
     do {
       more = (primitiveScorer.nextPosition() != NO_MORE_POS);
-      cell = primitiveScorer.cell();
-    } while (more && (cell < cellConstraintStart || cell > cellConstraintEnd)); // while cell are not within the constraints, iterate
+//      cell = primitiveScorer.cell();
+    } while (more && (primitiveScorer.node()[1] < cellConstraintStart ||
+                      primitiveScorer.node()[1] > cellConstraintEnd)); // while cell are not within the constraints, iterate
     if (more) {
-      tuple = primitiveScorer.tuple(); // update current tuple
+//      tuple = primitiveScorer.tuple(); // update current tuple
       return 0; // position is invalid in this scorer, return 0
     }
     else {
-      tuple = Integer.MAX_VALUE; // set to sentinel value
-      cell = Integer.MAX_VALUE;
+//      tuple = Integer.MAX_VALUE; // set to sentinel value
+//      cell = Integer.MAX_VALUE;
+      primitiveScorer.node()[0] = Integer.MAX_VALUE;
+      primitiveScorer.node()[1] = Integer.MAX_VALUE;
       return NO_MORE_POS;
     }
   }
@@ -230,47 +214,34 @@ extends SirenScorer {
   @Override
   public int advance(final int entity) throws IOException {
     if (primitiveScorer.advance(entity) != NO_MORE_DOCS) {
-      this.entity = this.doNext();
-      this.tuple = primitiveScorer.tuple();
-      this.cell = primitiveScorer.cell();
+      this.docID = this.doNext();
+//      this.tuple = primitiveScorer.tuple();
+//      this.cell = primitiveScorer.cell();
+    } else {
+      this.docID = NO_MORE_DOCS;
     }
-    else {
-      this.entity = NO_MORE_DOCS;
-    }
-    return this.entity;
+    return this.docID;
   }
 
   @Override
-  public int advance(final int entity, final int tuple)
+  public int advance(int docID, int[] nodes)
   throws IOException {
-    if (primitiveScorer.advance(entity, tuple) != NO_MORE_DOCS) {
-      this.entity = this.doNext();
-      this.tuple = primitiveScorer.tuple();
-      this.cell = primitiveScorer.cell();
+    if (primitiveScorer.advance(docID, nodes) != NO_MORE_DOCS) {
+      this.docID = this.doNext(); 
+    } else {
+      this.docID = NO_MORE_DOCS;
     }
-    else {
-      this.entity = NO_MORE_DOCS;
-    }
-    return this.entity;
+    return docID();
   }
 
   @Override
-  public int advance(final int entity, final int tuple, final int cell)
-  throws IOException {
-    if (primitiveScorer.advance(entity, tuple, cell) != NO_MORE_DOCS) {
-      this.entity = this.doNext();
-      this.tuple = primitiveScorer.tuple();
-      this.cell = primitiveScorer.cell();
-    }
-    else {
-      this.entity = NO_MORE_DOCS;
-    }
-    return this.entity;
+  public int[] node() {
+    return primitiveScorer.node();
   }
-
+  
   @Override
   public String toString() {
-    return "SingleCellScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+    return "SingleCellScorer(" + this.docID() + "," + primitiveScorer + ")";
   }
 
 }

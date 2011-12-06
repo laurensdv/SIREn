@@ -35,7 +35,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.util.Version;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,7 +55,9 @@ public class TestSirenCellQuery {
   @Before
   public void setUp()
   throws Exception {
-    _helper = new QueryTestingHelper(new TupleAnalyzer(Version.LUCENE_31, new StandardAnalyzer(Version.LUCENE_31), new AnyURIAnalyzer(Version.LUCENE_34)));
+    _helper = new QueryTestingHelper(new TupleAnalyzer(QueryTestingHelper.TEST_VERSION,
+      new StandardAnalyzer(QueryTestingHelper.TEST_VERSION),
+      new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION)));
   }
 
   @After
@@ -83,9 +84,9 @@ public class TestSirenCellQuery {
 
   @Test
   public void testUnaryClause() throws IOException {
-    _helper.addDocument("\"aaa ccc\" .");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
-    _helper.addDocument("\"ccc ccc\" . \"ccc ccc\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa ccc\" .",
+                                                    "\"bbb\" . \"ddd eee\" . ",
+                                                    "\"ccc ccc\" . \"ccc ccc\" . " });
 
     SirenCellQuery q = this.toUnaryClause(aaa);
     assertEquals(1, _helper.search(q).length);
@@ -106,9 +107,8 @@ public class TestSirenCellQuery {
   @Test
   public void testUnaryClauseWithIndexConstraint()
   throws Exception {
-    _helper.addDocument("\"aaa\" \"bbb\" \"ccc\" .");
-    _helper.addDocument("\"ccc\" \"bbb\" \"aaa\" .");
-
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa\" \"bbb\" \"ccc\" .",
+                                                    "\"ccc\" \"bbb\" \"aaa\" ." });
 
     final SirenCellQuery q = this.toUnaryClause(aaa);
     q.setConstraint(0);
@@ -127,9 +127,9 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testFlat() throws IOException {
-    _helper.addDocument("\"aaa ccc\" .");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
-    _helper.addDocument("\"ccc ccc\" . \"ccc ccc\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa ccc\" .",
+                                                    "\"bbb\" . \"ddd eee\" . ",
+                                                    "\"ccc ccc\" . \"ccc ccc\" . " });
 
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(aaa, SirenBooleanClause.Occur.SHOULD);
@@ -202,8 +202,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testMust() throws IOException {
-    _helper.addDocument("\"eee\" . \"ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+                                                    "\"bbb\" . \"ddd eee\" . " });
 
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(ddd, SirenBooleanClause.Occur.MUST);
@@ -218,8 +218,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testMust2() throws IOException {
-    _helper.addDocument("\"eee\" \"ddd\" . ");
-    _helper.addDocument("\"bbb\" \"ddd eee\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"eee\" \"ddd\" . ",
+                                                    "\"bbb\" \"ddd eee\" . " });
 
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(ddd, SirenBooleanClause.Occur.MUST);
@@ -234,8 +234,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testMustShould() throws IOException {
-    _helper.addDocument("\"eee\" . \"ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+                                                    "\"bbb\" . \"ddd eee\" . " });
 
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(ddd, SirenBooleanClause.Occur.MUST);
@@ -250,8 +250,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testMustMustNot() throws IOException {
-    _helper.addDocument("\"eee\" . \"ddd aaa\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd aaa\" . ",
+                                                    "\"bbb\" . \"ddd eee\" . " });
 
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(ddd, SirenBooleanClause.Occur.MUST);
@@ -266,8 +266,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testShould() throws IOException {
-    _helper.addDocument("\"eee\" . \"ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+                                                    "\"bbb\" . \"ddd eee\" . " });
 
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(eee, SirenBooleanClause.Occur.SHOULD);
@@ -282,9 +282,9 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testShouldMustNot() throws IOException {
-    _helper.addDocument("\"eee\" . \"ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
-
+    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+                                                    "\"bbb\" . \"ddd eee\" . " });
+    
     final SirenBooleanQuery bq = new SirenBooleanQuery();
     bq.add(ddd, SirenBooleanClause.Occur.SHOULD);
     bq.add(eee, SirenBooleanClause.Occur.MUST_NOT);
@@ -299,8 +299,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testReqNestedCellQuery() throws IOException {
-    _helper.addDocument("\"ccc\" . \"aaa ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd ccc\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+                                                    "\"bbb\" . \"ddd ccc\" . " });
 
     final SirenBooleanQuery bq1 = new SirenBooleanQuery();
     bq1.add(aaa, SirenBooleanClause.Occur.SHOULD);
@@ -325,8 +325,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testReqExclNestedCellQuery() throws IOException {
-    _helper.addDocument("\"ccc\" . \"aaa ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd ccc\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+                                                    "\"bbb\" . \"ddd ccc\" . " });
 
     final SirenBooleanQuery bq1 = new SirenBooleanQuery();
     bq1.add(aaa, SirenBooleanClause.Occur.SHOULD);
@@ -351,8 +351,8 @@ public class TestSirenCellQuery {
    */
   @Test
   public void testReqOptNestedCellQuery() throws IOException {
-    _helper.addDocument("\"ccc\" . \"aaa ddd\" . ");
-    _helper.addDocument("\"bbb\" . \"ddd ccc\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+                                                    "\"bbb\" . \"ddd ccc\" . " });
 
     final SirenBooleanQuery bq1 = new SirenBooleanQuery();
     bq1.add(aaa, SirenBooleanClause.Occur.SHOULD);

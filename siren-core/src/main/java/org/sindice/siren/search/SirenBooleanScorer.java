@@ -28,11 +28,13 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.DefaultSimilarity;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
+import org.apache.lucene.search.similarities.SimilarityProvider;
 
 /**
  * A Query that matches cells matching boolean combinations of other primitive
@@ -60,23 +62,24 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
    */
   private SirenScorer            countingSumScorer = null;
 
-  private static Similarity defaultSimilarity = new DefaultSimilarity();
+  private static SimilarityProvider defaultSimProvider = new DefaultSimilarityProvider();
 
-  private final int dataset = -1;
+//  private final int dataset = -1;
   private int entity = -1;
-  private int tuple = -1;
-  private int cell = -1;
+//  private int tuple = -1;
+//  private int cell = -1;
+  private int[] nodes;
 
   /**
    * Create a SirenBooleanScorer, that matches a boolean combination of
    * primitive siren scorers. In no required scorers are added, at least one of
    * the optional scorers will have to match during the search.
    *
-   * @param similarity
+   * @param weight
    *          The similarity to be used.
    */
-  public SirenBooleanScorer(final Similarity similarity) {
-    super(similarity);
+  public SirenBooleanScorer(final Weight weight) {
+    super(weight);
     coordinator = new Coordinator();
   }
 
@@ -118,15 +121,15 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   private SirenScorer countingDisjunctionSumScorer(final List<SirenPrimitiveScorer> scorers)
   // each scorer from the list counted as a single matcher
   {
-    return new SirenDisjunctionScorer(defaultSimilarity, scorers) {
+    return new SirenDisjunctionScorer(this.getWeight(), scorers) {
 
       private int lastScoredEntity = -1;
 
       @Override
       public float score()
       throws IOException {
-        if (this.entity() >= lastScoredEntity) {
-          lastScoredEntity = this.entity();
+        if (this.docID() >= lastScoredEntity) {
+          lastScoredEntity = this.docID();
           coordinator.nrMatchers += super.nrMatchers;
         }
         return super.score();
@@ -139,15 +142,15 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     // each scorer from the list counted as a single matcher
     final int requiredNrMatchers = requiredScorers.size();
 
-    return new SirenConjunctionScorer(defaultSimilarity, requiredScorers) {
+    return new SirenConjunctionScorer(getWeight(), requiredScorers, defaultSimProvider.coord(requiredNrMatchers, requiredNrMatchers)) {
 
       private int lastScoredEntity = -1;
 
       @Override
       public float score()
       throws IOException {
-        if (this.entity() >= lastScoredEntity) {
-          lastScoredEntity = this.entity();
+        if (this.docID() >= lastScoredEntity) {
+          lastScoredEntity = this.docID();
           coordinator.nrMatchers += requiredNrMatchers;
         }
         // All scorers match, so defaultSimilarity super.score() always has 1 as
@@ -220,7 +223,7 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
         prohibitedScorers.get(0));
     }
     return new SirenReqExclScorer(requiredCountingSumScorer,
-      new SirenDisjunctionScorer(defaultSimilarity, prohibitedScorers));
+      new SirenDisjunctionScorer(getWeight(), prohibitedScorers));
   }
 
   /**
@@ -266,28 +269,8 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int dataset() {
-    return dataset;
-  }
-
-  @Override
   public int docID() {
     return entity;
-  }
-
-  @Override
-  public int entity() {
-    return entity;
-  }
-
-  @Override
-  public int tuple() {
-    return tuple;
-  }
-
-  @Override
-  public int cell() {
-    return cell;
   }
 
   /**
@@ -306,9 +289,8 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     }
 
     if (countingSumScorer.nextDoc() != NO_MORE_DOCS) {
-      entity = countingSumScorer.entity();
-      tuple = countingSumScorer.tuple();
-      cell = countingSumScorer.cell();
+      entity = countingSumScorer.docID();
+      nodes = countingSumScorer.node().clone();
     }
     else {
       entity = NO_MORE_DOCS;
@@ -320,13 +302,11 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   public int nextPosition() throws IOException {
     final boolean more = (countingSumScorer.nextPosition() != NO_MORE_POS);
     if (more) {
-      tuple = countingSumScorer.tuple(); // update current tuple
-      cell = countingSumScorer.cell(); // update current cell
+      nodes = countingSumScorer.node().clone();
       return 0; // position is invalid in this scorer, return 0
     }
     else {
-      tuple = Integer.MAX_VALUE; // set to sentinel value
-      cell = Integer.MAX_VALUE; // set to sentinel value
+      nodes = countingSumScorer.node().clone();
       return NO_MORE_POS;
     }
   }
@@ -346,9 +326,8 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     }
 
     if (countingSumScorer.advance(entity) != NO_MORE_DOCS) {
-      this.entity = countingSumScorer.entity();
-      this.tuple = countingSumScorer.tuple();
-      this.cell = countingSumScorer.cell();
+      this.entity = countingSumScorer.docID();
+      nodes = countingSumScorer.node().clone();
     }
     else {
       this.entity = NO_MORE_DOCS;
@@ -357,16 +336,15 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int advance(final int entity, final int tuple)
+  public int advance(int docID, int[] nodes)
   throws IOException {
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.advance(entity, tuple) != NO_MORE_DOCS) {
-      this.entity = countingSumScorer.entity();
-      this.tuple = countingSumScorer.tuple();
-      this.cell = countingSumScorer.cell();
+    if (countingSumScorer.advance(docID, nodes) != NO_MORE_DOCS) {
+      this.entity = countingSumScorer.docID();
+      this.nodes = countingSumScorer.node().clone();
     }
     else {
       this.entity = NO_MORE_DOCS;
@@ -375,26 +353,13 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int advance(final int entity, final int tuple, final int cell)
-  throws IOException {
-    if (countingSumScorer == null) {
-      this.initCountingSumScorer();
-    }
-
-    if (countingSumScorer.advance(entity, tuple, cell) != NO_MORE_DOCS) {
-      this.entity = countingSumScorer.entity();
-      this.tuple = countingSumScorer.tuple();
-      this.cell = countingSumScorer.cell();
-    }
-    else {
-      this.entity = NO_MORE_DOCS;
-    }
-    return this.entity;
+  public int[] node() {
+    return nodes;
   }
 
   @Override
   public String toString() {
-    return "SirenBooleanScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+    return "SirenBooleanScorer(" + this.docID() + "," + Arrays.toString(nodes) + ")";
   }
 
   private class Coordinator {
@@ -406,9 +371,8 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
 
     void init() { // use after all scorers have been added.
       coordFactors = new float[maxCoord + 1];
-      final Similarity sim = SirenBooleanScorer.this.getSimilarity();
       for (int i = 0; i <= maxCoord; i++) {
-        coordFactors[i] = sim.coord(i, maxCoord);
+        coordFactors[i] = SirenBooleanScorer.this.defaultSimProvider.coord(i, maxCoord);
       }
     }
 
@@ -432,43 +396,23 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     private int          lastScoredEntity = -1;
 
     SingleMatchScorer(final SirenPrimitiveScorer scorer) {
-      super(scorer.getSimilarity());
+      super(scorer.getWeight());
       this.scorer = scorer;
     }
 
     @Override
     public float score()
     throws IOException {
-      if (this.entity() >= lastScoredEntity) {
-        lastScoredEntity = this.entity();
+      if (this.docID() >= lastScoredEntity) {
+        lastScoredEntity = this.docID();
         coordinator.nrMatchers++;
       }
       return scorer.score();
     }
 
     @Override
-    public int dataset() {
-      return scorer.dataset();
-    }
-
-    @Override
     public int docID() {
       return scorer.docID();
-    }
-
-    @Override
-    public int entity() {
-      return scorer.entity();
-    }
-
-    @Override
-    public int tuple() {
-      return scorer.tuple();
-    }
-
-    @Override
-    public int cell() {
-      return scorer.cell();
     }
 
     @Override
@@ -479,7 +423,7 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     @Override
     public int nextDoc() throws IOException {
       if (scorer.nextDoc() != NO_MORE_DOCS)
-        return scorer.entity();
+        return scorer.docID();
       return NO_MORE_DOCS;
     }
 
@@ -497,27 +441,26 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     @Override
     public int advance(final int entityID) throws IOException {
       if (scorer.advance(entityID) != NO_MORE_DOCS)
-        return scorer.entity();
+        return scorer.docID();
       return NO_MORE_DOCS;
     }
 
     @Override
-    public int advance(final int entityID, final int tupleID) throws IOException {
-      if (scorer.advance(entityID, tupleID) != NO_MORE_DOCS)
-        return scorer.entity();
-      return NO_MORE_DOCS;
-    }
-
-    @Override
-    public int advance(final int entityID, final int tupleID, final int cellID) throws IOException {
-      if (scorer.advance(entityID, tupleID, cellID) != NO_MORE_DOCS)
-        return scorer.entity();
+    public int advance(int docID, int[] nodes)
+    throws IOException {
+      if (scorer.advance(docID, nodes) != NO_MORE_DOCS)
+        return scorer.docID();
       return NO_MORE_DOCS;
     }
 
     @Override
     public String toString() {
-      return "SingleMatchScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+      return "SingleMatchScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
+    }
+
+    @Override
+    public int[] node() {
+      return scorer.node();
     }
 
   }

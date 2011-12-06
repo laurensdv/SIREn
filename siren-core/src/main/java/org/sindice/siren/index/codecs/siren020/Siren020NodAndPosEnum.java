@@ -97,11 +97,11 @@ public class Siren020NodAndPosEnum extends AbstractNodAndPos {
     
     final int nodeID;
     if ((nodeID = _dAndpEnum.advance(target)) == NO_MORE_DOCS) {
-      Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
+      setLayersToSentinel(); // sentinel value
+      _docID = NO_MORE_DOCS;
       return NO_MORE_DOCS;
     }
-    Arrays.fill(_curNode, -1);
-    _pos = -1;
+    resetLayers();
     _docID = nodeID;
 //    _isFirstTime = false;
     _posPtr = -1;
@@ -111,8 +111,8 @@ public class Siren020NodAndPosEnum extends AbstractNodAndPos {
   @Override
   public int advance(int target, int[] nodes)
   throws IOException {
-    if (nodes.length != _curNode.length)
-      throw new RuntimeException("Invalid argument, received array with size=" + nodes.length + ", should be " + _curNode.length);
+    if (nodes.length > _curNode.length)
+      throw new RuntimeException("Invalid argument, received array with size=" + nodes.length + ", should be no more than " + _curNode.length);
     
     // optimisation: if current entity is the right one, don't call advance
     // and avoid to reset buffer
@@ -128,16 +128,16 @@ public class Siren020NodAndPosEnum extends AbstractNodAndPos {
             return this.docID();
           }
           // position stream exhausted
-          Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
-          _docID = _pos = NO_MORE_DOCS;
+          setLayersToSentinel(); // sentinel value
+          _docID = NO_MORE_DOCS;
           return NO_MORE_DOCS;
         }
       }
       return this.docID();
     }
     // position stream exhausted
-    Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
-    _docID = _pos = NO_MORE_DOCS;
+    setLayersToSentinel(); // sentinel value
+    _docID = NO_MORE_DOCS;
     return NO_MORE_DOCS;
   }
   
@@ -174,12 +174,11 @@ public class Siren020NodAndPosEnum extends AbstractNodAndPos {
   throws IOException {
     final int nodeID;
     if ((nodeID = _dAndpEnum.nextDoc()) == NO_MORE_DOCS) {
-      Arrays.fill(_curNode, NO_MORE_DOCS); // sentinel value
-      _docID = _pos = NO_MORE_DOCS;
+      setLayersToSentinel(); // sentinel value
+      _docID = NO_MORE_DOCS;
       return NO_MORE_DOCS;
     }
-    Arrays.fill(_curNode, -1);
-    _pos = -1;
+    resetLayers();
     _docID = nodeID;
 //    _isFirstTime = false;
     _posPtr = -1;

@@ -130,7 +130,6 @@ extends SirenPrimitiveScorer {
   @Override
   public int nextDoc() throws IOException {
     if (napEnum.nextDoc() == NO_MORE_DOCS) {
-      napEnum.setToSentinel();
       return NO_MORE_DOCS;
     }
 //    docID = napEnum.docID();
@@ -165,7 +164,6 @@ extends SirenPrimitiveScorer {
   public int advance(final int entityID)
   throws IOException {
     if (napEnum.advance(entityID) == NO_MORE_DOCS) {
-      napEnum.setToSentinel();
       return NO_MORE_DOCS;
     }
 //    docID = napEnum.entity();
@@ -177,7 +175,6 @@ extends SirenPrimitiveScorer {
   public int advance(int docID, int[] nodes)
   throws IOException {
     if (napEnum.advance(docID, nodes) == NO_MORE_DOCS) {
-      napEnum.setToSentinel();
       return NO_MORE_DOCS;
     }
     return docID();

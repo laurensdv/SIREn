@@ -40,33 +40,33 @@ extends AbstractTestSirenScorer {
   @Test
   public void testNextPositionWithOptionalTerm()
   throws Exception {
-    _helper.addDocument("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ");
-    _helper.addDocument("\"aaa\" \"aaa bbb\" . ");
+    _helper.addDocumentsWithIterator(new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+                                                    "\"aaa\" \"aaa bbb\" . " });
 
     final SirenReqOptScorer scorer = this.getReqOptScorer("aaa", "bbb");
 
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.entity());
-    assertEquals(1, scorer.tuple());
-    assertEquals(0, scorer.cell());
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(0, scorer.docID());
+    assertEquals(1, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
     assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(0, scorer.cell());
-    assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.entity());
-    assertEquals(0, scorer.tuple());
-    assertEquals(1, scorer.cell());
-    assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(0, scorer.node()[1]);
+    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertEquals(1, scorer.docID());
+    assertEquals(0, scorer.node()[0]);
+    assertEquals(1, scorer.node()[1]);
+    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
     assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
@@ -74,8 +74,6 @@ extends AbstractTestSirenScorer {
   protected void assertTo(final AssertFunctor functor, final String[] input,
                           final String[] terms, final int[][] deweyPath)
   throws Exception {
-    // TODO Auto-generated method stub
-
   }
 
 }

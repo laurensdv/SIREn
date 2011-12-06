@@ -214,7 +214,7 @@ public class TestSiren020NodAndposEnum {
     assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
-    termEnum.advance(33, new int[] { 1, -1 });
+    termEnum.advance(33, new int[] { 1 });
     assertEquals(33, termEnum.docID());
     
     assertEquals(1, termEnum.node()[0]);
@@ -261,7 +261,7 @@ public class TestSiren020NodAndposEnum {
     assertEquals(3, termEnum.freq());
 
     // Should jump to the third tuples
-    assertTrue(termEnum.advance(17, new int[] { 1, -1 }) != DocsAndPositionsEnum.NO_MORE_DOCS);
+    assertTrue(termEnum.advance(17, new int[] { 1 }) != DocsAndPositionsEnum.NO_MORE_DOCS);
     assertEquals(17, termEnum.docID());
     
     assertEquals(2, termEnum.node()[0]);
@@ -302,7 +302,7 @@ public class TestSiren020NodAndposEnum {
     assertEquals(-1, termEnum.pos());
     assertEquals(4, termEnum.freq());
 
-    termEnum.advance(16, new int[] { 1, -1 });
+    termEnum.advance(16, new int[] { 1 });
     assertEquals(16, termEnum.docID());
     
     assertEquals(1, termEnum.node()[0]);

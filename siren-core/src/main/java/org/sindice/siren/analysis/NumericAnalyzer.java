@@ -74,6 +74,11 @@ public abstract class NumericAnalyzer extends Analyzer {
     return streams.tokenStream;
   }
 
+  @Override
+  protected TokenStreamComponents createComponents(String fieldName, Reader aReader) {
+    return null;
+  }
+  
   /**
    * Set the numeric value of the token stream
    */

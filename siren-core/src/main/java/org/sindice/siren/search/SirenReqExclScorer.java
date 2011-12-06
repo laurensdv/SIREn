@@ -27,6 +27,7 @@
 package org.sindice.siren.search;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * <p> A Scorer for queries within a cell with a required subscorer and an excluding
@@ -62,7 +63,7 @@ extends SirenScorer {
    */
   public SirenReqExclScorer(final SirenScorer reqScorer,
                             final SirenScorer exclScorer) {
-    super(null, null); // No similarity used.
+    super(null);
     this.reqScorer = reqScorer;
     this.exclScorer = exclScorer;
   }
@@ -83,7 +84,7 @@ extends SirenScorer {
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.entity(); // reqScorer.next() already returned true
+      return reqScorer.docID(); // reqScorer.next() already returned true
     }
     return this.toNonExcluded();
   }
@@ -104,9 +105,9 @@ extends SirenScorer {
    */
   private int toNonExcluded()
   throws IOException {
-    int exclEntity = exclScorer.entity();
+    int exclEntity = exclScorer.docID();
     do {
-      final int reqEntity = reqScorer.entity(); // may be excluded
+      final int reqEntity = reqScorer.docID(); // may be excluded
       if (reqEntity < exclEntity) {
         return reqEntity; // reqScorer advanced to before exclScorer, ie. not excluded
       }
@@ -115,7 +116,7 @@ extends SirenScorer {
           exclScorer = null; // exhausted, no more exclusions
           return reqEntity;
         }
-        exclEntity = exclScorer.entity();
+        exclEntity = exclScorer.docID();
         if (reqEntity < exclEntity) {
           return reqEntity; // not excluded
         }
@@ -138,6 +139,19 @@ extends SirenScorer {
     return this.toNonExcludedPosition();
   }
 
+  private boolean isBefore(final int[] aNodes, final int[] bNodes) {
+    for (int i = 0; i < aNodes.length; i++) {
+      int index = i;
+      boolean res = aNodes[index] < bNodes[index];
+      
+      while (--index >= 0) {
+        res = aNodes[index] == bNodes[index] && res;
+      }
+      if (res) return true;
+    }
+    return false;
+  }
+  
   /**
    * Advance to an excluded cell. <br>
    * On entry:
@@ -155,34 +169,30 @@ extends SirenScorer {
   private int toNonExcludedPosition()
   throws IOException {
     do {
-      final int reqTuple = reqScorer.tuple(); // may be excluded
-      final int reqCell = reqScorer.cell(); // may be excluded
+      final int[] reqNode = reqScorer.node().clone(); // may be excluded
 
       // exclScorer is maybe exhausted (set to null)
       if (exclScorer == null) {
         return 0; // position is invalid in this scorer, return 0.
       }
 
-      final int exclTuple = exclScorer.tuple();
-      final int exclCell = exclScorer.cell();
+      final int[] exclNode = exclScorer.node().clone();
 
       // exclScorer entity number cannot be inferior to reqScorer entity number
-      if (reqScorer.entity() < exclScorer.entity()) {
+      if (reqScorer.docID() < exclScorer.docID()) {
         return 0; // position is invalid in this scorer, return 0.
       }
-      else if ((reqTuple < exclTuple ||
-              (reqTuple == exclTuple && reqCell < exclCell))) {
+      else if (isBefore(reqNode, exclNode)) {
         return 0; // reqScorer advanced to before exclScorer, ie. not
                   // excluded. position is invalid in this scorer, return 0.
       }
-      else if((reqTuple > exclTuple ||
-              (reqTuple == exclTuple && reqCell > exclCell))) {
+      else if (isBefore(exclNode, reqNode)) {
         if (exclScorer.nextPosition() == NO_MORE_POS) {
           return 0; // exhausted, nothing left. position is invalid in this scorer, return 0.
         }
       }
       // reqScorer and exclScorer on same cell: advance to next position
-      else if (reqTuple == exclTuple && reqCell == exclCell) {
+      else if (Arrays.equals(reqNode, exclNode)) {
         if (reqScorer.nextPosition() == NO_MORE_POS) {
           return NO_MORE_POS; // exhausted, nothing left
         }
@@ -197,25 +207,10 @@ extends SirenScorer {
   }
 
   @Override
-  public int dataset() {
-    return reqScorer.dataset();
+  public int[] node() {
+    return reqScorer.node();
   }
-
-  @Override
-  public int entity() {
-    return reqScorer.entity();
-  }
-
-  @Override
-  public int tuple() {
-    return reqScorer.tuple();
-  }
-
-  @Override
-  public int cell() {
-    return reqScorer.cell();
-  }
-
+  
   /**
    * Position is invalid in high-level scorers. It will always return
    * {@link Integer.MAX_VALUE}.
@@ -270,11 +265,11 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entityID, final int tupleID)
+  public int advance(int docID, int[] nodes)
   throws IOException {
     if (firstTime) {
       firstTime = false;
-      if (exclScorer.advance(entityID, tupleID) == NO_MORE_DOCS) {
+      if (exclScorer.advance(docID, nodes) == NO_MORE_DOCS) {
         exclScorer = null; // exhausted
       }
     }
@@ -282,40 +277,18 @@ extends SirenScorer {
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.advance(entityID, tupleID);
+      return reqScorer.advance(docID, nodes);
     }
-    if (reqScorer.advance(entityID, tupleID) == NO_MORE_DOCS) {
+    if (reqScorer.advance(docID, nodes) == NO_MORE_DOCS) {
       reqScorer = null;
       return NO_MORE_DOCS;
     }
     return this.toNonExcluded();
   }
-
-  @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
-  throws IOException {
-    if (firstTime) {
-      firstTime = false;
-      if (exclScorer.advance(entityID, tupleID, cellID) == NO_MORE_DOCS) {
-        exclScorer = null; // exhausted
-      }
-    }
-    if (reqScorer == null) {
-      return NO_MORE_DOCS;
-    }
-    if (exclScorer == null) {
-      return reqScorer.advance(entityID, tupleID, cellID);
-    }
-    if (reqScorer.advance(entityID, tupleID, cellID) == NO_MORE_DOCS) {
-      reqScorer = null;
-      return NO_MORE_DOCS;
-    }
-    return this.toNonExcluded();
-  }
-
+  
   @Override
   public String toString() {
-    return "SirenReqExclScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+    return "SirenReqExclScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
   }
 
 }

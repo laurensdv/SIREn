@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Similarity;
+import org.apache.lucene.search.Weight;
 import org.sindice.siren.util.ScorerCellQueue;
 
 /**
@@ -70,17 +70,19 @@ extends SirenScorer {
   /** used to avoid size() method calls on scorerDocQueue */
   private int                                queueSize      = -1;
 
-  /** The dataset that currently matches. */
-  private final int                          dataset     = -1;
+//  /** The dataset that currently matches. */
+//  private final int                          dataset     = -1;
 
   /** The entity that currently matches. */
-  private int                                entity     = -1;
+  private int                                docID     = -1;
 
-  /** The tuple that currently matches. */
-  private int                                tuple      = -1;
-
-  /** The cell that currently matches. */
-  private int                                cell       = -1;
+  private int[]                              nodes;
+  
+//  /** The tuple that currently matches. */
+//  private int                                tuple      = -1;
+//
+//  /** The cell that currently matches. */
+//  private int                                cell       = -1;
 
   /** The number of subscorers that provide the current match. */
   protected int                              nrMatchers     = -1;
@@ -93,9 +95,9 @@ extends SirenScorer {
    * @param subScorers
    *          A collection of at least two primitives scorers.
    */
-  public SirenDisjunctionScorer(final Similarity similarity,
+  public SirenDisjunctionScorer(final Weight weight,
                                 final Collection<SirenPrimitiveScorer> scorers) {
-    super(similarity);
+    super(weight);
     nrScorers = scorers.size();
     if (nrScorers <= 1) {
       throw new IllegalArgumentException("There must be at least 2 subScorers");
@@ -109,9 +111,9 @@ extends SirenScorer {
    * @param scorers
    *          An array of at least two primitive scorers.
    */
-  public SirenDisjunctionScorer(final Similarity similarity,
+  public SirenDisjunctionScorer(final Weight weight,
                                 final SirenPrimitiveScorer[] scorers) {
-    this(similarity, Arrays.asList(scorers));
+    this(weight, Arrays.asList(scorers));
   }
 
   /**
@@ -130,6 +132,7 @@ extends SirenScorer {
           queueSize++;
         }
       }
+      nodes = se.node(); // TODO: in order to initialize the local node info. THis should be changed when we will use IntsRef
     }
   }
 
@@ -146,7 +149,7 @@ extends SirenScorer {
   public void score(final Collector collector) throws IOException {
     collector.setScorer(this);
     while (this.nextDoc() != NO_MORE_DOCS) {
-      collector.collect(entity);
+      collector.collect(docID);
     }
   }
 
@@ -167,8 +170,8 @@ extends SirenScorer {
   throws IOException {
     // firstDocID is ignored since nextDoc() sets 'currentDoc'
     collector.setScorer(this);
-    while (entity < max) {
-      collector.collect(entity);
+    while (docID < max) {
+      collector.collect(docID);
       if (this.nextDoc() == NO_MORE_DOCS) {
         return false;
       }
@@ -181,15 +184,24 @@ extends SirenScorer {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
       if ((nrMatchers = scorerCellQueue.nrMatches()) > 0) {
-        entity = scorerCellQueue.topEntity();
+        docID = scorerCellQueue.topEntity();
         this.nextPosition(); // advance to the first position [SRN-24]
-        return entity;
+        return docID;
       }
       return NO_MORE_DOCS;
     }
     return this.advanceAfterCurrent();
   }
 
+  private boolean isEqualToSentinel(int[] nodes) {
+    for (int i : nodes) {
+      if (i == Integer.MAX_VALUE) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   /**
    * Advance to the next position.<br>
    * Set the cell and tuple information.<br>
@@ -199,18 +211,15 @@ extends SirenScorer {
   @Override
   public int nextPosition() throws IOException {
     // if tuple or cell have been set to sentinel value, there is no more position
-    if (scorerCellQueue.topTuple() == Integer.MAX_VALUE ||
-        scorerCellQueue.topCell() == Integer.MAX_VALUE) {
+    if (isEqualToSentinel(scorerCellQueue.topNodes())) {
       return NO_MORE_POS;
     }
-    tuple = scorerCellQueue.topTuple();
-    cell = scorerCellQueue.topCell();
+    this.nodes = scorerCellQueue.topNodes().clone();
     currentScore = 0;
     nrMatchers = 0;
     // Count how many matchers there are, and increment current score
-    while (scorerCellQueue.topEntity() == entity &&
-           scorerCellQueue.topTuple() == tuple &&
-           scorerCellQueue.topCell() == cell) { // while top is a match, advance
+    while (scorerCellQueue.topEntity() == docID &&
+           Arrays.equals(scorerCellQueue.topNodes(), this.nodes)) { // while top is a match, advance
       currentScore += scorerCellQueue.topScore();
       if (scorerCellQueue.topIncMatchers()) nrMatchers++;
       if (!scorerCellQueue.topNextPositionAndAdjust()) {
@@ -240,9 +249,9 @@ extends SirenScorer {
         return NO_MORE_DOCS;
       }
 
-      entity = scorerCellQueue.topEntity();
+      docID = scorerCellQueue.topEntity();
       this.nextPosition(); // advance to the first position [SRN-24]
-      return entity;
+      return docID;
     }
     return NO_MORE_DOCS;
   }
@@ -281,14 +290,14 @@ extends SirenScorer {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
-    if (entityID <= entity) {
-      return entity;
+    if (entityID <= docID) {
+      return docID;
     }
     while (queueSize > 0) {
       if (scorerCellQueue.topEntity() >= entityID) {
-        entity = scorerCellQueue.topEntity();
+        docID = scorerCellQueue.topEntity();
         this.nextPosition(); // advance to the first position [SRN-24]
-        return entity;
+        return docID;
       }
       else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID)) {
         if (--queueSize == 0) {
@@ -300,108 +309,88 @@ extends SirenScorer {
   }
 
   /**
-   * Skips to the first match (including the current) whose entity and tuple
-   * numbers are greater than or equal to a given target. <br>
-   * When this method is used the {@link #explain(int)} method should not be
-   * used. <br>
-   * The implementation uses the skipTo() method on the subscorers.
-   *
-   * @param entityID
-   *          The target entity number.
-   * @param tupleID
-   *          The target tuple number.
-   * @return true iff there is such a match.
+   * Returns true if the nodes passed in arguments are before the curNode node,
+   * and the document is still the same as curDocID.
+   * @param docID
+   * @param nodes
+   * @return
    */
-  @Override
-  public int advance(final int entityID, final int tupleID)
-  throws IOException {
-    if (scorerCellQueue == null) {
-      this.initScorerCellQueue();
-    }
-    if (entityID < entity || (entityID == entity && tupleID <= tuple)) {
-      return entity;
-    }
-    while (queueSize > 0) {
-      if (scorerCellQueue.topEntity() > entityID ||
-         (scorerCellQueue.topEntity() == entityID && (scorerCellQueue.topTuple() != Integer.MAX_VALUE && scorerCellQueue.topTuple() >= tupleID))) {
-        entity = scorerCellQueue.topEntity();
-        this.nextPosition();
-        return entity;
+  private boolean isBeforeOrEquals(int curDocID, int[] curNodes, int docID, int[] nodes) {
+    for (int i = 0; i < nodes.length; i++) {
+      int index = i;
+      boolean res = docID == curDocID && nodes[index] <= curNodes[index];
+      
+      while (--index >= 0) {
+        res = nodes[index] == curNodes[index] && res;
       }
-      else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID, tupleID)) {
-        if (--queueSize == 0) {
-          return NO_MORE_DOCS;
-        }
-      }
+      if (res) return true;
     }
-    return NO_MORE_DOCS;
+    return false;
   }
-
+  
   /**
-   * Skips to the first match (including the current) whose entity, tuple and
-   * cell numbers are greater than or equal to the given targets. <br>
+   * Returns true if the nodes passed in arguments are before the curNode node,
+   * and the document is still the same as curDocID.
+   * Perform a check on the curNode against the sentinel value.
+   * @param docID
+   * @param nodes
+   * @return
+   */
+  private boolean isBeforeOrEqualsAndCheck(int curDocID, int[] curNodes, int docID, int[] nodes) {
+    for (int i = 0; i < nodes.length; i++) {
+      int index = i;
+      boolean res = docID == curDocID && curNodes[index] != Integer.MAX_VALUE && nodes[index] <= curNodes[index];
+      
+      while (--index >= 0) {
+        res = nodes[index] == curNodes[index] && res;
+      }
+      if (res) return true;
+    }
+    return false;
+  }
+  
+  /**
+   * Skips to the first match (including the current) whose entity and nodes
+   * numbers (e.g., tuple and cell) are greater than or equal to the given targets.
+   * <br>
    * When this method is used the {@link #explain(int)} method should not be
    * used. <br>
    * The implementation uses the skipTo() method on the subscorers.
    *
    * @param entityID
    *          The target entity number.
-   * @param tupleID
-   *          The target tuple number.
-   * @param cellID
-   *          The target cell number.
+   * @param nodes
+   *          The target nodes numbers (the dewey path).
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(final int entityID, final int tupleID, final int cellID)
+  public int advance(final int entityID, final int[] nodes)
   throws IOException {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
-    if (entityID < entity || (entityID == entity && tupleID <= tuple) ||
-       (entityID == entity && tupleID == tuple && cellID <= cell)) {
-      return entity;
+    if (entityID < docID || isBeforeOrEquals(docID, node(), entityID, nodes)) {
+      return docID;
     }
     while (queueSize > 0) {
       if (scorerCellQueue.topEntity() > entityID ||
-         (scorerCellQueue.topEntity() == entityID && (scorerCellQueue.topTuple() != Integer.MAX_VALUE && scorerCellQueue.topTuple() >= tupleID)) ||
-         (scorerCellQueue.topEntity() == entityID && scorerCellQueue.topTuple() == tupleID && (scorerCellQueue.topCell() != Integer.MAX_VALUE && scorerCellQueue.topCell() >= cellID))) {
-        entity = scorerCellQueue.topEntity();
+      isBeforeOrEqualsAndCheck(scorerCellQueue.topEntity(), scorerCellQueue.topNodes(), entityID, nodes)) {
+        docID = scorerCellQueue.topEntity();
         this.nextPosition();
-        return entity;
+        return docID;
       }
-      else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID, tupleID, cellID)) {
+      else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID, nodes)) {
         if (--queueSize == 0) {
           return NO_MORE_DOCS;
         }
       }
     }
     return NO_MORE_DOCS;
-  }
-
-  @Override
-  public int dataset() {
-    return dataset;
   }
 
   @Override
   public int docID() {
-    return entity;
-  }
-
-  @Override
-  public int entity() {
-    return entity;
-  }
-
-  @Override
-  public int tuple() {
-    return tuple;
-  }
-
-  @Override
-  public int cell() {
-    return cell;
+    return docID;
   }
 
   /**
@@ -414,8 +403,13 @@ extends SirenScorer {
   }
 
   @Override
+  public int[] node() {
+    return nodes;
+  }
+  
+  @Override
   public String toString() {
-    return "SirenDisjunctionScorer(" + this.dataset() + "," + this.entity() + "," + this.tuple() + "," + this.cell() + ")";
+    return "SirenDisjunctionScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
   }
 
 }

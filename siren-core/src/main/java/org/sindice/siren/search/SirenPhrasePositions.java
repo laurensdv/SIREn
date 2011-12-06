@@ -66,7 +66,6 @@ class SirenPhrasePositions implements NodIdSetIterator {
   throws IOException {
     // increments to next entity
     if (napEnum.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
-      napEnum.setToSentinel();
       return DocIdSetIterator.NO_MORE_DOCS;
     }
 //    entity = napEnum.doc();
@@ -100,7 +99,6 @@ class SirenPhrasePositions implements NodIdSetIterator {
 
   public int advance(final int entityID) throws IOException {
     if (napEnum.advance(entityID) == DocIdSetIterator.NO_MORE_DOCS) {
-      napEnum.setToSentinel();
       return DocIdSetIterator.NO_MORE_DOCS;
     }
 //    entity = napEnum.doc();
@@ -112,7 +110,6 @@ class SirenPhrasePositions implements NodIdSetIterator {
   public int advance(int docID, int[] nodes)
   throws IOException {
     if (napEnum.advance(docID, nodes) == DocIdSetIterator.NO_MORE_DOCS) {
-      napEnum.setToSentinel();
       return DocIdSetIterator.NO_MORE_DOCS;
     }
     pos = napEnum.pos() - offset;
