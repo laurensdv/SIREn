@@ -26,31 +26,21 @@
  */
 package org.sindice.siren.solr.qparser.ntriple;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser.Operator;
 import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
-import org.apache.solr.analysis.TokenFilterFactory;
-import org.apache.solr.analysis.TokenizerChain;
+import org.apache.solr.analysis.BaseTokenizerFactory;
 import org.apache.solr.common.SolrException;
-import org.apache.solr.common.params.DefaultSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.schema.FieldType;
-import org.apache.solr.search.QParser;
 import org.sindice.siren.qparser.ntriple.NTripleQueryParser;
 import org.sindice.siren.solr.SirenParams;
 import org.sindice.siren.solr.analysis.NTripleQueryTokenizerFactory;
-import org.sindice.siren.solr.schema.Datatype;
-import org.sindice.siren.solr.schema.SirenField;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.sindice.siren.solr.qparser.tuple.TupleQParser;
 
 /**
  * The {@link NTripleQParser} is in charge of executing a NTriple query request.
@@ -58,59 +48,30 @@ import org.slf4j.LoggerFactory;
  * Instantiate and execute the {@link NTripleQueryParser} based on the Solr
  * configuration and parameters.
  */
-public class NTripleQParser extends QParser {
+public class NTripleQParser extends TupleQParser {
 
   /**
-   * Field boosts
+   * @param boosts
+   * @param qstr
+   * @param localParams
+   * @param params
+   * @param req
    */
-  Map<String, Float> boosts;
-
-  /**
-   * Flag for scattered multi-field match
-   */
-  boolean scattered = false;
-
-  /**
-   * The default query operator
-   */
-  Operator defaultOp = Operator.AND;
-
-  private static final
-  Logger logger = LoggerFactory.getLogger(NTripleQParser.class);
-
-  public NTripleQParser(final Map<String, Float> boosts, final String qstr,
-                        final SolrParams localParams, final SolrParams params,
-                        final SolrQueryRequest req) {
-    super(qstr, localParams, params, req);
-    this.boosts = boosts;
-    final SolrParams solrParams = localParams == null ? params : new DefaultSolrParams(localParams, params);
-    this.checkFieldTypes();
-    this.initNTripleQueryFieldOperator(solrParams);
-    // try to get default operator from schema
-    defaultOp = this.getReq().getSchema().getSolrQueryParser(null).getDefaultOperator();
+  public NTripleQParser(Map<String, Float> boosts,
+                        String qstr,
+                        SolrParams localParams,
+                        SolrParams params,
+                        SolrQueryRequest req) {
+    super(boosts, qstr, localParams, params, req);
   }
 
-  /**
-   * Check if all fields are of type {@link SirenField}.
-   */
-  private void checkFieldTypes() {
-    for (final String fieldName : boosts.keySet()) {
-      final FieldType fieldType = req.getSchema().getFieldType(fieldName);
-      if (!(fieldType instanceof SirenField)) {
-        throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,
-          "FieldType: " + fieldName +
-          " (" + fieldType.getTypeName() + ") do not support NTriple Query");
-      }
-    }
+  @Override
+  protected BaseTokenizerFactory getTupleTokenizerFactory() {
+    return new NTripleQueryTokenizerFactory();
   }
 
-  /**
-   * Parse the NTriple query field operator params (nqfo).
-   * <br>
-   * If there is no field boost specified, use by default the disjunction
-   * operator.
-   */
-  private void initNTripleQueryFieldOperator(final SolrParams solrParams) {
+  @Override
+  protected void initTupleQueryFieldOperator(SolrParams solrParams) {
     String nqfo = null;
     if ((nqfo = solrParams.get(SirenParams.NQFO)) != null) {
       if (nqfo.equals("disjunction")) {
@@ -121,78 +82,33 @@ public class NTripleQParser extends QParser {
       }
       else {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "Invalid " +
-        		"NTripleQParser operator");
+            "NTripleQParser operator");
       }
     }
-  }
-
-  /**
-   * Initialise the Ntriple query analyzer
-   */
-  private Analyzer initAnalyzer() {
-    return new TokenizerChain(new NTripleQueryTokenizerFactory(),
-      new TokenFilterFactory[0]);
   }
 
   @Override
-  public Query parse() throws ParseException {
-    final Version version = req.getCore().getSolrConfig().luceneMatchVersion;
-    final Analyzer nqAnalyzer = this.initAnalyzer();
-    final DefaultOperatorAttribute.Operator defaultOp = this.getDefaultOperator();
-
-    if (boosts.size() == 1) {
-      final String field = boosts.keySet().iterator().next();
-      final Map<String, Analyzer> datatypeConfig = this.initDatatypeConfig(field);
-      return NTripleQueryParser.parse(qstr, version, field, nqAnalyzer,
-        datatypeConfig, defaultOp);
-    }
-    else {
-      final Map<String, Map<String, Analyzer>> datatypeConfigs = this.initDatatypeConfigs(boosts);
-      return NTripleQueryParser.parse(qstr, version, boosts,
-        nqAnalyzer, datatypeConfigs, defaultOp, scattered);
-    }
+  protected Query parseTupleQuery(String qstr,
+                                  Version matchVersion,
+                                  String field,
+                                  Analyzer tupleAnalyzer,
+                                  Map<String, Analyzer> datatypeConfig,
+                                  DefaultOperatorAttribute.Operator op)
+  throws ParseException {
+    return NTripleQueryParser.parse(qstr, matchVersion, field, tupleAnalyzer,
+      datatypeConfig, op);
   }
 
-  /**
-   * Retrieve the datatype query analyzers associated to this field
-   */
-  private Map<String, Analyzer> initDatatypeConfig(final String field) {
-    final Map<String, Analyzer> datatypeConfig = new HashMap<String, Analyzer>();
-    final SirenField fieldType = (SirenField) req.getSchema().getFieldType(field);
-    final Map<String, Datatype> datatypes = fieldType.getDatatypes();
-
-    for (final Entry<String, Datatype> e : datatypes.entrySet()) {
-
-      if (e.getValue().getQueryAnalyzer() == null) {
-        throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,
-          "Configuration Error: No analyzer defined for type 'query' in " +
-          "datatype " + e.getKey());
-      }
-
-      datatypeConfig.put(e.getKey(), e.getValue().getQueryAnalyzer());
-    }
-
-    return datatypeConfig;
-  }
-
-  /**
-   * For each field in the boost map, retrieve the datatype query analyzers.
-   */
-  private Map<String, Map<String, Analyzer>> initDatatypeConfigs(final Map<String, Float> boosts) {
-    final Map<String, Map<String, Analyzer>> datatypeConfigs = new HashMap<String, Map<String, Analyzer>>();
-
-    for (final String field : boosts.keySet()) {
-      datatypeConfigs.put(field, this.initDatatypeConfig(field));
-    }
-
-    return datatypeConfigs;
-  }
-
-  private DefaultOperatorAttribute.Operator getDefaultOperator() {
-    if (defaultOp == Operator.OR) {
-      return DefaultOperatorAttribute.Operator.OR;
-    }
-    return DefaultOperatorAttribute.Operator.AND;
+  @Override
+  protected Query parseTupleQuery(String qstr,
+                                  Version matchVersion,
+                                  Map<String, Float> boosts,
+                                  Analyzer tupleAnalyzer,
+                                  Map<String, Map<String, Analyzer>> datatypeConfigs,
+                                  DefaultOperatorAttribute.Operator op)
+  throws ParseException {
+    return NTripleQueryParser.parse(qstr, matchVersion, boosts,
+      tupleAnalyzer, datatypeConfigs, op, scattered);
   }
 
 }

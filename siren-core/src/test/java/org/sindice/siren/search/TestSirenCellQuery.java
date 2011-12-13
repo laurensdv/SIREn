@@ -26,8 +26,6 @@
  */
 package org.sindice.siren.search;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -35,6 +33,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,7 +41,7 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 
-public class TestSirenCellQuery {
+public class TestSirenCellQuery extends LuceneTestCase {
 
   private final SirenTermQuery aaa = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa"));
   private final SirenTermQuery bbb = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb"));
@@ -55,14 +54,16 @@ public class TestSirenCellQuery {
   @Before
   public void setUp()
   throws Exception {
-    _helper = new QueryTestingHelper(new TupleAnalyzer(QueryTestingHelper.TEST_VERSION,
-      new StandardAnalyzer(QueryTestingHelper.TEST_VERSION),
-      new AnyURIAnalyzer(QueryTestingHelper.TEST_VERSION)));
+    super.setUp();
+    _helper = new QueryTestingHelper(new TupleAnalyzer(TEST_VERSION_CURRENT,
+      new StandardAnalyzer(TEST_VERSION_CURRENT),
+      new AnyURIAnalyzer(TEST_VERSION_CURRENT)));
   }
 
   @After
   public void tearDown()
   throws Exception {
+    super.tearDown();
     _helper.close();
   }
 

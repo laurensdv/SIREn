@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 
 public class NTripleQueryParserTestHelper extends NTripleTestHelper {
 
-  private static final Logger logger = LoggerFactory.getLogger(NTripleTestHelper.class);
+  protected static final Logger logger = LoggerFactory.getLogger(NTripleTestHelper.class);
 
   public static float getScore(final Map<String, String> ntriples,
                                final Map<String, Float> boosts, final String query,
@@ -174,7 +174,7 @@ public class NTripleQueryParserTestHelper extends NTripleTestHelper {
     }
   }
 
-  private static boolean match(final RAMDirectory ramDir, final String query,
+  protected static boolean match(final RAMDirectory ramDir, final String query,
                                final String field)
   throws CorruptIndexException, LockObtainFailedException, IOException, ParseException {
     IndexSearcher ramSearcher = null;

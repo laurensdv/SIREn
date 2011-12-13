@@ -35,8 +35,6 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.util.Version;
-import org.sindice.siren.qparser.ntriple.DatatypeValue;
-import org.sindice.siren.qparser.ntriple.query.QueryBuilderException.Error;
 import org.sindice.siren.qparser.ntriple.query.model.BinaryClause;
 import org.sindice.siren.qparser.ntriple.query.model.ClauseQuery;
 import org.sindice.siren.qparser.ntriple.query.model.EmptyQuery;
@@ -50,9 +48,13 @@ import org.sindice.siren.qparser.ntriple.query.model.TriplePattern;
 import org.sindice.siren.qparser.ntriple.query.model.URIPattern;
 import org.sindice.siren.qparser.ntriple.query.model.UnaryClause;
 import org.sindice.siren.qparser.ntriple.query.model.Wildcard;
+import org.sindice.siren.qparser.tuple.CellValue;
+import org.sindice.siren.qparser.tuple.QueryBuilderException;
+import org.sindice.siren.qparser.tuple.ResourceQueryParser;
 import org.sindice.siren.qparser.util.EscapeLuceneCharacters;
 import org.sindice.siren.search.SirenCellQuery;
 import org.sindice.siren.search.SirenPrimitiveQuery;
+import org.sindice.siren.search.SirenTupleClause;
 import org.sindice.siren.search.SirenTupleQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,8 +178,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
         // we should always receive a SirenPrimitiveQuery
         cellQuery = new SirenCellQuery((SirenPrimitiveQuery) tp.getS().getQuery());
         cellQuery.setConstraint(0);
-        tupleQuery.add(cellQuery,
-          org.sindice.siren.search.SirenTupleClause.Occur.MUST);
+        tupleQuery.add(cellQuery, SirenTupleClause.Occur.MUST);
       }
 
       // Predicate
@@ -185,8 +186,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
         // we should always receive a SirenPrimitiveQuery
         cellQuery = new SirenCellQuery((SirenPrimitiveQuery) tp.getP().getQuery());
         cellQuery.setConstraint(1);
-        tupleQuery.add(cellQuery,
-          org.sindice.siren.search.SirenTupleClause.Occur.MUST);
+        tupleQuery.add(cellQuery, SirenTupleClause.Occur.MUST);
       }
 
       // Object
@@ -194,8 +194,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
         // we should always receive a SirenPrimitiveQuery
         cellQuery = new SirenCellQuery((SirenPrimitiveQuery) tp.getO().getQuery());
         cellQuery.setConstraint(2, Integer.MAX_VALUE);
-        tupleQuery.add(cellQuery,
-          org.sindice.siren.search.SirenTupleClause.Occur.MUST);
+        tupleQuery.add(cellQuery, SirenTupleClause.Occur.MUST);
       }
     }
 
@@ -211,7 +210,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   @Override
   public void visit(final Literal l) {
     logger.debug("Visiting Literal");
-    final DatatypeValue dtLit = l.getL();
+    final CellValue dtLit = l.getL();
 
     try {
       final Analyzer analyzer = this.getAnalyzer(dtLit.getDatatypeURI());
@@ -233,7 +232,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   @Override
   public void visit(final LiteralPattern lp) {
     logger.debug("Visiting Literal Pattern");
-    final DatatypeValue dtLit = lp.getLp();
+    final CellValue dtLit = lp.getLp();
 
     try {
       final Analyzer analyzer = this.getAnalyzer(dtLit.getDatatypeURI());
@@ -253,7 +252,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   @Override
   public void visit(final URIPattern u) {
     logger.debug("Visiting URI");
-    final DatatypeValue dtLit = u.getUp();
+    final CellValue dtLit = u.getUp();
     // URI schemes and special Lucene characters handling
     final String uri = EscapeLuceneCharacters.escape(dtLit.getValue());
 
@@ -286,7 +285,7 @@ public class SimpleNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
     final Analyzer analyzer = datatypeConfig.get(datatypeURI);
     
     if (analyzer == null) {
-      throw new QueryBuilderException(Error.PARSE_ERROR,
+      throw new QueryBuilderException(QueryBuilderException.Error.PARSE_ERROR,
         "Field '" + field + ": Unknown datatype " + datatypeURI);
     }
     return analyzer;

@@ -31,9 +31,10 @@ import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.NumericAnalyzer;
-import org.sindice.siren.qparser.ntriple.query.QueryBuilderException.Error;
 import org.sindice.siren.qparser.ntriple.query.model.LiteralPattern;
 import org.sindice.siren.qparser.ntriple.query.model.VisitorAdaptor;
+import org.sindice.siren.qparser.tuple.QueryBuilderException;
+import org.sindice.siren.qparser.tuple.ResourceQueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +91,7 @@ public abstract class AbstractNTripleQueryBuilder extends VisitorAdaptor {
       else {
         message = e.getMessage();
       }
-      queryException = new QueryBuilderException(Error.PARSE_ERROR,
+      queryException = new QueryBuilderException(QueryBuilderException.Error.PARSE_ERROR,
         message, e.getStackTrace());
     }
   }

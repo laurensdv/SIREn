@@ -30,8 +30,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
@@ -51,23 +49,18 @@ import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 
 public class SolrServerWrapper {
 
-  final String solrHome;
   final CoreContainer coreContainer;
-  final SolrServer server;
+  private final SolrServer server;
   private Map<String, FieldInfo> fieldInfos;
 
   private static final Logger logger = LoggerFactory.getLogger(SolrServerWrapper.class);
 
-  public SolrServerWrapper(final String solrHome)
-  throws IOException, ParserConfigurationException, SAXException {
-    this.solrHome = solrHome;
-    System.setProperty("solr.solr.home", solrHome);
-    final CoreContainer.Initializer initializer = new CoreContainer.Initializer();
-    coreContainer = initializer.initialize();
+  public SolrServerWrapper(final CoreContainer coreContainer)
+  throws Exception {
+    this.coreContainer = coreContainer;
     server = new EmbeddedSolrServer(coreContainer, "");
   }
 
@@ -82,7 +75,7 @@ public class SolrServerWrapper {
   throws SolrServerException, IOException {
     final UpdateRequest request = new UpdateRequest();
     request.add(doc);
-    request.process(server);
+    request.process(getServer());
   }
 
   /**
@@ -90,13 +83,13 @@ public class SolrServerWrapper {
    */
   public int getNumberOfDocuments() throws SolrServerException, IOException {
     final SolrRequest request = new FastLukeRequest();
-    final LukeResponse response = (LukeResponse) request.process(server);
+    final LukeResponse response = (LukeResponse) request.process(getServer());
     return response.getNumDocs();
   }
 
   public String[] search(final SolrQuery query, final String retrievedField)
   throws SolrServerException, IOException {
-    final QueryResponse response = server.query(query);
+    final QueryResponse response = getServer().query(query);
     final SolrDocumentList docList = response.getResults();
 
     final int size = docList.size();
@@ -115,7 +108,7 @@ public class SolrServerWrapper {
     query.setQueryType("siren");
     query.set(SirenParams.NQ, q);
 
-    final QueryResponse response = server.query(query);
+    final QueryResponse response = getServer().query(query);
     final SolrDocumentList docList = response.getResults();
 
     final int size = docList.size();
@@ -128,6 +121,25 @@ public class SolrServerWrapper {
     return docIDs;
   }
 
+  public String[] searchTabular(final String q, final String retrievedField)
+  throws SolrServerException, IOException {
+    final SolrQuery query = new SolrQuery();
+    query.setQueryType("siren");
+    query.set(SirenParams.TQ, q);
+
+    final QueryResponse response = getServer().query(query);
+    final SolrDocumentList docList = response.getResults();
+
+    final int size = docList.size();
+    final String docIDs[] = new String[size];
+    SolrDocument doc = null;
+    for (int i = 0; i < size; i++) {
+      doc = docList.get(i);
+      docIDs[i] = (String) doc.getFieldValue(retrievedField);
+    }
+    return docIDs;
+  }
+  
   public int getNumberOfSegments() {
     return this.getCore().getSearcher().get().getReader().getSequentialSubReaders().length;
   }
@@ -145,7 +157,7 @@ public class SolrServerWrapper {
     if (fieldInfos == null) {
       final LukeRequest request = new FastLukeRequest();
       request.setShowSchema(true);
-      final LukeResponse response = request.process(server);
+      final LukeResponse response = request.process(getServer());
       fieldInfos = response.getFieldInfo();
     }
     return fieldInfos;
@@ -155,7 +167,7 @@ public class SolrServerWrapper {
    * Commit all documents that have been submitted
    */
   public void commit() throws SolrServerException, IOException {
-    server.commit();
+    getServer().commit();
   }
 
   /**
@@ -169,19 +181,23 @@ public class SolrServerWrapper {
    * Execute optimisation of the Solr index
    */
   public void optimize(final int maxSegments) throws SolrServerException, IOException {
-    server.optimize(true, true, maxSegments);
+    getServer().optimize(true, true, maxSegments);
   }
 
   /**
    * Delete all the documents
    */
   public void clear() throws SolrServerException, IOException {
-    server.deleteByQuery("*:*");
-    server.commit();
+    getServer().deleteByQuery("*:*");
+    getServer().commit();
   }
 
   public void close() {
     coreContainer.shutdown();
+  }
+
+  public SolrServer getServer() {
+    return server;
   }
 
   /**

@@ -93,8 +93,7 @@ public class AnyURIAnalyzer extends Analyzer {
   }
   
   public AnyURIAnalyzer(Version version, final File stopwords) throws IOException {
-    stopSet = WordlistLoader.getWordSet(new FileReader(stopwords), version);
-    matchVersion = version;
+    this(version, new FileReader(stopwords));
   }
   
   public AnyURIAnalyzer(Version version, final Reader stopWords) throws IOException {
