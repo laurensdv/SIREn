@@ -26,8 +26,6 @@
  */
 package org.sindice.siren.util;
 
-import static org.junit.Assert.*;
-
 import java.io.IOException;
 
 import org.apache.lucene.index.CorruptIndexException;
@@ -256,9 +254,6 @@ extends AbstractTestSirenScorer {
   @Override
   protected void assertTo(final AssertFunctor functor, final String[] input,
                           final String[] terms, final int[][] deweyPath)
-  throws Exception {
-    // TODO Auto-generated method stub
-
-  }
+  throws Exception {}
 
 }

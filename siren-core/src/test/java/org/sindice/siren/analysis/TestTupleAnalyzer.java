@@ -31,10 +31,9 @@ import java.io.StringReader;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
@@ -58,7 +57,7 @@ public class TestTupleAnalyzer extends LuceneTestCase {
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
     _a = new TupleAnalyzer(TEST_VERSION_CURRENT, new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
   }
-  
+
   @After
   public void tearDown()
   throws Exception {
@@ -164,18 +163,18 @@ public class TestTupleAnalyzer extends LuceneTestCase {
     final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
     uriAnalyzer.setUriNormalisation(URINormalisation.LOCALNAME);
     _a = new TupleAnalyzer(TEST_VERSION_CURRENT, new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-    
+
     this.assertAnalyzesTo(_a, "<http://dbpedia.org/resource/The_Kingston_Trio>",
                           new String[] { "kingston", "trio", "the_kingston_trio",
                                          "http://dbpedia.org/resource/the_kingston_trio" },
                           new String[] { "<URI>", "<URI>", "<URI>", "<URI>" },
                           new int[] { 2, 1, 0, 0 });
   }
-  
+
   /**
    * The same, with Full normalisation -- the stop word is now "their" because in
    * {@link URINormalisationFilter}, there is inside a filter of words smaller
-   * than 4 (it was 3 for {@link URILocalnameFilter}. 
+   * than 4 (it was 3 for {@link URILocalnameFilter}.
    * @throws Exception
    */
   @Test
@@ -184,14 +183,14 @@ public class TestTupleAnalyzer extends LuceneTestCase {
     final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
     _a = new TupleAnalyzer(TEST_VERSION_CURRENT, new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-    
+
     this.assertAnalyzesTo(_a, "<http://dbpedia.org/resource/their_Kingston_Trio>",
                           new String[] { "dbpedia", "resource", "kingston", "trio",
                                          "http://dbpedia.org/resource/their_kingston_trio" },
                           new String[] { "<URI>", "<URI>", "<URI>", "<URI>", "<URI>" },
                           new int[] { 1, 1, 2, 1, 0 });
   }
-  
+
   @Test
   public void testURI()
   throws Exception {
@@ -255,7 +254,7 @@ public class TestTupleAnalyzer extends LuceneTestCase {
   throws Exception {
     this.assertAnalyzesTo(_a, "\"test test2\"@en", new String[] { "test test2" }, new String[] { TupleTokenizer.getTokenTypes()[TupleTokenizer.LITERAL] });
   }
-  
+
   /**
    * Register the "en" and "fr" datatypes analyzers
    * @throws Exception
@@ -270,7 +269,7 @@ public class TestTupleAnalyzer extends LuceneTestCase {
       new String[] { "<ALPHANUM>", "<ALPHANUM>", "<URI>", "word", "word" });
     _a.clearRegisterLiteralAnalyzers();
   }
-  
+
   @Test
   public void testAlreadyRegisteredAnalyzer()
   throws Exception {
@@ -288,7 +287,7 @@ public class TestTupleAnalyzer extends LuceneTestCase {
       new String[] { "aaa", "bbb" },
       new String[] { "<URI>", "<URI>" });
   }
-  
+
   /**
    * test that the tokenization is resumed after filtering a token
    * @throws Exception

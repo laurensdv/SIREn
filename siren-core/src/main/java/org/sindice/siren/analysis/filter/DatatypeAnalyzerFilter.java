@@ -35,12 +35,12 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharArrayMap;
+import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.TupleTokenizer;
-import org.sindice.siren.analysis.attributes.CellAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
-import org.sindice.siren.analysis.attributes.TupleAttribute;
+import org.sindice.siren.analysis.attributes.NodeAttribute;
 import org.sindice.siren.util.ReusableCharArrayReader;
 import org.sindice.siren.util.XSDDatatype;
 
@@ -66,8 +66,7 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
   private PositionIncrementAttribute posIncrAtt;
   private TypeAttribute typeAtt;
   private DatatypeAttribute dtypeAtt;
-  private TupleAttribute tupleAtt;
-  private CellAttribute cellAtt;
+  private NodeAttribute nodeAtt;
 
   private CharTermAttribute tokenTermAtt;
   private OffsetAttribute tokenOffsetAtt;
@@ -113,8 +112,7 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
     posIncrAtt = input.getAttribute(PositionIncrementAttribute.class);
     typeAtt = input.getAttribute(TypeAttribute.class);
     dtypeAtt = input.getAttribute(DatatypeAttribute.class);
-    tupleAtt = this.addAttribute(TupleAttribute.class);
-    cellAtt = this.addAttribute(CellAttribute.class);
+    nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 
   /**
@@ -179,13 +177,12 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
   /**
    * Copy the inner's stream attributes values to the main stream's ones. This filter
    * uses an inner stream, therefore it needs to be cleared so that other filters
-   * have clean attributes data. Because of that, the attributes datatypeURI, tuple
-   * and cell have to saved in order to be restored after.
+   * have clean attributes data. Because of that, the attributes datatypeURI and
+   * node have to saved in order to be restored after.
    */
   private void copyInnerStreamAttributes() {
-    // backup datatype, tuple and cell id
-    final int tupleID = tupleAtt.tuple();
-    final int cellID = cellAtt.cell();
+    // backup datatype and node path
+    final IntsRef nodePath = IntsRef.deepCopyOf(nodeAtt.node());
     final char[] dt = dtypeAtt.datatypeURI();
     // clear attributes
     input.clearAttributes();
@@ -197,9 +194,8 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
     typeAtt.setType(tokenTypeAtt.type());
     // TupleTokenizer handles the setting of tuple/cell values and the datatype URI
 
-    // restore datatype, tuple and cell
-    tupleAtt.setTuple(tupleID);
-    cellAtt.setCell(cellID);
+    // restore datatype and node
+    nodeAtt.copyNode(nodePath);
     dtypeAtt.setDatatypeURI(dt);
   }
 

@@ -34,9 +34,8 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.sindice.siren.analysis.attributes.CellAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
-import org.sindice.siren.analysis.attributes.TupleAttribute;
+import org.sindice.siren.analysis.attributes.NodeAttribute;
 
 /**
  * A grammar-based tokenizer constructed with JFlex for N-Tuples. Splits a
@@ -95,15 +94,14 @@ extends Tokenizer {
     this.initAttributes();
   }
 
-  // the TupleTokenizer generates 7 attributes:
-  // term, offset, positionIncrement, type, datatype, tuple and cell
+  // the TupleTokenizer generates 6 attributes:
+  // term, offset, positionIncrement, type, datatype, node
   private CharTermAttribute termAtt;
   private OffsetAttribute offsetAtt;
   private PositionIncrementAttribute posIncrAtt;
   private TypeAttribute typeAtt;
   private DatatypeAttribute dtypeAtt;
-  private TupleAttribute tupleAtt;
-  private CellAttribute cellAtt;
+  private NodeAttribute nodeAtt;
 
   private void initAttributes() {
     termAtt = this.addAttribute(CharTermAttribute.class);
@@ -111,8 +109,7 @@ extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    tupleAtt = this.addAttribute(TupleAttribute.class);
-    cellAtt = this.addAttribute(CellAttribute.class);
+    nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 
   @Override
@@ -188,8 +185,8 @@ extends Tokenizer {
     // update datatype
     dtypeAtt.setDatatypeURI(datatypeURI);
     // Update structural information
-    tupleAtt.setTuple(_tid);
-    cellAtt.setCell(_cid);
+    nodeAtt.append(_tid);
+    nodeAtt.append(_cid);
   }
 
   /*

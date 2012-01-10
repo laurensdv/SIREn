@@ -36,9 +36,8 @@ import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Searcher;
-import org.apache.lucene.search.Similarity;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.ToStringUtils;
 
 /**
@@ -54,7 +53,6 @@ import org.apache.lucene.util.ToStringUtils;
  */
 public class SirenConstantScoreQuery extends SirenPrimitiveQuery {
 
-  protected final SirenFilter filter;
   protected final SirenPrimitiveQuery query;
 
   /** Strips off scores from the passed in Query. The hits will get a constant score
@@ -62,31 +60,27 @@ public class SirenConstantScoreQuery extends SirenPrimitiveQuery {
   public SirenConstantScoreQuery(final SirenPrimitiveQuery query) {
     if (query == null)
       throw new NullPointerException("Query may not be null");
-    this.filter = null;
     this.query = query;
   }
 
-  /** Wraps a Filter as a Query. The hits will get a constant score
-   * dependent on the boost factor of this query.
-   * If you simply want to strip off scores from a Query, no longer use
-   * {@code new ConstantScoreQuery(new QueryWrapperFilter(query))}, instead
-   * use {@link #ConstantScoreQuery(Query)}!
-   */
-  public SirenConstantScoreQuery(final SirenFilter filter) {
-    throw new UnsupportedOperationException("Filter not yet supported");
-
-    // TODO: Activate filters when Siren will support filters.
-
+// TODO: Activate filters when Siren will support filters.
+//  /** Wraps a Filter as a Query. The hits will get a constant score
+//   * dependent on the boost factor of this query.
+//   * If you simply want to strip off scores from a Query, no longer use
+//   * {@code new ConstantScoreQuery(new QueryWrapperFilter(query))}, instead
+//   * use {@link #ConstantScoreQuery(Query)}!
+//   */
+//  public SirenConstantScoreQuery(final SirenFilter filter) {
 //    if (filter == null)
 //      throw new NullPointerException("Filter may not be null");
 //    this.filter = filter;
 //    this.query = null;
-  }
-
-  /** Returns the encapsulated filter, returns {@code null} if a query is wrapped. */
-  public SirenFilter getFilter() {
-    return filter;
-  }
+//  }
+//
+//  /** Returns the encapsulated filter, returns {@code null} if a query is wrapped. */
+//  public SirenFilter getFilter() {
+//    return filter;
+//  }
 
   /** Returns the encapsulated query, returns {@code null} if a filter is wrapped. */
   public SirenPrimitiveQuery getQuery() {

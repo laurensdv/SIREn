@@ -26,32 +26,51 @@
 package org.sindice.siren.index;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
 
 /**
- * 
+ * Iterates through documents, nodes and positions.
+ * <br>
+ * A node is defined by a list of node identifiers which represents the path
+ * in the tree to reach the node.
  */
 public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
 
-  protected final int[] _curNode;
-  
   /**
-   * 
+   * Sentinel value for nodes which means that there are no more nodes in the
+   * iterator.
    */
-  public NodAndPosEnum(NodesConfig config) {
-    _curNode = new int[config.getNbLayers()];
-    // initialize the current node identifiers.
-    Arrays.fill(_curNode, -1);
-  }
-  
+  public static final int NO_MORE_NOD = Integer.MAX_VALUE;
+
   /**
    * When returned by {@link #nextPosition()} it means there are no more
    * positions in the iterator.
    */
   public static final int NO_MORE_POS = Integer.MAX_VALUE;
-  
+
+  /**
+   * Decode the next node path.
+   * <br>
+   * The node path must be accessed with {{@link #node()}}.
+   *
+   * @return When there is no more nodes in the iterator, this method returns
+   * false. Otherwise, this method returns true.
+   */
+  public abstract boolean nextNode() throws IOException;
+
+  /**
+   * Decode the next node path and the next position.
+   * <br>
+   * This method returns the position. The node path must be accessed with
+   * {@link #node()}.
+   *
+   * @return When there is no more nodes and positions in the iterator, this
+   * method returns {@link #NO_MORE_POS}.
+   */
+  @Override
+  public abstract int nextPosition() throws IOException;
+
   /**
    * The node array keeps the tree hierarchy: the cell at index 0 is the root,
    * and as we advance up in the array, we go deeper into the tree. The nodes array
@@ -59,32 +78,18 @@ public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
    * @param target
    * @param nodes
    * @return
-   * @throws IOException 
+   * @throws IOException
    */
   public abstract int advance(int target, int[] nodes) throws IOException;
-  
+
   /**
-   * Returns the current node identifiers
-   * @return
+   * Returns the current node path
    */
   public abstract int[] node();
-  
+
   /**
-   * Set the current layer and the position to the sentinel value, indicating that
-   * there is no more occurrences to read.
+   * Returns the current position
    */
-  public abstract void setLayersToSentinel();
-  
-  /**
-   * set all the layers number and the position to -1.
-   */
-  public abstract void resetLayers();
-  
   public abstract int pos();
 
-  @Override
-  public String toString() {
-    return Arrays.toString(_curNode);
-  }
-  
 }

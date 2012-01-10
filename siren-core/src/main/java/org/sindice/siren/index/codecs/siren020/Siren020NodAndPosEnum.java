@@ -29,160 +29,229 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
+import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
-import org.sindice.siren.index.AbstractNodAndPos;
-import org.sindice.siren.index.AbstractSirenPayload;
-import org.sindice.siren.index.NodesConfig;
-import org.sindice.siren.index.PackedIntSirenPayload;
+import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.index.NodAndPosEnum;
 
 /**
- * 
+ *
  */
-public class Siren020NodAndPosEnum extends AbstractNodAndPos {
+public class Siren020NodAndPosEnum extends NodAndPosEnum {
 
-  private final DocsAndPositionsEnum _dAndpEnum;
-  private final PackedIntSirenPayload payload = new PackedIntSirenPayload();
-  private final byte[] firstNode = new byte[1]; // cannot directly access the attributes of the siren payload
-  
-  /** 
-   * Flag to know if {@link #nextDoc()}, {@link #advance(int)}
-   * or {@link #advance(int, int[])} has been called
-   */
-//  private boolean             _isFirstTime = true;
-  
-  public Siren020NodAndPosEnum(final NodesConfig config, final DocsAndPositionsEnum e) {
-    super(config);
-    _dAndpEnum = e;
-    firstNode[0] = 0;
+  protected DocsAndPositionsEnum e;
+
+  protected int[] curNode = new int[2];
+  protected int pos = -1;
+
+  /** index of the next element to be read */
+  protected int _posPtr = -1;
+
+  private final VIntPayloadCodec codec = new VIntPayloadCodec();
+  private IntsRef nodePath;
+
+  public Siren020NodAndPosEnum(final DocsAndPositionsEnum e) {
+    this.e = e;
+  }
+
+  @Override
+  public int docID() {
+    return e.docID();
   }
 
   @Override
   public int freq() {
-    return _dAndpEnum.freq();
+    return e.freq();
   }
-  
+
+  @Override
+  public int[] node() {
+    return curNode;
+  }
+
+  @Override
+  public int pos() {
+    return pos;
+  }
+
   @Override
   public BytesRef getPayload()
   throws IOException {
-    return _dAndpEnum.getPayload();
+    return e.getPayload();
   }
 
   @Override
   public boolean hasPayload() {
-    return _dAndpEnum.hasPayload();
+    return e.hasPayload();
   }
 
-  protected AbstractSirenPayload getSirenPayload()
-  throws IOException {
-    if (hasPayload()) {
-      final BytesRef ref = getPayload();
-      payload.setData(ref.bytes, ref.offset, ref.length);
-      payload.decode();
-    }
-    else { // no payload, special case where tuple and cell == 0
-      payload.setData(firstNode);
-    }
-    return payload;
-  }
-  
   @Override
-  public int advance(int target)
+  public int nextDoc()
   throws IOException {
-    if (target == _docID) { // optimised case: reset buffer
-      Arrays.fill(_curNode, -1);
-      _pos = -1;
+    final int docID;
+    if ((docID = e.nextDoc()) == NO_MORE_DOCS) {
+      this.setNodAndPosToSentinel(); // sentinel value
+      return NO_MORE_DOCS;
+    }
+    this.resetNodAndPos();
+    _posPtr = -1;
+    return docID;
+  }
+
+  @Override
+  public int advance(final int target)
+  throws IOException {
+    if (target == e.docID()) { // optimised case: reset buffer
+      this.resetNodAndPos();
       _posPtr = -1;
       return target;
     }
-    
-    final int nodeID;
-    if ((nodeID = _dAndpEnum.advance(target)) == NO_MORE_DOCS) {
-      setLayersToSentinel(); // sentinel value
-      _docID = NO_MORE_DOCS;
+
+    final int docID;
+    if ((docID = e.advance(target)) == NO_MORE_DOCS) {
+      this.setNodAndPosToSentinel(); // sentinel value
       return NO_MORE_DOCS;
     }
-    resetLayers();
-    _docID = nodeID;
-//    _isFirstTime = false;
+    this.resetNodAndPos();
     _posPtr = -1;
-    return nodeID;
+    return docID;
   }
-  
+
   @Override
-  public int advance(int target, int[] nodes)
+  public int advance(final int target, final int[] nodes)
   throws IOException {
-    if (nodes.length > _curNode.length)
-      throw new RuntimeException("Invalid argument, received array with size=" + nodes.length + ", should be no more than " + _curNode.length);
-    
+//    if (nodes.length > curNode.length) {
+//      throw new RuntimeException("Invalid argument, received array with size=" +
+//      nodes.length + ", should be no more than " + curNode.length);
+//    }
+
     // optimisation: if current entity is the right one, don't call advance
     // and avoid to reset buffer
-    if (target == _docID || advance(target) != NO_MORE_DOCS) {
-      // If we skipped to the right entity, load the tuples and let's try to
+    if (target == e.docID() || this.advance(target) != NO_MORE_DOCS) {
+      // If we skipped to the right entity, load the nodes and let's try to
       // find the right one
-      if (target == _docID) {
-        // If tuple and cell are not found, just move to the next entity
-        // (SRN-17), and to the next cell (SRN-24)
-        if (!findNode(nodes)) {
+      if (target == e.docID()) {
+        // If nodes are not found, just move to the next entity
+        // (SRN-17), and to the next branch (SRN-24)
+        if (!this.findNode(nodes)) {
           if (this.nextDoc() != NO_MORE_DOCS) {
             this.nextPosition(); // advance to the first position (SRN-24)
             return this.docID();
           }
           // position stream exhausted
-          setLayersToSentinel(); // sentinel value
-          _docID = NO_MORE_DOCS;
+          this.setNodAndPosToSentinel(); // sentinel value
           return NO_MORE_DOCS;
         }
       }
       return this.docID();
     }
     // position stream exhausted
-    setLayersToSentinel(); // sentinel value
-    _docID = NO_MORE_DOCS;
+    this.setNodAndPosToSentinel(); // sentinel value
     return NO_MORE_DOCS;
   }
-  
-  @Override
-  public int nextPosition()
-  throws IOException {
-//    if (_isFirstTime)
-//      throw new RuntimeException("Invalid call, nextDoc should be called first.");
 
-    if (++_posPtr < freq()) {
-      this.loadBranch();
-      return _pos;
+  /**
+   * Advance to the node right after the one passed in argument.
+   * Returns true if the current node is still before the one passed in argument.
+   * Returns true if nodes is empty
+   * @param nodes
+   * @return
+   * @throws IOException
+   */
+  protected boolean findNode(final int[] nodes)
+  throws IOException {
+    while (++_posPtr < this.freq()) {
+      this.loadNodePath();
+      boolean match = true;
+      for (int i = 0; i < nodes.length; i++) {
+        if (this.isBefore(nodes, i)) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the searched node hasn't been reached yet.
+   * @param nodes
+   * @param index
+   * @return
+   */
+  private boolean isBefore(final int[] nodes, int index) {
+    boolean res = curNode[index] < nodes[index];
+
+    while (--index >= 0) {
+      res = curNode[index] == nodes[index] && res;
+    }
+
+    return res;
+  }
+
+  @Override
+  public boolean nextNode() throws IOException {
+    if (++_posPtr < this.freq()) {
+      this.loadNodePath();
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public int nextPosition() throws IOException {
+    if (++_posPtr < this.freq()) {
+      this.loadNodePath();
+      return pos;
     }
 
     return NO_MORE_POS;
   }
 
-  @Override
-  protected void loadBranch()
-  throws IOException {
-    _pos = _dAndpEnum.nextPosition();
-    final AbstractSirenPayload payload = getSirenPayload();
-    _curNode[0] = _curNode[0] == -1 ? payload.getTupleID() : _curNode[0] + payload.getTupleID();
-    if (_curNode[1] == -1 || payload.getTupleID() != 0) {
-      _curNode[1] = payload.getCellID();
-    }
-    else { // if (payload.getTupleID() == 0)
-      _curNode[1] += payload.getCellID();
+  private void loadNodePath() throws IOException {
+    pos = e.nextPosition();
+    this.decodePayload();
+
+    // Ensure we have enough space to store the node path
+    ArrayUtil.grow(curNode, nodePath.length);
+
+    // Delta decoding
+    // we assume that there is always at least one node encoded
+    curNode[0] = curNode[0] == -1 ? nodePath.ints[nodePath.offset] : curNode[0] + nodePath.ints[nodePath.offset];
+
+    for (int i = nodePath.offset + 1; i < nodePath.length; i++) {
+      curNode[i] = (curNode[i] == -1 || nodePath.ints[i-1] != 0) ? nodePath.ints[i] : curNode[i] + nodePath.ints[i];
     }
   }
 
-  @Override
-  public int nextDoc()
-  throws IOException {
-    final int nodeID;
-    if ((nodeID = _dAndpEnum.nextDoc()) == NO_MORE_DOCS) {
-      setLayersToSentinel(); // sentinel value
-      _docID = NO_MORE_DOCS;
-      return NO_MORE_DOCS;
+  private void decodePayload() throws IOException {
+    if (this.hasPayload()) {
+      nodePath = codec.decode(this.getPayload());
     }
-    resetLayers();
-    _docID = nodeID;
-//    _isFirstTime = false;
-    _posPtr = -1;
-    return nodeID;
+    else { // no payload, should never happen
+      throw new IOException("No payload found");
+    }
+  }
+
+  /**
+   * Set the current nodes and position to the sentinel values, indicating that
+   * there is no more occurrences to read.
+   */
+  private void setNodAndPosToSentinel() {
+    Arrays.fill(curNode, NO_MORE_NOD);
+    pos = NO_MORE_POS;
+  }
+
+  /**
+   * Set the current nodes and position to -1.
+   */
+  private void resetNodAndPos() {
+    Arrays.fill(curNode, -1);
+    pos = -1;
   }
 
 }

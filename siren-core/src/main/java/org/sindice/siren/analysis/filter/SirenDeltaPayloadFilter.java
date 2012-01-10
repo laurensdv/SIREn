@@ -34,9 +34,11 @@ import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
-import org.sindice.siren.analysis.attributes.CellAttribute;
-import org.sindice.siren.analysis.attributes.TupleAttribute;
-import org.sindice.siren.index.PackedIntSirenPayload;
+import org.apache.lucene.index.Payload;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.analysis.attributes.NodeAttribute;
+import org.sindice.siren.index.codecs.siren020.VIntPayloadCodec;
 
 /**
  * Filter that encode the structural information of each token into its payload.
@@ -44,77 +46,97 @@ import org.sindice.siren.index.PackedIntSirenPayload;
 public class SirenDeltaPayloadFilter
 extends TokenFilter {
 
-  private final TupleAttribute tupleAtt;
-  private final CellAttribute cellAtt;
+  private final NodeAttribute nodeAtt;
   private final PayloadAttribute payloadAtt;
   private final CharTermAttribute termAtt;
 
-  Map<Integer, Integer> previousTuples = new HashMap<Integer, Integer>();
-  Map<Integer, Integer> previousCells = new HashMap<Integer, Integer>();
+  Map<Integer, IntsRef> previousPaths = new HashMap<Integer, IntsRef>();
 
-  PackedIntSirenPayload payload = new PackedIntSirenPayload();
+  VIntPayloadCodec codec = new VIntPayloadCodec();
+  Payload payload = new Payload();
 
   public SirenDeltaPayloadFilter(final TokenStream input) {
     super(input);
     termAtt = this.addAttribute(CharTermAttribute.class);
     payloadAtt = this.addAttribute(PayloadAttribute.class);
-    tupleAtt = this.addAttribute(TupleAttribute.class);
-    cellAtt = this.addAttribute(CellAttribute.class);
+    nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 
   @Override
   public void close() throws IOException {
     super.close();
-    previousTuples.clear();
-    previousCells.clear();
+    previousPaths.clear();
   }
-
 
   @Override
   public void reset() throws IOException {
     super.reset();
-    previousTuples.clear();
-    previousCells.clear();
+    previousPaths.clear();
   }
 
   @Override
   public final boolean incrementToken() throws IOException {
-    int tuple, cell;
+    BytesRef bytes;
+    IntsRef previous;
+    IntsRef current;
 
     if (input.incrementToken()) {
 
       final int hash = termAtt.hashCode();
 
-      if (!previousTuples.containsKey(hash)) {
-        tuple = tupleAtt.tuple();
-        cell = cellAtt.cell();
-        previousTuples.put(hash, tuple);
-        previousCells.put(hash, cell);
-
-        if (tuple != 0 || cell != 0) { // if tuple and cell == 0, no need to store payload
-          payload.encode(tuple, cell);
-          payloadAtt.setPayload(payload);
-        }
+      // Copy the current node path
+      // complexity: one execution per word
+      if (!previousPaths.containsKey(hash)) {
+        // object creation and copy
+        previousPaths.put(hash, IntsRef.deepCopyOf(nodeAtt.node()));
+        // encode node path
+        bytes = codec.encode(nodeAtt.node());
+        payload.setData(bytes.bytes, bytes.offset, bytes.length);
+        payloadAtt.setPayload(payload);
       }
+      // Perform the difference between the previous and current node paths
+      // complexity: one execution per word occurrence
       else {
-        // retrieve previous tuple and cell IDs
-        tuple = previousTuples.get(termAtt.hashCode());
-        cell = previousCells.get(termAtt.hashCode());
-        // store new tuple and cell IDs
-        previousTuples.put(hash, tupleAtt.tuple());
-        previousCells.put(hash, cellAtt.cell());
+        current = nodeAtt.node();
+        // retrieve previous node path
+        previous = previousPaths.get(hash);
+        // ensure previous is large enough to store new path
+        previous.grow(current.length);
 
-        if (tuple == tupleAtt.tuple()) { // tuple == 0
-          if (cell == cellAtt.cell()) { // tuple and cell == 0, no need to store payload
-            return true;
+        // substraction
+        // update previous path during substraction to avoid an additional
+        // creation and copy of array
+        int i, j, tmp;
+        for (i = current.offset, j = previous.offset;
+             (i < current.offset + current.length) &&
+             (j < previous.offset + previous.length);
+             i++, j++) {
+          tmp = current.ints[i]; // store node id before substraction
+          if (current.ints[i] != previous.ints[j]) {
+            current.ints[i] = current.ints[i] - previous.ints[j];
+            previous.ints[j] = tmp; // update previous path
+            i++; j++; // increment before break
+            break;
           }
-          payload.encode(0, cellAtt.cell() - cell);
-          payloadAtt.setPayload(payload);
+          current.ints[i] = 0;
+          previous.ints[j] = tmp; // update previous path
         }
-        else { // tuple < tupleAtt.tuple()
-          payload.encode(tupleAtt.tuple() - tuple, cellAtt.cell());
-          payloadAtt.setPayload(payload);
+
+        // finalise update of previous path
+        previous.offset = current.offset;
+        previous.length = current.length;
+
+        for (;
+            (i < current.offset + current.length) &&
+            (j < previous.offset + previous.length);
+             i++, j++) {
+          previous.ints[j] = current.ints[i];
         }
+
+        // encode node path
+        bytes = codec.encode(current);
+        payload.setData(bytes.bytes, bytes.offset, bytes.length);
+        payloadAtt.setPayload(payload);
       }
       return true;
     }

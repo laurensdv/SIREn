@@ -40,7 +40,6 @@ public class DatatypeAttributeImpl extends AttributeImpl implements DatatypeAttr
 
   @Override
   public void setDatatypeURI(final char[] datatypeURI) {
-    clear();
     this.dataTypeURI = datatypeURI;
   }
 
