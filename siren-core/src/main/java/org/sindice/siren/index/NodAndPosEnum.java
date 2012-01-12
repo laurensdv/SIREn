@@ -28,6 +28,7 @@ package org.sindice.siren.index;
 import java.io.IOException;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
+import org.sindice.siren.search.NodIdSetIterator;
 
 /**
  * Iterates through documents, nodes and positions.
@@ -35,19 +36,7 @@ import org.apache.lucene.index.DocsAndPositionsEnum;
  * A node is defined by a list of node identifiers which represents the path
  * in the tree to reach the node.
  */
-public abstract class NodAndPosEnum extends DocsAndPositionsEnum {
-
-  /**
-   * Sentinel value for nodes which means that there are no more nodes in the
-   * iterator.
-   */
-  public static final int NO_MORE_NOD = Integer.MAX_VALUE;
-
-  /**
-   * When returned by {@link #nextPosition()} it means there are no more
-   * positions in the iterator.
-   */
-  public static final int NO_MORE_POS = Integer.MAX_VALUE;
+public abstract class NodAndPosEnum extends DocsAndPositionsEnum implements NodIdSetIterator {
 
   /**
    * Decode the next node path.

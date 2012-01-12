@@ -30,10 +30,12 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
-import org.apache.lucene.index.DocsEnum;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader.ReaderContext;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TermState;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.Explanation;
@@ -42,46 +44,40 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.search.similarities.TFIDFSimilarity;
+import org.apache.lucene.search.similarities.Similarity.ExactDocScorer;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.ReaderUtil;
 import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
+import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
 
 /**
  * A Query that matches entities containing a term. Provides an interface to
  * iterate over the entities, tuples and cells containing the term. This may be
- * combined with other terms with a {@link SirenCellQuery}, a {@link SirenTupleQuery} or a
- * {@link BooleanQuery}.
+ * combined with other terms with a {@link SirenCellQuery}, a
+ * {@link SirenTupleQuery} or a {@link BooleanQuery}.
  */
-public class SirenTermQuery
-extends SirenPrimitiveQuery {
+public class SirenTermQuery extends SirenPrimitiveQuery {
 
   private final Term term;
+  private final int docFreq;
+  private final TermContext perReaderTermState;
 
   protected class SirenTermWeight extends Weight {
 
-    private final TFIDFSimilarity similarity;
-    private float            value;
-    private float            queryNorm;
-    private float            queryWeight;
+    private final Similarity similarity;
     private final Similarity.Stats stats;
     private final TermContext termStates;
-    private final float idf;
-    private final Explanation idfExp;
 
-    public SirenTermWeight(final IndexSearcher searcher, TermContext termStates) throws IOException {
+    public SirenTermWeight(final IndexSearcher searcher, final TermContext termStates)
+    throws IOException {
       assert termStates != null : "TermContext must not be null";
       this.termStates = termStates;
-      Similarity sim = searcher.getSimilarityProvider().get(term.field());
-      if (sim instanceof TFIDFSimilarity)
-        similarity = (TFIDFSimilarity) sim;
-      else
-        throw new RuntimeException("This scorer uses a TF-IDF scoring function");
-      stats = similarity.computeStats(searcher.collectionStatistics(term.field()), 
-                                      getBoost(),
+      similarity = searcher.getSimilarityProvider().get(term.field());
+      stats = similarity.computeStats(searcher.collectionStatistics(term.field()),
+                                      SirenTermQuery.this.getBoost(),
                                       searcher.termStatistics(term, termStates));
-      idf = similarity.idf(searcher.getIndexReader().docFreq(term), searcher.getIndexReader().numDocs());
-      idfExp = similarity.idfExplain(searcher.collectionStatistics(term.field()), searcher.termStatistics(term, termStates));
     }
 
     @Override
@@ -97,110 +93,101 @@ extends SirenPrimitiveQuery {
     @Override
     public float getValueForNormalization()
     throws IOException {
-//      return stats.getValueForNormalization();
-      queryWeight = idf * SirenTermQuery.this.getBoost(); // compute query weight
-      return queryWeight * queryWeight; // square it
+      return stats.getValueForNormalization();
     }
 
     @Override
-    public void normalize(float norm, float topLevelBoost) {
-//      stats.normalize(norm, topLevelBoost);
-      this.queryNorm = norm;
-      queryWeight *= queryNorm; // normalize query weight
-      value = queryWeight * idf; // idf for document
+    public void normalize(final float queryNorm, final float topLevelBoost) {
+      stats.normalize(queryNorm, topLevelBoost);
     }
 
     @Override
-    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder, boolean topScorer, Bits acceptDocs)
+    public Scorer scorer(final AtomicReaderContext context,
+                         final boolean scoreDocsInOrder,
+                         final boolean topScorer, final Bits acceptDocs)
     throws IOException {
-      final DocsAndPositionsEnum dapEnum = context.reader.termPositionsEnum(acceptDocs, term.field(), term.bytes());
-      if (dapEnum == null) {
+      assert termStates.topReaderContext == ReaderUtil.getTopLevelContext(context) : "The top-reader used to create Weight (" + termStates.topReaderContext + ") is not the same as the current reader's top-reader (" + ReaderUtil.getTopLevelContext(context);
+      final TermsEnum termsEnum = this.getTermsEnum(context);
+      if (termsEnum == null) {
         return null;
       }
+      final DocsAndPositionsEnum docs = termsEnum.docsAndPositions(acceptDocs, null);
+      return new SirenTermScorer(this, new Siren020NodAndPosEnum(docs), this.createDocScorer(context));
+    }
 
-      return new SirenTermScorer(this, dapEnum, similarity, context.reader.norms(term.field()));
+    /**
+     * Creates an {@link ExactDocScorer} for this {@link TermWeight}*/
+    ExactDocScorer createDocScorer(final AtomicReaderContext context)
+        throws IOException {
+      return similarity.exactDocScorer(stats, term.field(), context);
+    }
+
+    /**
+     * Returns a {@link TermsEnum} positioned at this weights Term or null if
+     * the term does not exist in the given context
+     */
+    TermsEnum getTermsEnum(final AtomicReaderContext context) throws IOException {
+      final TermState state = termStates.get(context.ord);
+      if (state == null) { // term is not present in that reader
+        assert this.termNotInReader(context.reader, term.field(), term.bytes()) : "no termstate found but term exists in reader term=" + term;
+        return null;
+      }
+      //System.out.println("LD=" + reader.getLiveDocs() + " set?=" + (reader.getLiveDocs() != null ? reader.getLiveDocs().get(0) : "null"));
+      final TermsEnum termsEnum = context.reader.terms(term.field()).iterator(null);
+      termsEnum.seekExact(term.bytes(), state);
+      return termsEnum;
+    }
+
+    private boolean termNotInReader(final IndexReader reader, final String field, final BytesRef bytes) throws IOException {
+      // only called from assert
+      //System.out.println("TQ.termNotInReader reader=" + reader + " term=" + field + ":" + bytes.utf8ToString());
+      return reader.docFreq(field, bytes) == 0;
     }
 
     @Override
-    public Explanation explain(AtomicReaderContext context, int doc)
-    throws IOException {
-      final ComplexExplanation result = new ComplexExplanation();
-      result.setDescription("weight(" + this.getQuery() + " in " + doc +
-                            "), product of:");
-
-      final Explanation expl = new Explanation(idf, idfExp.toString());
-
-      // explain query weight
-      final Explanation queryExpl = new Explanation();
-      queryExpl.setDescription("queryWeight(" + this.getQuery() +
-                               "), product of:");
-
-      final Explanation boostExpl = new Explanation(SirenTermQuery.this.getBoost(), "boost");
-      if (SirenTermQuery.this.getBoost() != 1.0f)
-        queryExpl.addDetail(boostExpl);
-      queryExpl.addDetail(expl);
-
-      final Explanation queryNormExpl = new Explanation(queryNorm,"queryNorm");
-      queryExpl.addDetail(queryNormExpl);
-
-      queryExpl.setValue(boostExpl.getValue() *
-                         expl.getValue() *
-                         queryNormExpl.getValue());
-
-      result.addDetail(queryExpl);
-
-      // explain field weight
-      final String field = term.field();
-      final ComplexExplanation fieldExpl = new ComplexExplanation();
-      fieldExpl.setDescription("fieldWeight("+term+" in "+doc+
-                               "), product of:");
-
-      final Explanation tfExplanation = new Explanation();
-      int tf = 0;
-      final DocsEnum termDocs = context.reader.termDocsEnum(context.reader.getLiveDocs(), term.field(), term.bytes(), true);
-      if (termDocs != null) {
-        if (termDocs.advance(doc) != DocsEnum.NO_MORE_DOCS && termDocs.docID() == doc) {
-          tf = termDocs.freq();
+    public Explanation explain(final AtomicReaderContext context, final int doc) throws IOException {
+      final Scorer scorer = this.scorer(context, true, false, context.reader.getLiveDocs());
+      if (scorer != null) {
+        final int newDoc = scorer.advance(doc);
+        if (newDoc == doc) {
+          final float freq = scorer.freq();
+          final ExactDocScorer docScorer = similarity.exactDocScorer(stats, term.field(), context);
+          final ComplexExplanation result = new ComplexExplanation();
+          result.setDescription("weight("+this.getQuery()+" in "+doc+") [" + similarity.getClass().getSimpleName() + "], result of:");
+          final Explanation scoreExplanation = docScorer.explain(doc, new Explanation(freq, "termFreq=" + freq));
+          result.addDetail(scoreExplanation);
+          result.setValue(scoreExplanation.getValue());
+          result.setMatch(true);
+          return result;
         }
-        tfExplanation.setValue(similarity.tf(tf));
-        tfExplanation.setDescription("tf(termFreq("+term+")="+tf+")");
-      } else {
-        tfExplanation.setValue(0.0f);
-        tfExplanation.setDescription("no matching term");
       }
-      fieldExpl.addDetail(tfExplanation);
-      fieldExpl.addDetail(expl);
-
-      final Explanation fieldNormExpl = new Explanation();
-      final byte[] fieldNorms = context.reader.norms(field);
-      final float fieldNorm =
-        fieldNorms != null && doc < fieldNorms.length ? similarity.decodeNormValue(fieldNorms[doc]) : 1.0f;
-      fieldNormExpl.setValue(fieldNorm);
-      fieldNormExpl.setDescription("fieldNorm(field="+field+", doc="+doc+")");
-      fieldExpl.addDetail(fieldNormExpl);
-
-      fieldExpl.setMatch(Boolean.valueOf(tfExplanation.isMatch()));
-      fieldExpl.setValue(tfExplanation.getValue() *
-                         expl.getValue() *
-                         fieldNormExpl.getValue());
-
-      result.addDetail(fieldExpl);
-      result.setMatch(fieldExpl.getMatch());
-
-      // combine them
-      result.setValue(queryExpl.getValue() * fieldExpl.getValue());
-
-      if (queryExpl.getValue() == 1.0f)
-        return fieldExpl;
-
-      return result;
+      return new ComplexExplanation(false, 0.0f, "no matching term");
     }
 
   }
 
   /** Constructs a query for the term <code>t</code>. */
   public SirenTermQuery(final Term t) {
+    this(t, -1);
+  }
+
+  /** Expert: constructs a TermQuery that will use the
+   *  provided docFreq instead of looking up the docFreq
+   *  against the searcher. */
+  public SirenTermQuery(final Term t, final int docFreq) {
     term = t;
+    this.docFreq = docFreq;
+    perReaderTermState = null;
+  }
+
+  /** Expert: constructs a TermQuery that will use the
+   *  provided docFreq instead of looking up the docFreq
+   *  against the searcher. */
+  public SirenTermQuery(final Term t, final TermContext states) {
+    assert states != null;
+    term = t;
+    docFreq = states.docFreq();
+    perReaderTermState = states;
   }
 
   /** Returns the term of this query. */
@@ -209,11 +196,21 @@ extends SirenPrimitiveQuery {
   }
 
   @Override
-  public Weight createWeight(final IndexSearcher searcher)
-  throws IOException {
+  public Weight createWeight(final IndexSearcher searcher) throws IOException {
     final ReaderContext context = searcher.getTopReaderContext();
-    // make TermQuery single-pass if we don't have a PRTS or if the context differs!
-    final TermContext termState = TermContext.build(context, term, true); // cache term lookups!
+    final TermContext termState;
+    if (perReaderTermState == null || perReaderTermState.topReaderContext != context) {
+      // make TermQuery single-pass if we don't have a PRTS or if the context differs!
+      termState = TermContext.build(context, term, true); // cache term lookups!
+    } else {
+     // PRTS was pre-build for this IS
+     termState = this.perReaderTermState;
+    }
+
+    // we must not ignore the given docFreq - if set use the given value (lie)
+    if (docFreq != -1)
+      termState.setDocFreq(docFreq);
+
     return new SirenTermWeight(searcher, termState);
   }
 
@@ -249,5 +246,5 @@ extends SirenPrimitiveQuery {
   public int hashCode() {
     return Float.floatToIntBits(this.getBoost()) ^ term.hashCode();
   }
-  
+
 }

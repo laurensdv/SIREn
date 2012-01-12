@@ -161,7 +161,7 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   protected boolean findNode(final int[] nodes)
   throws IOException {
     while (++_posPtr < this.freq()) {
-      this.loadNodePath();
+      this.decodeNodePath();
       boolean match = true;
       for (int i = 0; i < nodes.length; i++) {
         if (this.isBefore(nodes, i)) {
@@ -195,7 +195,8 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   @Override
   public boolean nextNode() throws IOException {
     if (++_posPtr < this.freq()) {
-      this.loadNodePath();
+      e.nextPosition(); // does not set pos variable
+      this.decodeNodePath();
       return true;
     }
 
@@ -205,15 +206,15 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   @Override
   public int nextPosition() throws IOException {
     if (++_posPtr < this.freq()) {
-      this.loadNodePath();
+      pos = e.nextPosition();
+      this.decodeNodePath();
       return pos;
     }
 
     return NO_MORE_POS;
   }
 
-  private void loadNodePath() throws IOException {
-    pos = e.nextPosition();
+  private void decodeNodePath() throws IOException {
     this.decodePayload();
 
     // Ensure we have enough space to store the node path
@@ -242,7 +243,7 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
    * there is no more occurrences to read.
    */
   private void setNodAndPosToSentinel() {
-    Arrays.fill(curNode, NO_MORE_NOD);
+    Arrays.fill(curNode, NOD_SENTINEL_VAL);
     pos = NO_MORE_POS;
   }
 

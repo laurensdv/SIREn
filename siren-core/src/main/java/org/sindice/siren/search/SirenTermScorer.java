@@ -28,44 +28,27 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.DocsAndPositionsEnum;
-import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.search.similarities.TFIDFSimilarity;
 import org.sindice.siren.index.NodAndPosEnum;
-import org.sindice.siren.index.NodesConfig;
-import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
 
+/**
+ * Expert: A {@link SirenPrimitiveScorer} for documents matching a
+ * <code>Term</code>.
+ */
 class SirenTermScorer
 extends SirenPrimitiveScorer {
 
-  private final NodAndPosEnum napEnum;
+  private final NodAndPosEnum docsEnum;
 
-  private final TFIDFSimilarity sim;
+  private final Similarity.ExactDocScorer docScorer;
 
-  private final byte[]        norms;
-
-  private final float         weightValue;
-
-  private static final int    SCORE_CACHE_SIZE = 32;
-
-  private final float[]       scoreCache       = new float[SCORE_CACHE_SIZE];
-
-  /** Current structural and positional information */
-//  private int                 dataset = -1;
-//  private int                 docID = -1;
-//  private int                 tuple = -1;
-//  private int                 cell = -1;
-//  private int                 pos = -1;
-//  private final int[] node;
-  
   /**
    * Construct a <code>SirenTermScorer</code>.
    *
    * @param weight
    *          The weight of the <code>Term</code> in the query.
-   * @param napEnum
+   * @param docsEnum
    *          An iterator over the documents and the positions matching the
    *          <code>Term</code>.
    * @param similarity
@@ -73,133 +56,88 @@ extends SirenPrimitiveScorer {
    *          computations.
    * @param norms
    *          The field norms of the document fields for the <code>Term</code>.
-   * @throws IOException 
+   * @throws IOException
    */
-  protected SirenTermScorer(final Weight weight, final DocsAndPositionsEnum napEnum,
-                            final Similarity similarity, final byte[] norms)
+  protected SirenTermScorer(final Weight weight, final NodAndPosEnum td, final Similarity.ExactDocScorer docScorer)
   throws IOException {
     super(weight);
-    if (similarity instanceof TFIDFSimilarity)
-      sim = (TFIDFSimilarity) similarity;
-    else
-      throw new RuntimeException("This scorer uses a TF-IDF scoring function");
-    
-    // TODO: don't instantiate the enum here! this should be done by the specific codec.
-    this.napEnum = new Siren020NodAndPosEnum(new NodesConfig(2), napEnum);
-    this.norms = norms;
-    // TODO: check if this API change provides the same value as before
-//    this.weightValue = weight.getValue();
-    this.weightValue = weight.getValueForNormalization();
-
-    for (int i = 0; i < SCORE_CACHE_SIZE; i++)
-      scoreCache[i] = sim.tf(i) * weightValue;
+    this.docScorer = docScorer;
+    this.docsEnum = td;
   }
 
   @Override
-  public void score(final Collector c) throws IOException {
-    this.score(c, Integer.MAX_VALUE, this.nextDoc());
+  public int docID() {
+    return docsEnum.docID();
   }
 
-  // firstDocID is ignored since nextDoc() sets 'doc'
   @Override
-  public boolean score(final Collector c, final int end, final int firstDocID) throws IOException {
-    c.setScorer(this);
-    while (napEnum.docID() < end) {                           // for docs in window
-      c.collect(napEnum.docID());                             // collect score
-      if (this.nextDoc() == NO_MORE_DOCS) {
-        return false;
-      }
-    }
-    return true;
+  public float freq() {
+    return docsEnum.freq();
+  }
+
+  @Override
+  public int pos() {
+    return docsEnum.pos();
+  }
+
+  @Override
+  public int[] node() {
+    return docsEnum.node();
+  }
+
+  /**
+   * Advances to the next document matching the query. <br>
+   *
+   * @return the document matching the query or NO_MORE_DOCS if there are no
+   * more documents.
+   */
+  @Override
+  public int nextDoc() throws IOException {
+    return docsEnum.nextDoc();
+  }
+
+  /**
+   * Advances to the next node path matching the query. <br>
+   *
+   * @return false iff there are no more node paths.
+   */
+  @Override
+  public boolean nextNode() throws IOException {
+    return docsEnum.nextNode();
+  }
+
+  /**
+   * Advances to the next node path and position matching the query. <br>
+   *
+   * @return false iff there is no more node path and position for the current
+   * entity.
+   */
+  @Override
+  public int nextPosition() throws IOException {
+    return docsEnum.nextPosition();
   }
 
   @Override
   public float score() throws IOException {
-    final int f = napEnum.freq();
-    final float raw =                                   // compute tf(f)*weight
-      f < SCORE_CACHE_SIZE                              // check cache
-      ? scoreCache[f]                                   // cache hit
-      : sim.tf(f) * weightValue;                        // cache miss
-
-    return norms == null ? raw : raw * sim.decodeNormValue(norms[this.docID()]); // normalize for field
-  }
-
-  /** Move to the next entity matching the query.
-   * @return next entity id matching the query.
-   */
-  @Override
-  public int nextDoc() throws IOException {
-    if (napEnum.nextDoc() == NO_MORE_DOCS) {
-      return NO_MORE_DOCS;
-    }
-//    docID = napEnum.docID();
-    this.nextPosition(); // advance to the first cell [SRN-24]
-    return napEnum.docID();
-  }
-
-  /**
-   * Move to the next tuple, cell and position in the current entity.
-   *
-   * <p> This is invalid until {@link #next()} is called for the first time.
-   *
-   * @return false iff there is no more tuple, cell and position for the current
-   * entity.
-   * @throws IOException
-   */
-  @Override
-  public int nextPosition() throws IOException {
-    if (napEnum.nextPosition() == NO_MORE_POS) {
-      // TODO: why not dataset ?
-      napEnum.setLayersToSentinel();
-      return NO_MORE_POS;
-    }
-
-//    tuple = napEnum.tuple();
-//    cell = napEnum.cell();
-//    pos = napEnum.pos();
-    return napEnum.pos();
+    assert this.docID() != NO_MORE_DOCS;
+    return docScorer.score(docsEnum.docID(), docsEnum.freq());
   }
 
   @Override
   public int advance(final int entityID)
   throws IOException {
-    if (napEnum.advance(entityID) == NO_MORE_DOCS) {
-      return NO_MORE_DOCS;
-    }
-//    docID = napEnum.entity();
-    this.nextPosition(); // advance to the first cell [SRN-24]
-    return napEnum.docID();
+    return docsEnum.advance(entityID);
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int advance(final int docID, final int[] nodes)
   throws IOException {
-    if (napEnum.advance(docID, nodes) == NO_MORE_DOCS) {
-      return NO_MORE_DOCS;
-    }
-    return docID();
+    return docsEnum.advance(docID, nodes);
   }
-  
-  /** Returns the current document number matching the query.
-   * <p> Initially invalid, until {@link #next()} is called the first time.
-   */
-  @Override
-  public int docID() { return napEnum.docID(); }
-
-  /** Returns the current position identifier matching the query.
-   * <p> Initially invalid, until {@link #nextPosition()} is
-   * called the first time.
-   */
-  public int pos() { return napEnum.pos(); }
 
   @Override
   public String toString() {
-    return "TermScorer(" + docID() + napEnum.toString() + ")";
-  }
-
-  @Override
-  public int[] node() {
-    return napEnum.node();
+    return "SirenTermScorer(" + weight + ")";
   }
 
 }

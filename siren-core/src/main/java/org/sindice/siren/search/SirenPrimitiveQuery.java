@@ -32,14 +32,4 @@ import org.apache.lucene.search.Query;
  * Abstract class for the SIREn primitive queries, such as
  * {@link SirenTermQuery} or {@link SirenPhraseQuery}.
  */
-public abstract class SirenPrimitiveQuery
-extends Query {
-
-//  /** Expert: Constructs an appropriate Weight implementation for this query.
-//  *
-//  * <p>Only implemented by primitive queries, which re-write to themselves.
-//  */
-//  @Override
-//  public abstract Weight createWeight(Searcher searcher) throws IOException;
-
-}
+public abstract class SirenPrimitiveQuery extends Query {}

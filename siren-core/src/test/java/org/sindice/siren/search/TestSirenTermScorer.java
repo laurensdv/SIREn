@@ -26,19 +26,12 @@
  */
 package org.sindice.siren.search;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.MultiNorms;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
@@ -49,29 +42,46 @@ public class TestSirenTermScorer extends AbstractTestSirenScorer {
   @Test(expected=RuntimeException.class)
   public void testNextPositionFail()
   throws Exception {
-    _helper.addDocument("<http://renaud.delbru.fr/> . ");
-    final Term term = new Term(QueryTestingHelper.DEFAULT_FIELD, "renaud");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-      MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
-      term.bytes());
-
-    final SirenTermScorer scorer = new SirenTermScorer(new ConstantWeight(),
-      p, new DefaultSimilarity(), reader.norms(term.field()));
+    this.addDocument(writer, "<http://renaud.delbru.fr/> . ");
+    final SirenTermScorer scorer = this.getTermScorer(DEFAULT_FIELD, "renaud");
     scorer.nextPosition();
   }
 
+  @Test(expected=RuntimeException.class)
+  public void testNextNodeFail()
+  throws Exception {
+    this.addDocument(writer, "<http://renaud.delbru.fr/> . ");
+    final SirenTermScorer scorer = this.getTermScorer(DEFAULT_FIELD, "renaud");
+    scorer.nextNode();
+  }
+
+  // node path and pos should not be set
   @Test
   public void testNextWithURI()
   throws Exception {
     this.assertTo(
       new AssertNextEntityFunctor(),
       new String[] { "<http://renaud.delbru.fr/> <http://renaud.delbru.fr/> . " },
-      new String[] { "renaud" }, new int[][] { { 0, 0, 0, 0 } });
+      new String[] { "renaud" }, new int[][] { { 0, -1, -1, -1 } });
     this.assertTo(new AssertNextEntityFunctor(), new String[] {
         "<http://renaud.delbru.fr/> <http://renaud.delbru.fr/> . ",
         "<http://renaud.delbru.fr/> <http://test/name> \"Renaud Delbru\" . " },
-        new String[] { "renaud" }, new int[][] { { 0, 0, 0, 0 }, { 1, 0, 0, 0 } });
+        new String[] { "renaud" }, new int[][] { { 0, -1, -1, -1 }, { 1, -1, -1, -1 } });
+  }
+
+  // pos should not be set
+  @Test
+  public void testNextNodeWithURI()
+  throws Exception {
+    this.assertTo(
+      new AssertNextNodeEntityFunctor(),
+      new String[] { "<http://renaud.delbru.fr/> <http://renaud.delbru.fr/> . " },
+      new String[] { "renaud" }, new int[][] { { 0, 0, 0, -1 }, { 0, 0, 1, -1 } });
+    this.assertTo(new AssertNextNodeEntityFunctor(), new String[] {
+        "<http://renaud.delbru.fr/> <http://renaud.delbru.fr/> . \n" +
+        "<http://renaud.delbru.fr/> <http://test/name> \"Renaud Delbru\" . " },
+      new String[] { "renaud" }, new int[][] { { 0, 0, 0, -1 }, { 0, 0, 1, -1 },
+                                               { 0, 1, 0, -1 }, { 0, 1, 2, -1 } });
   }
 
   @Test
@@ -89,19 +99,39 @@ public class TestSirenTermScorer extends AbstractTestSirenScorer {
   }
 
   @Test
+  public void testSkipToEntity()
+  throws Exception {
+    final ArrayList<String> docs = new ArrayList<String>();
+    for (int i = 0; i < 32; i++) {
+      docs.add("<http://renaud.delbru.fr/> . \"renaud delbru\" \"renaud delbru\" . ");
+    }
+    this.deleteAll(writer);
+    this.addDocumentsWithIterator(writer, docs);
+
+    final SirenScorer scorer = this.getTermScorer(DEFAULT_FIELD, "renaud");
+    assertFalse(scorer.advance(16) == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(16, scorer.docID());
+    for (int i = 0; i < scorer.node().length; i++) {
+      assertEquals(-1, scorer.node()[i]);
+    }
+    assertEquals(-1, scorer.pos());
+  }
+
+  @Test
   public void testSkipToEntityTupleCell()
   throws Exception {
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
       docs.add("<http://renaud.delbru.fr/> . \"renaud delbru\" \"renaud delbru\" . ");
     }
-    _helper.addDocumentsWithIterator(docs);
-    final SirenScorer scorer = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, "renaud");
+    this.deleteAll(writer);
+    this.addDocumentsWithIterator(writer, docs);
+
+    final SirenScorer scorer = this.getTermScorer(DEFAULT_FIELD, "renaud");
     assertFalse(scorer.advance(16, new int[] { 1, 1 } ) == DocIdSetIterator.NO_MORE_DOCS);
     assertEquals(16, scorer.docID());
     assertEquals(1, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
-//    assertEquals(-1, scorer.dataset());
     assertEquals(4, scorer.pos());
   }
 
@@ -201,21 +231,14 @@ public class TestSirenTermScorer extends AbstractTestSirenScorer {
   protected void assertTo(final AssertFunctor functor, final String[] input,
                           final String[] terms, final int[][] deweyPath)
     throws Exception {
-      _helper.reset();
-      _helper.addDocuments(input);
-      final IndexReader reader = _helper.getIndexReader();
-      final HashSet<Integer> docIDs = new HashSet<Integer>();
-      for (int[] path : deweyPath) {
-        docIDs.add(path[0]);
-      }
-      assertEquals(docIDs.size(), reader.numDocs());
+      this.deleteAll(writer);
+      this.addDocuments(writer, input);
 
       SirenTermScorer scorer = null;
       for (final String t : terms) {
-        scorer = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, t);
+        scorer = this.getTermScorer(DEFAULT_FIELD, t);
         functor.run(scorer, deweyPath);
       }
-      reader.close();
     }
 
 }

@@ -29,42 +29,65 @@ package org.sindice.siren.search;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.MultiNorms;
 import org.apache.lucene.index.IndexReader.AtomicReaderContext;
+import org.apache.lucene.index.RandomIndexWriter;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.Bits;
 import org.junit.After;
 import org.junit.Before;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.util.SirenTestCase;
 
-public abstract class AbstractTestSirenScorer extends LuceneTestCase {
+public abstract class AbstractTestSirenScorer extends SirenTestCase {
 
-  protected QueryTestingHelper _helper = null;
+  protected Directory directory;
+  protected RandomIndexWriter writer;
+  protected IndexReader reader;
+  protected IndexSearcher searcher;
 
+  @Override
   @Before
   public void setUp()
   throws Exception {
     super.setUp();
+
     final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT, new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-    _helper = new QueryTestingHelper(analyzer);
+    final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT,
+      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
+
+    directory = newDirectory();
+
+    writer = this.newRandomIndexWriter(directory, analyzer);
+    reader = this.newIndexReader(writer);
+    searcher = newSearcher(reader);
   }
 
+  @Override
   @After
   public void tearDown()
   throws Exception {
+    reader.close();
+    writer.close();
+    directory.close();
     super.tearDown();
-    _helper.close();
+  }
+
+  private void refreshReaderAndSearcher() throws IOException {
+    reader.close();
+    reader = this.newIndexReader(writer);
+    searcher = newSearcher(reader);
   }
 
   protected abstract void assertTo(final AssertFunctor functor, final String[] input,
@@ -80,15 +103,49 @@ public abstract class AbstractTestSirenScorer extends LuceneTestCase {
   extends AssertFunctor {
 
     @Override
-    protected void run(final SirenScorer scorer,int[][] deweyPaths)
+    protected void run(final SirenScorer scorer, final int[][] deweyPaths)
     throws Exception {
-      for (int i = 0; i < deweyPaths.length; i++) {
+      for (final int[] deweyPath : deweyPaths) {
         assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-        assertEquals(deweyPaths[i][0], scorer.docID());
-        for (int j = 1; j < deweyPaths[i].length - 1; j++) {
-          assertEquals(deweyPaths[i][j], scorer.node()[j - 1]);
+        assertEquals(deweyPath[0], scorer.docID());
+        for (int j = 1; j < deweyPath.length - 1; j++) {
+          assertEquals(deweyPath[j], scorer.node()[j - 1]);
         }
-        assertEquals(deweyPaths[i][deweyPaths[i].length - 1], scorer.pos());
+        assertEquals(deweyPath[deweyPath.length - 1], scorer.pos());
+      }
+      assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    }
+  }
+
+  protected class AssertNextNodeEntityFunctor
+  extends AssertFunctor {
+
+    @Override
+    protected void run(final SirenScorer scorer, final int[][] deweyPaths)
+    throws Exception {
+      int index = 0;
+      int lastDocID = deweyPaths[index][0];
+
+      while (index < deweyPaths.length) {
+        assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+        assertEquals(deweyPaths[index][0], scorer.docID());
+
+        while (true) {
+          if (index < deweyPaths.length && deweyPaths[index][0] == lastDocID) {
+            assertFalse(scorer.nextNode() == NodIdSetIterator.NO_MORE_NOD);
+          } else {
+            assertTrue(scorer.nextNode() == NodIdSetIterator.NO_MORE_NOD);
+            break;
+          }
+
+          for (int i = 1; i < deweyPaths[index].length - 1; i++) {
+            assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
+          }
+          assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
+
+          lastDocID = deweyPaths[index][0];
+          index++;
+        }
       }
       assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
     }
@@ -98,159 +155,143 @@ public abstract class AbstractTestSirenScorer extends LuceneTestCase {
   extends AssertFunctor {
 
     @Override
-    protected void run(final SirenScorer scorer, int[][] deweyPaths)
+    protected void run(final SirenScorer scorer, final int[][] deweyPaths)
     throws Exception {
       int index = 0;
-      int lastDocID = -1;
-      
+      int lastDocID = deweyPaths[index][0];
+
       while (index < deweyPaths.length) {
         assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+        assertEquals(deweyPaths[index][0], scorer.docID());
+
         while (true) {
-          lastDocID = deweyPaths[index][0];
-          assertEquals(deweyPaths[index][0], scorer.docID());
-          for (int i = 1; i < deweyPaths[index].length - 1; i++) {
-            assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
-          }
-          assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
-          
-          index++;
           if (index < deweyPaths.length && deweyPaths[index][0] == lastDocID) {
             assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
           } else {
             assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
             break;
           }
+
+          for (int i = 1; i < deweyPaths[index].length - 1; i++) {
+            assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
+          }
+          assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
+
+          lastDocID = deweyPaths[index][0];
+          index++;
         }
       }
       assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-//      for (int i = 0; i < expectedNumDocs; i++) {
-//        assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-//        for (int j = 0; j < expectedNumTuples[i]; j++) {
-//          for (int k = 0; k < expectedNumCells[j]; k++) {
-//            assertEquals(expectedEntityID[index], scorer.entity());
-//            assertEquals(expectedTupleID[index], scorer.tuple());
-//            assertEquals(expectedCellID[index], scorer.cell());
-//            assertEquals(expectedPos[index], scorer.pos());
-//            index++;
-//            if (k < expectedNumCells[j] - 1)
-//              assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-//          }
-//          if (j < expectedNumTuples[i] - 1)
-//            assertFalse(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-//        }
-//        assertTrue(scorer.nextPosition() == DocTupCelIdSetIterator.NO_MORE_POS);
-//      }
     }
   }
 
-  protected SirenExactPhraseScorer getExactScorer(final String field,
-                                                  final String[] phraseTerms)
-  throws IOException {
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
-    final int[] positions = new int[phraseTerms.length];
-    for (int i = 0; i < phraseTerms.length; i++) {
-      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-        MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
-        new BytesRef(phraseTerms[i]));
-      if (p == null) return null;
-      tps[i] = p;
-      positions[i] = i;
-    }
-
-    return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
-      new DefaultSimilarity(), MultiNorms.norms(reader, field));
-  }
-
-  protected SirenExactPhraseScorer getExactScorer(final String field,
-                                                  final int[] positions,
-                                                  final String[] phraseTerms)
-  throws IOException {
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
-    for (int i = 0; i < phraseTerms.length; i++) {
-      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-        MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
-        new BytesRef(phraseTerms[i]));
-      if (p == null) return null;
-      tps[i] = p;
-    }
-
-    return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
-    new DefaultSimilarity(), MultiNorms.norms(reader, field));
-  }
+//  protected SirenExactPhraseScorer getExactScorer(final String field,
+//                                                  final String[] phraseTerms)
+//  throws IOException {
+//    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
+//    final int[] positions = new int[phraseTerms.length];
+//    for (int i = 0; i < phraseTerms.length; i++) {
+//      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
+//        MultiFields.getLiveDocs(reader), DEFAULT_FIELD,
+//        new BytesRef(phraseTerms[i]));
+//      if (p == null) return null;
+//      tps[i] = p;
+//      positions[i] = i;
+//    }
+//
+//    return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
+//      new DefaultSimilarity(), MultiNorms.norms(reader, field));
+//  }
+//
+//  protected SirenExactPhraseScorer getExactScorer(final String field,
+//                                                  final int[] positions,
+//                                                  final String[] phraseTerms)
+//  throws IOException {
+//    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
+//    for (int i = 0; i < phraseTerms.length; i++) {
+//      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
+//        MultiFields.getLiveDocs(reader), DEFAULT_FIELD,
+//        new BytesRef(phraseTerms[i]));
+//      if (p == null) return null;
+//      tps[i] = p;
+//    }
+//
+//    return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
+//    new DefaultSimilarity(), MultiNorms.norms(reader, field));
+//  }
 
   protected SirenTermScorer getTermScorer(final String field,
                                           final String term)
   throws IOException {
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-      MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
-      new BytesRef(term));
-    return new SirenTermScorer(new ConstantWeight(), p, new DefaultSimilarity(), MultiNorms.norms(reader, field));
+    final Term t = new Term(field, term);
+    final SirenTermQuery termQuery = new SirenTermQuery(t);
+
+    this.refreshReaderAndSearcher();
+
+    final Weight weight = searcher.createNormalizedWeight(termQuery);
+    assertTrue(searcher.getTopReaderContext().isAtomic);
+    final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();
+    final Scorer ts = weight.scorer(context, true, true, context.reader.getLiveDocs());
+    return (SirenTermScorer) ts;
   }
 
   /**
    * Return a term scorer which is positioned to the first element, i.e.
    * {@link SirenScorer#next()} has been called one time.
    */
-  protected SirenTermScorer getPositionedTermScorer(final String term)
+  protected SirenTermScorer getPositionedTermScorer(final String field,
+                                                    final String term)
   throws IOException {
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-      MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD,
-      new BytesRef(term));
-    final SirenTermScorer s = new SirenTermScorer(new ConstantWeight(), p,
-      new DefaultSimilarity(), reader.norms(QueryTestingHelper.DEFAULT_FIELD));
-    assertNotSame(DocIdSetIterator.NO_MORE_DOCS, s.nextDoc());
-    return s;
+    final SirenTermScorer ts = this.getTermScorer(field, term);
+    assertNotSame(DocIdSetIterator.NO_MORE_DOCS, ts.nextDoc());
+    return ts;
   }
 
   protected SirenConjunctionScorer getConjunctionScorer(final String[] terms)
   throws IOException {
     final SirenTermScorer[] scorers = new SirenTermScorer[terms.length];
     for (int i = 0; i < terms.length; i++) {
-      scorers[i] = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, terms[i]);
+      scorers[i] = this.getTermScorer(DEFAULT_FIELD, terms[i]);
     }
     return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
   }
 
-  protected SirenConjunctionScorer getConjunctionScorer(final String[][] phraseTerms)
-  throws IOException {
-    final SirenPhraseScorer[] scorers = new SirenPhraseScorer[phraseTerms.length];
-    for (int i = 0; i < phraseTerms.length; i++) {
-      scorers[i] = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, phraseTerms[i]);
-    }
-    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
-  }
+//  protected SirenConjunctionScorer getConjunctionScorer(final String[][] phraseTerms)
+//  throws IOException {
+//    final SirenPhraseScorer[] scorers = new SirenPhraseScorer[phraseTerms.length];
+//    for (int i = 0; i < phraseTerms.length; i++) {
+//      scorers[i] = this.getExactScorer(DEFAULT_FIELD, phraseTerms[i]);
+//    }
+//    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
+//  }
 
   protected SirenDisjunctionScorer getDisjunctionScorer(final String[] terms)
   throws IOException {
     final SirenTermScorer[] scorers = new SirenTermScorer[terms.length];
     for (int i = 0; i < terms.length; i++) {
-      scorers[i] = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, terms[i]);
+      scorers[i] = this.getTermScorer(DEFAULT_FIELD, terms[i]);
     }
     return new SirenDisjunctionScorer(scorers[0].getWeight(), scorers);
   }
 
   protected SirenReqExclScorer getReqExclScorer(final String reqTerm, final String exclTerm)
   throws IOException {
-    final SirenTermScorer reqScorer = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, reqTerm);
-    final SirenTermScorer exclScorer = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, exclTerm);
+    final SirenTermScorer reqScorer = this.getTermScorer(DEFAULT_FIELD, reqTerm);
+    final SirenTermScorer exclScorer = this.getTermScorer(DEFAULT_FIELD, exclTerm);
     return new SirenReqExclScorer(reqScorer, exclScorer);
   }
 
-  protected SirenReqExclScorer getReqExclScorer(final String[] reqPhrase, final String[] exclPhrase)
-  throws IOException {
-    final SirenExactPhraseScorer reqScorer = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, reqPhrase);
-    final SirenExactPhraseScorer exclScorer = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, exclPhrase);
-    return new SirenReqExclScorer(reqScorer, exclScorer);
-  }
+//  protected SirenReqExclScorer getReqExclScorer(final String[] reqPhrase, final String[] exclPhrase)
+//  throws IOException {
+//    final SirenExactPhraseScorer reqScorer = this.getExactScorer(DEFAULT_FIELD, reqPhrase);
+//    final SirenExactPhraseScorer exclScorer = this.getExactScorer(DEFAULT_FIELD, exclPhrase);
+//    return new SirenReqExclScorer(reqScorer, exclScorer);
+//  }
 
   protected SirenReqOptScorer getReqOptScorer(final String reqTerm, final String optTerm)
   throws IOException {
-    final SirenTermScorer reqScorer = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, reqTerm);
-    final SirenTermScorer optScorer = this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, optTerm);
+    final SirenTermScorer reqScorer = this.getTermScorer(DEFAULT_FIELD, reqTerm);
+    final SirenTermScorer optScorer = this.getTermScorer(DEFAULT_FIELD, optTerm);
     return new SirenReqOptScorer(reqScorer, optScorer);
   }
 
@@ -261,15 +302,15 @@ public abstract class AbstractTestSirenScorer extends LuceneTestCase {
     final SirenBooleanScorer scorer = new SirenBooleanScorer(new ConstantWeight());
     if (reqTerms != null) {
       for (final String term : reqTerms)
-        scorer.add(this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, term), true, false);
+        scorer.add(this.getTermScorer(DEFAULT_FIELD, term), true, false);
     }
     if (optTerms != null) {
       for (final String term : optTerms)
-        scorer.add(this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, term), false, false);
+        scorer.add(this.getTermScorer(DEFAULT_FIELD, term), false, false);
     }
     if (exclTerms != null) {
       for (final String term : exclTerms)
-        scorer.add(this.getTermScorer(QueryTestingHelper.DEFAULT_FIELD, term), false, true);
+        scorer.add(this.getTermScorer(DEFAULT_FIELD, term), false, true);
     }
     return scorer;
   }
@@ -292,7 +333,7 @@ public abstract class AbstractTestSirenScorer extends LuceneTestCase {
     public Query getQuery() { return null; }
 
     @Override
-    public Explanation explain(AtomicReaderContext context, int doc)
+    public Explanation explain(final AtomicReaderContext context, final int doc)
     throws IOException {
       return null;
     }
@@ -304,12 +345,12 @@ public abstract class AbstractTestSirenScorer extends LuceneTestCase {
     }
 
     @Override
-    public void normalize(float norm, float topLevelBoost) {
+    public void normalize(final float norm, final float topLevelBoost) {
     }
 
     @Override
-    public Scorer scorer(AtomicReaderContext context, boolean scoreDocsInOrder,
-                         boolean topScorer, Bits acceptDocs)
+    public Scorer scorer(final AtomicReaderContext context, final boolean scoreDocsInOrder,
+                         final boolean topScorer, final Bits acceptDocs)
     throws IOException {
       return null;
     }
