@@ -30,16 +30,15 @@ import java.io.IOException;
 
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
-import org.sindice.siren.index.NodAndPosEnum;
+import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 
 /**
  * Expert: A {@link SirenPrimitiveScorer} for documents matching a
  * <code>Term</code>.
  */
-class SirenTermScorer
-extends SirenPrimitiveScorer {
+class SirenTermScorer extends SirenPrimitiveScorer {
 
-  private final NodAndPosEnum docsEnum;
+  private final DocsNodesAndPositionsEnum docsEnum;
 
   private final Similarity.ExactDocScorer docScorer;
 
@@ -58,21 +57,23 @@ extends SirenPrimitiveScorer {
    *          The field norms of the document fields for the <code>Term</code>.
    * @throws IOException
    */
-  protected SirenTermScorer(final Weight weight, final NodAndPosEnum td, final Similarity.ExactDocScorer docScorer)
+  protected SirenTermScorer(final Weight weight,
+                            final DocsNodesAndPositionsEnum docsEnum,
+                            final Similarity.ExactDocScorer docScorer)
   throws IOException {
     super(weight);
     this.docScorer = docScorer;
-    this.docsEnum = td;
+    this.docsEnum = docsEnum;
   }
 
   @Override
-  public int docID() {
-    return docsEnum.docID();
+  public int doc() {
+    return docsEnum.doc();
   }
 
   @Override
   public float freq() {
-    return docsEnum.freq();
+    return docsEnum.termFreqInDoc();
   }
 
   @Override
@@ -85,54 +86,37 @@ extends SirenPrimitiveScorer {
     return docsEnum.node();
   }
 
-  /**
-   * Advances to the next document matching the query. <br>
-   *
-   * @return the document matching the query or NO_MORE_DOCS if there are no
-   * more documents.
-   */
   @Override
-  public int nextDoc() throws IOException {
-    return docsEnum.nextDoc();
+  public boolean nextDocument() throws IOException {
+    return docsEnum.nextDocument();
   }
 
-  /**
-   * Advances to the next node path matching the query. <br>
-   *
-   * @return false iff there are no more node paths.
-   */
   @Override
   public boolean nextNode() throws IOException {
     return docsEnum.nextNode();
   }
 
-  /**
-   * Advances to the next node path and position matching the query. <br>
-   *
-   * @return false iff there is no more node path and position for the current
-   * entity.
-   */
   @Override
-  public int nextPosition() throws IOException {
+  public boolean nextPosition() throws IOException {
     return docsEnum.nextPosition();
   }
 
   @Override
   public float score() throws IOException {
-    assert this.docID() != NO_MORE_DOCS;
-    return docScorer.score(docsEnum.docID(), docsEnum.freq());
+    assert this.doc() != NO_MORE_DOCS;
+    return docScorer.score(docsEnum.doc(), docsEnum.termFreqInDoc());
   }
 
   @Override
-  public int advance(final int entityID)
+  public boolean skipTo(final int entityID)
   throws IOException {
-    return docsEnum.advance(entityID);
+    return docsEnum.skipTo(entityID);
   }
 
   @Override
-  public int advance(final int docID, final int[] nodes)
+  public boolean skipTo(final int docID, final int[] nodes)
   throws IOException {
-    return docsEnum.advance(docID, nodes);
+    return docsEnum.skipTo(docID, nodes);
   }
 
   @Override

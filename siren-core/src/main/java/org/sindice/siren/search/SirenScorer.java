@@ -28,57 +28,42 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
+import org.sindice.siren.index.DocsNodesAndPositionsIterator;
 
 /**
  * The Siren abstract {@link Scorer} class that implements the interface
- * {@link NodIdSetIterator}.
+ * {@link DocsNodesAndPositionsIterator}.
+ * <br>
+ * Implement {@link #docID()}, {@link #nextDoc()} and {@link #advance(int)} for
+ * compatibility with {@link Scorer}.
  */
-public abstract class SirenScorer extends Scorer implements NodIdSetIterator {
-  
+public abstract class SirenScorer extends Scorer implements DocsNodesAndPositionsIterator {
+
   protected SirenScorer(final Weight weight) {
     super(weight);
   }
 
-  /**
-   * Expert: Collects matching documents in a range. Hook for optimization.
-   * Note, <code>firstDocID</code> is added to ensure that {@link #nextDoc()}
-   * was called before this method.
-   *
-   * <p><b>NOTE:</b> Code taken from {@link Scorer#score(Collector, int, int)}
-   * to declare the method public.
-   *
-   * @param collector
-   *          The collector to which all matching documents are passed.
-   * @param max
-   *          Do not score documents past this.
-   * @param firstDocID
-   *          The first document ID (ensures {@link #nextDoc()} is called before
-   *          this method.
-   * @return true if more matching documents may remain.
-   */
   @Override
-  public boolean score(final Collector collector, final int max, final int firstDocID)
-  throws IOException {
-    collector.setScorer(this);
-    int doc = firstDocID;
-    while (doc < max) {
-      collector.collect(doc);
-      doc = this.nextDoc();
-    }
-    return doc != NO_MORE_DOCS;
+  public int docID() {
+    return this.doc();
   }
 
-  public class InvalidCallException extends RuntimeException {
-
-    private static final long serialVersionUID = -7392726157079278292L;
-
-    public InvalidCallException(final String message) {
-      super(message);
+  @Override
+  public int nextDoc() throws IOException {
+    if (this.nextDocument()) {
+      return this.doc();
     }
+    return NO_MORE_DOCS;
+  }
 
+  @Override
+  public int advance(final int target) throws IOException {
+    if (this.skipTo(target)) {
+      return this.doc();
+    }
+    return NO_MORE_DOCS;
   }
 
 }

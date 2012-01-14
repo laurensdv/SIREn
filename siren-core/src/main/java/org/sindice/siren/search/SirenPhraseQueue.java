@@ -36,7 +36,7 @@ extends PriorityQueue<SirenPhrasePositions> {
                                    final SirenPhrasePositions pp2) {
     assert pp1.node().length == pp2.node().length;
     
-    if (pp1.docID() == pp2.docID()) {
+    if (pp1.doc() == pp2.doc()) {
       for (int i = 0; i < pp1.node().length; i++) {
         if (pp1.node()[i] != pp2.node()[i]) {
           return pp1.node()[i] < pp2.node()[i];
@@ -50,7 +50,7 @@ extends PriorityQueue<SirenPhrasePositions> {
         return pp1.pos() < pp2.pos();
       }
     } else {
-      return pp1.docID() < pp2.docID();
+      return pp1.doc() < pp2.doc();
     }
   }
 }

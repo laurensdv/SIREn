@@ -105,83 +105,25 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
     @Override
     protected void run(final SirenScorer scorer, final int[][] deweyPaths)
     throws Exception {
-      for (final int[] deweyPath : deweyPaths) {
-        assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-        assertEquals(deweyPath[0], scorer.docID());
-        for (int j = 1; j < deweyPath.length - 1; j++) {
-          assertEquals(deweyPath[j], scorer.node()[j - 1]);
-        }
-        assertEquals(deweyPath[deweyPath.length - 1], scorer.pos());
-      }
-      assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    }
-  }
-
-  protected class AssertNextNodeEntityFunctor
-  extends AssertFunctor {
-
-    @Override
-    protected void run(final SirenScorer scorer, final int[][] deweyPaths)
-    throws Exception {
       int index = 0;
-      int lastDocID = deweyPaths[index][0];
 
-      while (index < deweyPaths.length) {
-        assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-        assertEquals(deweyPaths[index][0], scorer.docID());
+      while (scorer.nextDocument()) {
+        // check document
+        assertEquals(deweyPaths[index][0], scorer.doc());
 
-        while (true) {
-          if (index < deweyPaths.length && deweyPaths[index][0] == lastDocID) {
-            assertFalse(scorer.nextNode() == NodIdSetIterator.NO_MORE_NOD);
-          } else {
-            assertTrue(scorer.nextNode() == NodIdSetIterator.NO_MORE_NOD);
-            break;
-          }
-
+        while (scorer.nextNode()) {
+          // check node path
           for (int i = 1; i < deweyPaths[index].length - 1; i++) {
             assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
           }
-          assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
 
-          lastDocID = deweyPaths[index][0];
-          index++;
+          while (scorer.nextPosition()) {
+            // check position
+            assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
+            index++;
+          }
         }
       }
-      assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    }
-  }
-
-  protected class AssertNextPositionEntityFunctor
-  extends AssertFunctor {
-
-    @Override
-    protected void run(final SirenScorer scorer, final int[][] deweyPaths)
-    throws Exception {
-      int index = 0;
-      int lastDocID = deweyPaths[index][0];
-
-      while (index < deweyPaths.length) {
-        assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-        assertEquals(deweyPaths[index][0], scorer.docID());
-
-        while (true) {
-          if (index < deweyPaths.length && deweyPaths[index][0] == lastDocID) {
-            assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-          } else {
-            assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-            break;
-          }
-
-          for (int i = 1; i < deweyPaths[index].length - 1; i++) {
-            assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
-          }
-          assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
-
-          lastDocID = deweyPaths[index][0];
-          index++;
-        }
-      }
-      assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
     }
   }
 
@@ -243,7 +185,7 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
                                                     final String term)
   throws IOException {
     final SirenTermScorer ts = this.getTermScorer(field, term);
-    assertNotSame(DocIdSetIterator.NO_MORE_DOCS, ts.nextDoc());
+    assertNotSame(DocIdSetIterator.NO_MORE_DOCS, ts.nextDocument());
     return ts;
   }
 
@@ -326,8 +268,6 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
   }
 
   protected class ConstantWeight extends Weight {
-
-    private static final long serialVersionUID = 1L;
 
     @Override
     public Query getQuery() { return null; }

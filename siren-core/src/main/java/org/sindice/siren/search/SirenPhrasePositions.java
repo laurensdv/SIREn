@@ -30,17 +30,18 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
-import org.sindice.siren.index.NodAndPosEnum;
+import org.sindice.siren.index.DocsNodesAndPositionsEnum;
+import org.sindice.siren.index.DocsNodesAndPositionsIterator;
 import org.sindice.siren.index.NodesConfig;
 import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
 
 /**
  * Code taken from {@link PhrasePositions} and adapted for the Siren use case.
  */
-class SirenPhrasePositions implements NodIdSetIterator {
+class SirenPhrasePositions implements DocsNodesAndPositionsIterator {
 
   /**
-   * Flag to know if {@link #advance(int, int)} or {@link #advance(int, int, int)}
+   * Flag to know if {@link #skipTo(int, int)} or {@link #advance(int, int, int)}
    * has been called. If yes, tuples, cells or positions have been skipped
    * and {@link #firstPosition()} should not be called.
    **/
@@ -53,7 +54,7 @@ class SirenPhrasePositions implements NodIdSetIterator {
   private int pos = -1;               // current position
   private final int offset;           // position in phrase
 
-  private final NodAndPosEnum napEnum; // stream of positions
+  private final DocsNodesAndPositionsEnum napEnum; // stream of positions
   protected SirenPhrasePositions next;            // used to make lists
 
   SirenPhrasePositions(final DocsAndPositionsEnum t, final int o) {
@@ -62,17 +63,17 @@ class SirenPhrasePositions implements NodIdSetIterator {
     offset = o;
   }
 
-  public int nextDoc()
+  public int nextDocument()
   throws IOException {
     // increments to next entity
-    if (napEnum.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
+    if (napEnum.nextDocument() == DocIdSetIterator.NO_MORE_DOCS) {
       return DocIdSetIterator.NO_MORE_DOCS;
     }
 //    entity = napEnum.doc();
 //    dataset = tuple = cell = pos = -1;
     pos = -1;
     _hasSkippedPosition = false;
-    return napEnum.docID();
+    return napEnum.doc();
   }
 
   public final void firstPosition()
@@ -97,24 +98,24 @@ class SirenPhrasePositions implements NodIdSetIterator {
     return NO_MORE_POS;
   }
 
-  public int advance(final int entityID) throws IOException {
-    if (napEnum.advance(entityID) == DocIdSetIterator.NO_MORE_DOCS) {
+  public int skipTo(final int entityID) throws IOException {
+    if (napEnum.skipTo(entityID) == DocIdSetIterator.NO_MORE_DOCS) {
       return DocIdSetIterator.NO_MORE_DOCS;
     }
 //    entity = napEnum.doc();
     _hasSkippedPosition = false;
-    return napEnum.docID();
+    return napEnum.doc();
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
-    if (napEnum.advance(docID, nodes) == DocIdSetIterator.NO_MORE_DOCS) {
+    if (napEnum.skipTo(docID, nodes) == DocIdSetIterator.NO_MORE_DOCS) {
       return DocIdSetIterator.NO_MORE_DOCS;
     }
     pos = napEnum.pos() - offset;
     _hasSkippedPosition = true;
-    return napEnum.docID();
+    return napEnum.doc();
   }
 
   @Override
@@ -127,12 +128,12 @@ class SirenPhrasePositions implements NodIdSetIterator {
 
   @Override
   public String toString() {
-    return "PhrasePosition(" + napEnum.docID() + ", " + napEnum.toString() + ", " + pos + ")";
+    return "PhrasePosition(" + napEnum.doc() + ", " + napEnum.toString() + ", " + pos + ")";
   }
 
   @Override
-  public int docID() {
-    return napEnum.docID();
+  public int doc() {
+    return napEnum.doc();
   }
 
   @Override

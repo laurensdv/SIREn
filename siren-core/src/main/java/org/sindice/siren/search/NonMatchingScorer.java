@@ -34,7 +34,7 @@ class NonMatchingScorer extends SirenPrimitiveScorer {
   public NonMatchingScorer() { super(null); } // no similarity used
 
   @Override
-  public int docID() { throw new UnsupportedOperationException(); }
+  public int doc() { throw new UnsupportedOperationException(); }
 
   @Override
   public int pos() {
@@ -42,7 +42,7 @@ class NonMatchingScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException { return NO_MORE_DOCS; }
+  public int nextDocument() throws IOException { return NO_MORE_DOCS; }
 
   @Override
   public int nextPosition()
@@ -54,10 +54,10 @@ class NonMatchingScorer extends SirenPrimitiveScorer {
   public float score() { throw new UnsupportedOperationException(); }
 
   @Override
-  public int advance(final int target) { return NO_MORE_DOCS; }
+  public int skipTo(final int target) { return NO_MORE_DOCS; }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     return NO_MORE_DOCS;
   }

@@ -183,7 +183,7 @@ public class SirenConstantScoreQuery extends SirenPrimitiveQuery {
     @Override
     public Explanation explain(final IndexReader reader, final int doc) throws IOException {
       final Scorer cs = this.scorer(reader, true, false);
-      final boolean exists = (cs != null && cs.advance(doc) == doc);
+      final boolean exists = (cs != null && cs.skipTo(doc) == doc);
 
       final ComplexExplanation result = new ComplexExplanation();
       if (exists) {
@@ -216,8 +216,8 @@ public class SirenConstantScoreQuery extends SirenPrimitiveQuery {
     }
 
     @Override
-    public int nextDoc() throws IOException {
-      return it.nextDoc();
+    public int nextDocument() throws IOException {
+      return it.nextDocument();
     }
 
     @Override
@@ -227,7 +227,7 @@ public class SirenConstantScoreQuery extends SirenPrimitiveQuery {
     }
 
     @Override
-    public int docID() {
+    public int doc() {
       return it.entity();
     }
 
@@ -262,14 +262,14 @@ public class SirenConstantScoreQuery extends SirenPrimitiveQuery {
     }
 
     @Override
-    public int advance(final int target) throws IOException {
-      return it.advance(target);
+    public int skipTo(final int target) throws IOException {
+      return it.skipTo(target);
     }
 
     @Override
     public int advance(final int entityID, final int tupleID)
     throws IOException {
-      return it.advance(entityID, tupleID);
+      return it.skipTo(entityID, tupleID);
     }
 
     @Override

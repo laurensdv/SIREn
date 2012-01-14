@@ -29,39 +29,51 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocsAndPositionsEnum;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.ArrayUtil;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.index.NodAndPosEnum;
+import org.sindice.siren.index.DocsNodesAndPositionsEnum;
+import org.sindice.siren.util.NodeUtils;
 
 /**
- *
+ * SIREn 0.2.x implementation of {@link DocsNodesAndPositionsEnum} based on a
+ * {@link DocsAndPositionsEnum}. Node path information are encoded into the
+ * term's payload.
  */
-public class Siren020NodAndPosEnum extends NodAndPosEnum {
+public class Siren020NodAndPosEnum extends DocsNodesAndPositionsEnum {
 
   protected DocsAndPositionsEnum e;
 
   protected int[] curNode = new int[2];
   protected int pos = -1;
 
+  // for node and position lookahead
+  protected boolean lookahead = false;
+  protected int[] nextNode = new int[2];
+  protected int nextPos = -1;
+
   /** index of the next element to be read */
   protected int _posPtr = -1;
 
   private final VIntPayloadCodec codec = new VIntPayloadCodec();
-  private IntsRef nodePath;
 
   public Siren020NodAndPosEnum(final DocsAndPositionsEnum e) {
     this.e = e;
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return e.docID();
   }
 
   @Override
-  public int freq() {
+  public int termFreqInDoc() {
     return e.freq();
+  }
+
+  @Override
+  public int nodeFreqInDoc() {
+    throw new UnsupportedOperationException("Not supported in Siren020 codec");
   }
 
   @Override
@@ -70,168 +82,171 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   }
 
   @Override
+  public int termFreqInNode() {
+    throw new UnsupportedOperationException("Not supported in Siren020 codec");
+  }
+
+  @Override
   public int pos() {
     return pos;
   }
 
   @Override
-  public BytesRef getPayload()
+  public boolean nextDocument()
   throws IOException {
-    return e.getPayload();
-  }
-
-  @Override
-  public boolean hasPayload() {
-    return e.hasPayload();
-  }
-
-  @Override
-  public int nextDoc()
-  throws IOException {
-    final int docID;
-    if ((docID = e.nextDoc()) == NO_MORE_DOCS) {
+    if (e.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
       this.setNodAndPosToSentinel(); // sentinel value
-      return NO_MORE_DOCS;
+      return false;
     }
     this.resetNodAndPos();
     _posPtr = -1;
-    return docID;
+    lookahead = false;
+    nextPos = -1;
+    return true;
   }
 
   @Override
-  public int advance(final int target)
+  public boolean skipTo(final int target)
   throws IOException {
-    if (target == e.docID()) { // optimised case: reset buffer
-      this.resetNodAndPos();
-      _posPtr = -1;
-      return target;
-    }
-
-    final int docID;
-    if ((docID = e.advance(target)) == NO_MORE_DOCS) {
+    if (e.advance(target) == DocIdSetIterator.NO_MORE_DOCS) {
       this.setNodAndPosToSentinel(); // sentinel value
-      return NO_MORE_DOCS;
+      return false;
     }
     this.resetNodAndPos();
     _posPtr = -1;
-    return docID;
+    lookahead = false;
+    nextPos = -1;
+    return true;
   }
 
   @Override
-  public int advance(final int target, final int[] nodes)
+  public boolean skipTo(final int target, final int[] node)
   throws IOException {
-//    if (nodes.length > curNode.length) {
-//      throw new RuntimeException("Invalid argument, received array with size=" +
-//      nodes.length + ", should be no more than " + curNode.length);
-//    }
-
     // optimisation: if current entity is the right one, don't call advance
     // and avoid to reset buffer
-    if (target == e.docID() || this.advance(target) != NO_MORE_DOCS) {
+    if (target == e.docID() || this.skipTo(target)) {
       // If we skipped to the right entity, load the nodes and let's try to
       // find the right one
       if (target == e.docID()) {
-        // If nodes are not found, just move to the next entity
-        // (SRN-17), and to the next branch (SRN-24)
-        if (!this.findNode(nodes)) {
-          if (this.nextDoc() != NO_MORE_DOCS) {
-            this.nextPosition(); // advance to the first position (SRN-24)
-            return this.docID();
+        // If nodes are not found, just move to the next entity, and to the
+        // first node
+        if (!this.nextNodeEqualOrDescendant(node)) {
+          if (this.nextDocument()) {
+            this.nextNode(); // advance to the first node
+            return true;
           }
-          // position stream exhausted
+          // else stream exhausted
           this.setNodAndPosToSentinel(); // sentinel value
-          return NO_MORE_DOCS;
+          return false;
         }
       }
-      return this.docID();
+      return true;
     }
-    // position stream exhausted
+    // else stream exhausted
     this.setNodAndPosToSentinel(); // sentinel value
-    return NO_MORE_DOCS;
+    return false;
   }
 
   /**
    * Advance to the node right after the one passed in argument.
    * Returns true if the current node is still before the one passed in argument.
    * Returns true if nodes is empty
-   * @param nodes
-   * @return
-   * @throws IOException
    */
-  protected boolean findNode(final int[] nodes)
+  protected boolean nextNodeEqualOrDescendant(final int[] node)
   throws IOException {
-    while (++_posPtr < this.freq()) {
-      this.decodeNodePath();
-      boolean match = true;
-      for (int i = 0; i < nodes.length; i++) {
-        if (this.isBefore(nodes, i)) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
+    while (++_posPtr < e.freq()) {
+      pos = -1; // reset pos
+      nextPos = e.nextPosition(); // backup position in nextPos
+      this.decodeNodePath(curNode);
+      if (NodeUtils.isAncestorOrEqual(node, curNode)) {
         return true;
       }
     }
     return false;
   }
 
-  /**
-   * Return true if the searched node hasn't been reached yet.
-   * @param nodes
-   * @param index
-   * @return
-   */
-  private boolean isBefore(final int[] nodes, int index) {
-    boolean res = curNode[index] < nodes[index];
-
-    while (--index >= 0) {
-      res = curNode[index] == nodes[index] && res;
-    }
-
-    return res;
-  }
-
   @Override
   public boolean nextNode() throws IOException {
-    if (++_posPtr < this.freq()) {
-      e.nextPosition(); // does not set pos variable
-      this.decodeNodePath();
+    pos = -1; // reset pos
+
+    if (lookahead) { // if lookahead, just switch the reference (avoid copy)
+      this.switchNodeReference();
+      lookahead = false;
       return true;
     }
 
-    return false;
+    // find the next node path that is different from the current node path
+    do {
+      if (++_posPtr < e.freq()) {
+        nextPos = e.nextPosition(); // backup position in nextPos
+        this.decodeNodePath(nextNode);
+      }
+      else {
+        // stream exhausted
+        this.setNodAndPosToSentinel(); // sentinel value
+        return false;
+      }
+    } while (Arrays.equals(curNode, nextNode));
+
+    // just switch the reference (avoid copy)
+    this.switchNodeReference();
+
+    return true;
+  }
+
+  private final void switchNodeReference() {
+    final int[] tmp = curNode;
+    curNode = nextNode;
+    nextNode = tmp;
   }
 
   @Override
-  public int nextPosition() throws IOException {
-    if (++_posPtr < this.freq()) {
-      pos = e.nextPosition();
-      this.decodeNodePath();
-      return pos;
+  public boolean nextPosition() throws IOException {
+    if (nextPos != -1) {
+      pos = nextPos;
+      nextPos = -1;
+      return true;
     }
 
-    return NO_MORE_POS;
+    if (++_posPtr < e.freq()) {
+      lookahead = true;
+      nextPos = e.nextPosition();
+      this.decodeNodePath(nextNode);
+
+      // if lookahead node is equal to the current node, then we have a new position
+      if (Arrays.equals(curNode, nextNode)) {
+        pos = nextPos;
+        nextPos = -1;
+        lookahead = false;
+        return true;
+      }
+      // set pos to sentinel value
+      pos = NO_MORE_POS;
+      return false;
+    }
+    // stream exhausted
+    this.setNodAndPosToSentinel(); // sentinel value
+    return false;
   }
 
-  private void decodeNodePath() throws IOException {
-    this.decodePayload();
+  private void decodeNodePath(int[] dst) throws IOException {
+    final IntsRef nodePath = this.decodePayload();
 
     // Ensure we have enough space to store the node path
-    ArrayUtil.grow(curNode, nodePath.length);
+    dst = ArrayUtil.grow(dst, nodePath.length);
 
     // Delta decoding
     // we assume that there is always at least one node encoded
-    curNode[0] = curNode[0] == -1 ? nodePath.ints[nodePath.offset] : curNode[0] + nodePath.ints[nodePath.offset];
+    dst[0] = curNode[0] == -1 ? nodePath.ints[nodePath.offset] : curNode[0] + nodePath.ints[nodePath.offset];
 
     for (int i = nodePath.offset + 1; i < nodePath.length; i++) {
-      curNode[i] = (curNode[i] == -1 || nodePath.ints[i-1] != 0) ? nodePath.ints[i] : curNode[i] + nodePath.ints[i];
+      dst[i] = (curNode[i] == -1 || nodePath.ints[i-1] != 0) ? nodePath.ints[i] : curNode[i] + nodePath.ints[i];
     }
   }
 
-  private void decodePayload() throws IOException {
-    if (this.hasPayload()) {
-      nodePath = codec.decode(this.getPayload());
+  private IntsRef decodePayload() throws IOException {
+    if (e.hasPayload()) {
+      return codec.decode(e.getPayload());
     }
     else { // no payload, should never happen
       throw new IOException("No payload found");
@@ -241,9 +256,12 @@ public class Siren020NodAndPosEnum extends NodAndPosEnum {
   /**
    * Set the current nodes and position to the sentinel values, indicating that
    * there is no more occurrences to read.
+   * <br>
+   * Reset the lookahead position.
    */
   private void setNodAndPosToSentinel() {
-    Arrays.fill(curNode, NOD_SENTINEL_VAL);
+    nextPos = -1;
+    Arrays.fill(curNode, NO_MORE_NOD);
     pos = NO_MORE_POS;
   }
 

@@ -26,36 +26,24 @@
  */
 package org.sindice.siren.index.codecs.siren020;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DocsAndPositionsEnum;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.index.NodAndPosEnum;
-import org.sindice.siren.index.codecs.siren020.Siren020NodAndPosEnum;
-import org.sindice.siren.search.QueryTestingHelper;
+import org.sindice.siren.index.DocsNodesAndPositionsIterator;
+import org.sindice.siren.util.BasicSirenTestCase;
 
-public class TestSiren020NodAndposEnum extends LuceneTestCase {
-
-  protected QueryTestingHelper _helper = null;
+public class TestSiren020NodAndposEnum extends BasicSirenTestCase {
 
   @Override
   @Before
   public void setUp()
   throws Exception {
     super.setUp();
-    _helper = new QueryTestingHelper(new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT),
-      new AnyURIAnalyzer(TEST_VERSION_CURRENT)));
   }
 
   @Override
@@ -63,177 +51,251 @@ public class TestSiren020NodAndposEnum extends LuceneTestCase {
   public void tearDown()
   throws Exception {
     super.tearDown();
-    _helper.close();
+  }
+
+  protected Siren020NodAndPosEnum getEnum(final String term) throws IOException {
+    final BytesRef ref = new BytesRef(term);
+    final DocsAndPositionsEnum e = reader.termPositionsEnum(reader.getLiveDocs(), DEFAULT_FIELD, ref);
+    return new Siren020NodAndPosEnum(e);
   }
 
   @Test
   public void testNextSimpleOccurence1()
   throws Exception {
-    _helper.addDocument("\"word1\" . ");
-    final BytesRef term = new BytesRef("word1");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader,
-      MultiFields.getLiveDocs(reader),
-      QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    this.addDocument("\"word1\" . ");
+    final Siren020NodAndPosEnum termEnum = this.getEnum("word1");
 
-    assertTrue(termEnum.nextDoc() != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, termEnum.docID());
+    // Should return false since nextDoc has not been called
+    assertFalse(termEnum.nextNode());
+    assertFalse(termEnum.nextPosition());
 
+    assertTrue(termEnum.nextDocument());
+    assertEquals(0, termEnum.doc());
+
+    // node and position should be set to -1
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
 
-    assertEquals(1, termEnum.freq());
-    assertEquals(0, termEnum.nextPosition());
+    assertEquals(1, termEnum.termFreqInDoc());
+
+    // Should return false since nextDoc has not been called
+    assertFalse(termEnum.nextPosition());
+
+    assertTrue(termEnum.nextNode());
     assertEquals(0, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+
+    // position should be set to -1
+    assertEquals(-1, termEnum.pos());
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
 
-    // end of the list, should return NO_MORE_POS
-    assertEquals(NodAndPosEnum.NO_MORE_NOD, termEnum.nextPosition());
+    // end of the list
+    assertFalse(termEnum.nextPosition());
+    assertFalse(termEnum.nextNode());
+    assertFalse(termEnum.nextDocument());
+
+    // everything should be set to sentinel value
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_DOC, termEnum.doc());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_NOD, termEnum.node()[0]);
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_NOD, termEnum.node()[1]);
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
   }
 
   @Test
   public void testNextSimpleOccurence2()
   throws Exception {
-    _helper.addDocument("\"word1\" \"word2 word3 word4\" . ");
-    final BytesRef term = new BytesRef("word3");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    this.addDocument("\"word1\" \"word2 word3 word4\" . ");
+    final Siren020NodAndPosEnum termEnum = this.getEnum("word3");
 
-    assertTrue(termEnum.nextDoc() != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, termEnum.docID());
+    assertTrue(termEnum.nextDocument());
+    assertEquals(0, termEnum.doc());
 
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
 
-    assertEquals(1, termEnum.freq());
-    // here it is assumed that the position of the term in the global position
-    // in the flow of tokens (and not within a cell).
-    assertEquals(2, termEnum.nextPosition());
+    assertEquals(1, termEnum.termFreqInDoc());
+
+    // here it is assumed that the position of the term is the global position
+    // in the document, and not within a cell.
+    assertTrue(termEnum.nextNode());
+    assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.node()[0]);
     assertEquals(1, termEnum.node()[1]);
     assertEquals(2, termEnum.pos());
 
-    // end of the list, should return NO_MORE_POS
-    assertEquals(NodAndPosEnum.NO_MORE_NOD, termEnum.nextPosition());
+    // end of the list
+    assertFalse(termEnum.nextPosition());
+    assertFalse(termEnum.nextNode());
+    assertFalse(termEnum.nextDocument());
+
+    // everything should be set to sentinel value
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_DOC, termEnum.doc());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_NOD, termEnum.node()[0]);
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_NOD, termEnum.node()[1]);
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
   }
 
   @Test
   public void testNextMultipleOccurences1()
   throws Exception {
-    _helper.addDocument("\"word1 word1 word1\" . ");
-    final BytesRef term = new BytesRef("word1");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    this.addDocument("\"word1 word1 word1\" . ");
+    final Siren020NodAndPosEnum termEnum = this.getEnum("word1");
 
-    assertTrue(termEnum.nextDoc() != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, termEnum.docID());
+    assertTrue(termEnum.nextDocument());
+    assertEquals(0, termEnum.doc());
 
-    assertEquals(-1, termEnum.node()[0]);
-    assertEquals(-1, termEnum.node()[1]);
-    assertEquals(-1, termEnum.pos());
+    assertEquals(3, termEnum.termFreqInDoc());
 
-    assertEquals(3, termEnum.freq());
-    assertEquals(0, termEnum.nextPosition());
+    assertTrue(termEnum.nextNode());
+
     assertEquals(0, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
-    assertEquals(1, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertTrue(termEnum.nextPosition());
     assertEquals(1, termEnum.pos());
-    assertEquals(2, termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertTrue(termEnum.nextPosition());
     assertEquals(2, termEnum.pos());
 
-    // end of the list, should return NO_MORE_POS
-    assertEquals(NodAndPosEnum.NO_MORE_NOD, termEnum.nextPosition());
+    // end of the list
+    assertFalse(termEnum.nextPosition());
+    assertFalse(termEnum.nextNode());
+    assertFalse(termEnum.nextDocument());
+  }
+
+  @Test
+  public void testNextNodeMultipleOccurencesInSameCell()
+  throws Exception {
+    this.addDocument("\"word1 word1 word1\" . ");
+    final Siren020NodAndPosEnum termEnum = this.getEnum("word1");
+
+    assertTrue(termEnum.nextDocument());
+    assertEquals(0, termEnum.doc());
+
+    assertEquals(3, termEnum.termFreqInDoc());
+
+    assertTrue(termEnum.nextNode());
+
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+
+    assertFalse(termEnum.nextNode());
+
+    // end of the list
+    assertFalse(termEnum.nextPosition());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
+    assertFalse(termEnum.nextNode());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_NOD, termEnum.node()[0]);
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_NOD, termEnum.node()[1]);
+    assertFalse(termEnum.nextDocument());
   }
 
   @Test
   public void testNextMultipleOccurences2()
   throws Exception {
-    _helper.addDocument("\"word1 word2\" \"word1\" . \"word1 word2\" . \"word1\" . ");
-    final BytesRef term = new BytesRef("word1");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    this.addDocument("\"word1 word2\" \"word1\" . \"word1 word2\" . \"word1\" . ");
+    final Siren020NodAndPosEnum termEnum = this.getEnum("word1");
 
-    assertTrue(termEnum.nextDoc() != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, termEnum.docID());
+    assertTrue(termEnum.nextDocument());
+    assertEquals(0, termEnum.doc());
 
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
 
-    assertEquals(4, termEnum.freq());
-    assertEquals(0, termEnum.nextPosition());
+    assertEquals(4, termEnum.termFreqInDoc());
+
+    assertTrue(termEnum.nextNode());
     assertEquals(0, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
-    assertEquals(2, termEnum.nextPosition());
+    assertFalse(termEnum.nextPosition());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
+
+    assertTrue(termEnum.nextNode());
     assertEquals(0, termEnum.node()[0]);
     assertEquals(1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(2, termEnum.pos());
-    assertEquals(3, termEnum.nextPosition());
+    assertFalse(termEnum.nextPosition());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
+
+    assertTrue(termEnum.nextNode());
     assertEquals(1, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(3, termEnum.pos());
-    assertEquals(5, termEnum.nextPosition());
+    assertFalse(termEnum.nextPosition());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
+
+    assertTrue(termEnum.nextNode());
     assertEquals(2, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(5, termEnum.pos());
+    assertFalse(termEnum.nextPosition());
+    assertEquals(DocsNodesAndPositionsIterator.NO_MORE_POS, termEnum.pos());
 
-    // end of the list, should return NO_MORE_POS
-    assertEquals(NodAndPosEnum.NO_MORE_NOD, termEnum.nextPosition());
+    // end of the list
+    assertFalse(termEnum.nextPosition());
+    assertFalse(termEnum.nextNode());
+    assertFalse(termEnum.nextDocument());
   }
 
   @Test
-  public void testSkipTo()
+  public void testAdvance()
   throws Exception {
     final ArrayList<String> data = new ArrayList<String>();
     for (int i = 0; i < 64; i++) {
       data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
       data.add("\"aaa bbb\" . \"aaa ccc\" .");
     }
-    _helper.addDocumentsWithIterator(data);
+    this.addDocumentsWithIterator(data);
 
-    final BytesRef term = new BytesRef("aaa");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
 
-    assertTrue(termEnum.nextDoc() != DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(termEnum.nextDocument());
 
-    termEnum.advance(16);
-    assertEquals(16, termEnum.docID());
-
+    termEnum.skipTo(16);
+    assertEquals(16, termEnum.doc());
+    assertEquals(4, termEnum.termFreqInDoc());
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
-    assertEquals(4, termEnum.freq());
 
-    termEnum.advance(33, new int[] { 1 });
-    assertEquals(33, termEnum.docID());
+    assertTrue(termEnum.nextNode());
+
+    termEnum.skipTo(33, new int[] { 1 });
+    assertEquals(33, termEnum.doc());
+    assertEquals(2, termEnum.termFreqInDoc());
 
     assertEquals(1, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
-    assertEquals(2, termEnum.pos());
-    assertEquals(2, termEnum.freq());
+    assertEquals(-1, termEnum.pos());
 
-    termEnum.advance(96, new int[] { 1, 1 });
-    assertEquals(96, termEnum.docID());
+    assertTrue(termEnum.nextPosition());
+    assertEquals(2, termEnum.pos());
+
+    termEnum.skipTo(96, new int[] { 1, 1 });
+    assertEquals(96, termEnum.doc());
+    assertEquals(4, termEnum.termFreqInDoc());
 
     assertEquals(1, termEnum.node()[0]);
     assertEquals(1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(3, termEnum.pos());
-    assertEquals(4, termEnum.freq());
   }
 
   /**
@@ -241,224 +303,224 @@ public class TestSiren020NodAndposEnum extends LuceneTestCase {
    * match that is greater than the target. (SRN-17)
    */
   @Test
-  public void testSkipToNotFound()
+  public void testAdvanceNotFound()
   throws Exception {
     final ArrayList<String> data = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
       data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
       data.add("\"aaa bbb\" . \"aaa ccc\" . \"aaa bbb\" . \"aaa ccc\" \"aaa bbb\" . ");
     }
-    _helper.addDocumentsWithIterator(data);
+    this.addDocumentsWithIterator(data);
 
-    final BytesRef term = new BytesRef("bbb");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("bbb");
 
     // Should move to the next entity, without updating tuple and cell
     // information
-    assertTrue(termEnum.advance(16) != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(17, termEnum.docID());
-
+    assertTrue(termEnum.skipTo(16));
+    assertEquals(17, termEnum.doc());
+    assertEquals(3, termEnum.termFreqInDoc());
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
-    assertEquals(3, termEnum.freq());
 
     // Should jump to the third tuples
-    assertTrue(termEnum.advance(17, new int[] { 1 }) != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(17, termEnum.docID());
-
+    assertTrue(termEnum.skipTo(17, new int[] { 1 }));
+    assertEquals(17, termEnum.doc());
+    assertEquals(3, termEnum.termFreqInDoc());
     assertEquals(2, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(5, termEnum.pos());
-    assertEquals(3, termEnum.freq());
 
     // Should jump to the second cell
-    assertTrue(termEnum.advance(17, new int[] { 3, 0 }) != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(17, termEnum.docID());
-
+    assertTrue(termEnum.skipTo(17, new int[] { 3, 0 }));
+    assertEquals(17, termEnum.doc());
+    assertEquals(3, termEnum.termFreqInDoc());
     assertEquals(3, termEnum.node()[0]);
     assertEquals(1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(9, termEnum.pos());
-    assertEquals(3, termEnum.freq());
   }
 
   @Test
-  public void testSkipToAtSameEntity()
+  public void testAdvanceSameEntity()
   throws Exception {
     final ArrayList<String> data = new ArrayList<String>();
     for (int i = 0; i < 64; i++) {
       data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
       data.add("\"aaa bbb\" . \"aaa ccc\" .");
     }
-    _helper.addDocumentsWithIterator(data);
+    this.addDocumentsWithIterator(data);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
 
-    final BytesRef term = new BytesRef("aaa");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
-
-    termEnum.advance(16);
-    assertEquals(16, termEnum.docID());
-
+    termEnum.skipTo(16);
+    assertEquals(16, termEnum.doc());
+    assertEquals(4, termEnum.termFreqInDoc());
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
-    assertEquals(4, termEnum.freq());
 
-    termEnum.advance(16, new int[] { 1 });
-    assertEquals(16, termEnum.docID());
-
+    termEnum.skipTo(16, new int[] { 1 });
+    assertEquals(16, termEnum.doc());
+    assertEquals(4, termEnum.termFreqInDoc());
     assertEquals(1, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(2, termEnum.pos());
-    assertEquals(4, termEnum.freq());
 
-    termEnum.advance(16, new int[] { 1, 1 });
-    assertEquals(16, termEnum.docID());
-
+    termEnum.skipTo(16, new int[] { 1, 1 });
+    assertEquals(16, termEnum.doc());
+    assertEquals(4, termEnum.termFreqInDoc());
     assertEquals(1, termEnum.node()[0]);
     assertEquals(1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    assertTrue(termEnum.nextPosition());
     assertEquals(3, termEnum.pos());
-    assertEquals(4, termEnum.freq());
   }
 
   @Test
-  public void testSkipToEntityNextPosition()
+  public void testAdvanceEntityNextNodeAndNextPosition()
   throws Exception {
     final ArrayList<String> data = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
       data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
       data.add("\"aaa bbb\" . \"aaa ccc\" .");
     }
-    _helper.addDocumentsWithIterator(data);
+    this.addDocumentsWithIterator(data);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
 
-    final BytesRef term = new BytesRef("aaa");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
-
-    termEnum.advance(16);
-    assertEquals(16, termEnum.docID());
-
+    termEnum.skipTo(16);
+    assertEquals(16, termEnum.doc());
+    assertEquals(4, termEnum.termFreqInDoc());
     assertEquals(-1, termEnum.node()[0]);
     assertEquals(-1, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
-    assertEquals(4, termEnum.freq());
 
-    for (int i = 0; i < termEnum.freq(); i++) {
-      assertEquals(i, termEnum.nextPosition());
-    }
-    assertEquals(NodAndPosEnum.NO_MORE_NOD, termEnum.nextPosition());
-  }
+    assertTrue(termEnum.nextNode());
+    assertEquals(0, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
+    assertEquals(0, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
+    assertEquals(1, termEnum.pos());
+    assertFalse(termEnum.nextPosition());
 
-  @Test
-  public void testSkipToCellNextPosition()
-  throws Exception {
-    final ArrayList<String> data = new ArrayList<String>();
-    for (int i = 0; i < 32; i++) {
-      data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
-      data.add("\"aaa bbb\" . \"aaa ccc\" .");
-    }
-    _helper.addDocumentsWithIterator(data);
-
-    final BytesRef term = new BytesRef("aaa");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
-
-    termEnum.advance(16, new int[] { 1, 0 });
-    assertEquals(16, termEnum.docID());
-
+    assertTrue(termEnum.nextNode());
     assertEquals(1, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(2, termEnum.pos());
-    assertEquals(4, termEnum.freq());
+    assertFalse(termEnum.nextPosition());
 
-    assertEquals(3, termEnum.nextPosition());
+    assertTrue(termEnum.nextNode());
     assertEquals(1, termEnum.node()[0]);
     assertEquals(1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(3, termEnum.pos());
+    assertFalse(termEnum.nextPosition());
 
-    // end of the list, should return NO_MORE_POS
-    assertEquals(NodAndPosEnum.NO_MORE_NOD, termEnum.nextPosition());
+    assertFalse(termEnum.nextNode());
   }
 
   @Test
-  public void testSkipToNext()
+  public void testAdvanceToCellNextPosition()
   throws Exception {
     final ArrayList<String> data = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
       data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
       data.add("\"aaa bbb\" . \"aaa ccc\" .");
     }
-    _helper.addDocumentsWithIterator(data);
+    this.addDocumentsWithIterator(data);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
 
-    final BytesRef term = new BytesRef("aaa");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
-
-    termEnum.nextDoc();
-    assertEquals(0, termEnum.docID());
-
-    assertEquals(-1, termEnum.node()[0]);
-    assertEquals(-1, termEnum.node()[1]);
+    termEnum.skipTo(16, new int[] { 1, 0 });
+    assertEquals(16, termEnum.doc());
+    assertEquals(1, termEnum.node()[0]);
+    assertEquals(0, termEnum.node()[1]);
     assertEquals(-1, termEnum.pos());
-    assertEquals(4, termEnum.freq());
 
-    termEnum.advance(16);
-    assertEquals(16, termEnum.docID());
-
-    assertEquals(-1, termEnum.node()[0]);
-    assertEquals(-1, termEnum.node()[1]);
-    assertEquals(-1, termEnum.pos());
-    assertEquals(4, termEnum.freq());
-
-    termEnum.nextDoc();
-    assertEquals(17, termEnum.docID());
-
-    assertEquals(-1, termEnum.node()[0]);
-    assertEquals(-1, termEnum.node()[1]);
-    assertEquals(-1, termEnum.pos());
-    assertEquals(2, termEnum.freq());
+    assertTrue(termEnum.nextPosition());
+    assertEquals(2, termEnum.pos());
+    assertFalse(termEnum.nextPosition());
   }
 
   @Test
-  public void testSkipToNonExistingEntityTupleCell()
+  public void testAdvanceNextDoc()
+  throws Exception {
+    final ArrayList<String> data = new ArrayList<String>();
+    for (int i = 0; i < 32; i++) {
+      data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
+      data.add("\"aaa bbb\" . \"aaa ccc\" .");
+    }
+    this.addDocumentsWithIterator(data);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
+
+    termEnum.nextDocument();
+    assertEquals(0, termEnum.doc());
+
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    termEnum.skipTo(16);
+    assertEquals(16, termEnum.doc());
+
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+
+    termEnum.nextDocument();
+    assertEquals(17, termEnum.doc());
+
+    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(-1, termEnum.node()[1]);
+    assertEquals(-1, termEnum.pos());
+  }
+
+  @Test
+  public void testAdvanceNonExistingEntityTupleCell()
   throws Exception {
     final ArrayList<String> data = new ArrayList<String>();
     for (int i = 0; i < 16; i++) {
       data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
       data.add("\"aaa bbb\" . \"aaa ccc\" .");
     }
-    _helper.addDocumentsWithIterator(data);
-
-    final BytesRef term = new BytesRef("aaa");
-    final IndexReader reader = _helper.getIndexReader();
-    final DocsAndPositionsEnum e = MultiFields.getTermPositionsEnum(reader, MultiFields.getLiveDocs(reader), QueryTestingHelper.DEFAULT_FIELD, term);
-    final Siren020NodAndPosEnum termEnum = new Siren020NodAndPosEnum(e);
+    this.addDocumentsWithIterator(data);
+    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
 
     // does not exist, should skip to entity 17 and to the first cell
-    assertTrue(termEnum.advance(16, new int[] { 3, 2 }) != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(17, termEnum.docID());
+    assertTrue(termEnum.skipTo(16, new int[] { 3, 2 }));
+    assertEquals(17, termEnum.doc());
 
     assertEquals(0, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.dataset());
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
+    assertFalse(termEnum.nextPosition());
 
     // does not exist, should skip to entity 19 and to the first cell
-    assertTrue(termEnum.advance(18, new int[] { 2, 2 }) != DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(19, termEnum.docID());
+    assertTrue(termEnum.skipTo(18, new int[] { 2, 2 }));
+    assertEquals(19, termEnum.doc());
 
     assertEquals(0, termEnum.node()[0]);
     assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.dataset());
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
+    assertFalse(termEnum.nextPosition());
 
-    assertFalse(termEnum.advance(31, new int[] { 2, 0 }) != DocIdSetIterator.NO_MORE_DOCS); // does not exist, reach end of list: should return false
+    assertFalse(termEnum.skipTo(31, new int[] { 2, 0 })); // does not exist, reach end of list: should return false
   }
 
 }

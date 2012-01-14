@@ -150,8 +150,8 @@ extends SirenScorer {
 
       @Override
       public float score() throws IOException {
-        if (this.docID() >= lastScoredEntity) {
-          lastScoredEntity = this.docID();
+        if (this.doc() >= lastScoredEntity) {
+          lastScoredEntity = this.doc();
           coordinator.nrMatchers += super.nrMatchers;
         }
         return super.score();
@@ -170,8 +170,8 @@ extends SirenScorer {
 
       @Override
       public float score() throws IOException {
-        if (this.docID() >= lastScoredEntity) {
-          lastScoredEntity = this.docID();
+        if (this.doc() >= lastScoredEntity) {
+          lastScoredEntity = this.doc();
           coordinator.nrMatchers += requiredNrMatchers;
         }
         // All scorers match, so defaultSimilarity super.score() always has 1 as
@@ -261,14 +261,14 @@ extends SirenScorer {
   throws IOException {
     int doc;
     collector.setScorer(this);
-    while ((doc = this.nextDoc()) != NO_MORE_DOCS) {
+    while ((doc = this.nextDocument()) != NO_MORE_DOCS) {
       collector.collect(doc);
     }
   }
 
   /**
    * Expert: Collects matching documents in a range. <br>
-   * Note that {@link #nextDoc()} must be called once before this method is called
+   * Note that {@link #nextDocument()} must be called once before this method is called
    * for the first time.
    *
    * @param hc
@@ -285,13 +285,13 @@ extends SirenScorer {
     collector.setScorer(this);
     while (doc < max) {
       collector.collect(doc);
-      doc = this.nextDoc();
+      doc = this.nextDocument();
     }
     return doc != NO_MORE_DOCS;
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return entity;
   }
 
@@ -315,12 +315,12 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
+  public int nextDocument() throws IOException {
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.nextDoc() != NO_MORE_DOCS) {
+    if (countingSumScorer.nextDocument() != NO_MORE_DOCS) {
       entity = this.doNext();
     }
     else {
@@ -340,13 +340,13 @@ extends SirenScorer {
     while (more && (node()[0] < tupleConstraintStart ||
                     node()[0] > tupleConstraintEnd)) {
       if (countingSumScorer.nextPosition() == NO_MORE_POS) {
-        more = (countingSumScorer.nextDoc() != NO_MORE_DOCS);
+        more = (countingSumScorer.nextDocument() != NO_MORE_DOCS);
       }
       node()[0] = countingSumScorer.node()[0];
     }
 
     if (more) {
-      entity = countingSumScorer.docID();
+      entity = countingSumScorer.doc();
     }
     else {
       entity = NO_MORE_DOCS;
@@ -379,12 +379,12 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entity) throws IOException {
+  public int skipTo(final int entity) throws IOException {
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.advance(entity) != NO_MORE_DOCS) {
+    if (countingSumScorer.skipTo(entity) != NO_MORE_DOCS) {
       this.entity = this.doNext();
       node()[0] = countingSumScorer.node()[0];
     }
@@ -395,7 +395,7 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     if (nodes.length != 1) {
       throw new UnsupportedOperationException();
@@ -405,7 +405,7 @@ extends SirenScorer {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.advance(entity, nodes) != NO_MORE_DOCS) {
+    if (countingSumScorer.skipTo(entity, nodes) != NO_MORE_DOCS) {
       this.entity = this.doNext();
       this.tuple[0] = countingSumScorer.node()[0];
     }
@@ -455,16 +455,16 @@ extends SirenScorer {
     @Override
     public float score()
     throws IOException {
-      if (this.docID() >= lastScoredEntity) {
-        lastScoredEntity = this.docID();
+      if (this.doc() >= lastScoredEntity) {
+        lastScoredEntity = this.doc();
         coordinator.nrMatchers++;
       }
       return scorer.score();
     }
 
     @Override
-    public int docID() {
-      return scorer.docID();
+    public int doc() {
+      return scorer.doc();
     }
 
     @Override
@@ -487,8 +487,8 @@ extends SirenScorer {
     }
 
     @Override
-    public int nextDoc() throws IOException {
-      if (scorer.nextDoc() != NO_MORE_DOCS)
+    public int nextDocument() throws IOException {
+      if (scorer.nextDocument() != NO_MORE_DOCS)
         return this.doNext();
       return NO_MORE_DOCS;
     }
@@ -504,13 +504,13 @@ extends SirenScorer {
       while (more && (tupleID < tupleConstraintStart ||
                       tupleID > tupleConstraintEnd)) {
         if (scorer.nextPosition() == NO_MORE_POS) {
-          more = (scorer.nextDoc() != NO_MORE_DOCS);
+          more = (scorer.nextDocument() != NO_MORE_DOCS);
         }
         tupleID = scorer.node()[0];
       }
 
       if (more) {
-        return scorer.docID();
+        return scorer.doc();
       }
       else {
         return NO_MORE_DOCS;
@@ -533,16 +533,16 @@ extends SirenScorer {
     }
 
     @Override
-    public int advance(final int entityID) throws IOException {
-      if (scorer.advance(entityID) != NO_MORE_DOCS)
+    public int skipTo(final int entityID) throws IOException {
+      if (scorer.skipTo(entityID) != NO_MORE_DOCS)
         return this.doNext();
       return NO_MORE_DOCS;
     }
 
     @Override
-    public int advance(int docID, int[] nodes)
+    public int skipTo(int docID, int[] nodes)
     throws IOException {
-      if (scorer.advance(docID, nodes) != NO_MORE_DOCS)
+      if (scorer.skipTo(docID, nodes) != NO_MORE_DOCS)
         return this.doNext();
       return NO_MORE_DOCS;
     }

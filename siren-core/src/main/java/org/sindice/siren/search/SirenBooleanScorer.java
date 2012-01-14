@@ -128,8 +128,8 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
       @Override
       public float score()
       throws IOException {
-        if (this.docID() >= lastScoredEntity) {
-          lastScoredEntity = this.docID();
+        if (this.doc() >= lastScoredEntity) {
+          lastScoredEntity = this.doc();
           coordinator.nrMatchers += super.nrMatchers;
         }
         return super.score();
@@ -149,8 +149,8 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
       @Override
       public float score()
       throws IOException {
-        if (this.docID() >= lastScoredEntity) {
-          lastScoredEntity = this.docID();
+        if (this.doc() >= lastScoredEntity) {
+          lastScoredEntity = this.doc();
           coordinator.nrMatchers += requiredNrMatchers;
         }
         // All scorers match, so defaultSimilarity super.score() always has 1 as
@@ -239,14 +239,14 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   public void score(final Collector collector) throws IOException {
     int doc;
     collector.setScorer(this);
-    while ((doc = this.nextDoc()) != NO_MORE_DOCS) {
+    while ((doc = this.nextDocument()) != NO_MORE_DOCS) {
       collector.collect(doc);
     }
   }
 
   /**
    * Expert: Collects matching documents in a range. <br>
-   * Note that {@link #nextDoc()} must be called once before this method is called
+   * Note that {@link #nextDocument()} must be called once before this method is called
    * for the first time.
    *
    * @param hc
@@ -263,13 +263,13 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     collector.setScorer(this);
     while (doc < max) {
       collector.collect(doc);
-      doc = this.nextDoc();
+      doc = this.nextDocument();
     }
     return doc != NO_MORE_DOCS;
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return entity;
   }
 
@@ -283,13 +283,13 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
+  public int nextDocument() throws IOException {
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.nextDoc() != NO_MORE_DOCS) {
-      entity = countingSumScorer.docID();
+    if (countingSumScorer.nextDocument() != NO_MORE_DOCS) {
+      entity = countingSumScorer.doc();
       nodes = countingSumScorer.node().clone();
     }
     else {
@@ -320,13 +320,13 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int advance(final int entity) throws IOException {
+  public int skipTo(final int entity) throws IOException {
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.advance(entity) != NO_MORE_DOCS) {
-      this.entity = countingSumScorer.docID();
+    if (countingSumScorer.skipTo(entity) != NO_MORE_DOCS) {
+      this.entity = countingSumScorer.doc();
       nodes = countingSumScorer.node().clone();
     }
     else {
@@ -336,14 +336,14 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     if (countingSumScorer == null) {
       this.initCountingSumScorer();
     }
 
-    if (countingSumScorer.advance(docID, nodes) != NO_MORE_DOCS) {
-      this.entity = countingSumScorer.docID();
+    if (countingSumScorer.skipTo(docID, nodes) != NO_MORE_DOCS) {
+      this.entity = countingSumScorer.doc();
       this.nodes = countingSumScorer.node().clone();
     }
     else {
@@ -359,7 +359,7 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
 
   @Override
   public String toString() {
-    return "SirenBooleanScorer(" + this.docID() + "," + Arrays.toString(nodes) + ")";
+    return "SirenBooleanScorer(" + this.doc() + "," + Arrays.toString(nodes) + ")";
   }
 
   private class Coordinator {
@@ -403,16 +403,16 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     @Override
     public float score()
     throws IOException {
-      if (this.docID() >= lastScoredEntity) {
-        lastScoredEntity = this.docID();
+      if (this.doc() >= lastScoredEntity) {
+        lastScoredEntity = this.doc();
         coordinator.nrMatchers++;
       }
       return scorer.score();
     }
 
     @Override
-    public int docID() {
-      return scorer.docID();
+    public int doc() {
+      return scorer.doc();
     }
 
     @Override
@@ -421,9 +421,9 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     }
 
     @Override
-    public int nextDoc() throws IOException {
-      if (scorer.nextDoc() != NO_MORE_DOCS)
-        return scorer.docID();
+    public int nextDocument() throws IOException {
+      if (scorer.nextDocument() != NO_MORE_DOCS)
+        return scorer.doc();
       return NO_MORE_DOCS;
     }
 
@@ -439,23 +439,23 @@ class SirenBooleanScorer extends SirenPrimitiveScorer {
     }
 
     @Override
-    public int advance(final int entityID) throws IOException {
-      if (scorer.advance(entityID) != NO_MORE_DOCS)
-        return scorer.docID();
+    public int skipTo(final int entityID) throws IOException {
+      if (scorer.skipTo(entityID) != NO_MORE_DOCS)
+        return scorer.doc();
       return NO_MORE_DOCS;
     }
 
     @Override
-    public int advance(int docID, int[] nodes)
+    public int skipTo(int docID, int[] nodes)
     throws IOException {
-      if (scorer.advance(docID, nodes) != NO_MORE_DOCS)
-        return scorer.docID();
+      if (scorer.skipTo(docID, nodes) != NO_MORE_DOCS)
+        return scorer.doc();
       return NO_MORE_DOCS;
     }
 
     @Override
     public String toString() {
-      return "SingleMatchScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
+      return "SingleMatchScorer(" + this.doc() + "," + Arrays.toString(node()) + ")";
     }
 
     @Override

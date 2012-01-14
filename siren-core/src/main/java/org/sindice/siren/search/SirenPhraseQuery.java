@@ -297,7 +297,7 @@ extends SirenPrimitiveQuery {
         return new Explanation(0.0f, "no matching docs");
       }
       final Explanation tfExplanation = new Explanation();
-      final int d = scorer.advance(doc);
+      final int d = scorer.skipTo(doc);
       final float phraseFreq = (d == doc) ? scorer.phraseFreq() : 0.0f;
       tfExplanation.setValue(similarity.tf(phraseFreq));
       tfExplanation.setDescription("tf(phraseFreq=" + phraseFreq + ")");

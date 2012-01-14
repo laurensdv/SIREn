@@ -121,7 +121,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
     queueSize = 0;
     while (si.hasNext()) {
       final SirenCellScorer se = si.next();
-      if (se.nextDoc() != NO_MORE_DOCS) { // entity() and tuple() methods will be used in scorerCellQueue.
+      if (se.nextDocument() != NO_MORE_DOCS) { // entity() and tuple() methods will be used in scorerCellQueue.
         if (scorerCellQueue.insert(se)) {
           queueSize++;
         }
@@ -141,8 +141,8 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   @Override
   public void score(final Collector collector) throws IOException {
     collector.setScorer(this);
-    while (this.nextDoc() != NO_MORE_DOCS) {
-      collector.collect(docID());
+    while (this.nextDocument() != NO_MORE_DOCS) {
+      collector.collect(doc());
     }
   }
 
@@ -163,9 +163,9 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   throws IOException {
     // firstDocID is ignored since nextDoc() sets 'currentDoc'
     collector.setScorer(this);
-    while (docID() < max) {
-      collector.collect(docID());
-      if (this.nextDoc() == NO_MORE_DOCS) {
+    while (doc() < max) {
+      collector.collect(doc());
+      if (this.nextDocument() == NO_MORE_DOCS) {
         return false;
       }
     }
@@ -173,14 +173,14 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
+  public int nextDocument() throws IOException {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
       if ((nrMatchers = scorerCellQueue.nrMatches()) > 0) {
         entity = scorerCellQueue.topEntity();
         currentScore = scorerCellQueue.scoreSum();
         this.nextPosition(); // advance to the first position [SRN-24]
-        return docID();
+        return doc();
       }
       return NO_MORE_DOCS;
     }
@@ -227,7 +227,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
       entity = scorerCellQueue.topEntity();
       currentScore = scorerCellQueue.scoreSum();
       this.nextPosition(); // advance to the first position [SRN-24]
-      return docID();
+      return doc();
     }
     return NO_MORE_DOCS;
   }
@@ -262,17 +262,17 @@ class SirenCellDisjunctionScorer extends SirenScorer {
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(final int entityID) throws IOException {
+  public int skipTo(final int entityID) throws IOException {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
-    if (entityID <= docID()) {
-      return docID();
+    if (entityID <= doc()) {
+      return doc();
     }
     while (queueSize > 0) {
       if (scorerCellQueue.topEntity() >= entityID) {
         entity = scorerCellQueue.topEntity();
-        return docID();
+        return doc();
       }
       else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID)) {
         if (--queueSize == 0) {
@@ -297,7 +297,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(int entityID, int[] nodes)
+  public int skipTo(int entityID, int[] nodes)
   throws IOException {
     // Unsupported operations in high level scorers
     if (nodes.length != 1) { // only valid when advancing on tuple
@@ -307,15 +307,15 @@ class SirenCellDisjunctionScorer extends SirenScorer {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
-    if (entityID < docID() || (entityID == docID() && nodes[0] <= node()[0])) {
-      return docID();
+    if (entityID < doc() || (entityID == doc() && nodes[0] <= node()[0])) {
+      return doc();
     }
     while (queueSize > 0) {
       if (scorerCellQueue.topEntity() > entityID ||
          (scorerCellQueue.topEntity() == entityID && scorerCellQueue.topNodes()[0] >= node()[0])) {
         entity = scorerCellQueue.topEntity();
         tuple[0] = scorerCellQueue.topNodes()[0];
-        return docID();
+        return doc();
       }
       else if (!scorerCellQueue.topSkipToAndAdjustElsePop(entityID, nodes)) {
         if (--queueSize == 0) {
@@ -327,7 +327,7 @@ class SirenCellDisjunctionScorer extends SirenScorer {
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return scorerCellQueue.topEntity();
   }
 

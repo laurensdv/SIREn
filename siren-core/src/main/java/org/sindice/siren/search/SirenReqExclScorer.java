@@ -69,9 +69,9 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
+  public int nextDocument() throws IOException {
     if (firstTime) {
-      if (exclScorer.nextDoc() == NO_MORE_DOCS) {
+      if (exclScorer.nextDocument() == NO_MORE_DOCS) {
         exclScorer = null; // exhausted at start
       }
       firstTime = false;
@@ -79,12 +79,12 @@ extends SirenScorer {
     if (reqScorer == null) {
       return NO_MORE_DOCS;
     }
-    if (reqScorer.nextDoc() == NO_MORE_DOCS) {
+    if (reqScorer.nextDocument() == NO_MORE_DOCS) {
       reqScorer = null; // exhausted, nothing left
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.docID(); // reqScorer.next() already returned true
+      return reqScorer.doc(); // reqScorer.next() already returned true
     }
     return this.toNonExcluded();
   }
@@ -105,18 +105,18 @@ extends SirenScorer {
    */
   private int toNonExcluded()
   throws IOException {
-    int exclEntity = exclScorer.docID();
+    int exclEntity = exclScorer.doc();
     do {
-      final int reqEntity = reqScorer.docID(); // may be excluded
+      final int reqEntity = reqScorer.doc(); // may be excluded
       if (reqEntity < exclEntity) {
         return reqEntity; // reqScorer advanced to before exclScorer, ie. not excluded
       }
       else if (reqEntity > exclEntity) {
-        if (exclScorer.advance(reqEntity) == NO_MORE_DOCS) {
+        if (exclScorer.skipTo(reqEntity) == NO_MORE_DOCS) {
           exclScorer = null; // exhausted, no more exclusions
           return reqEntity;
         }
-        exclEntity = exclScorer.docID();
+        exclEntity = exclScorer.doc();
         if (reqEntity < exclEntity) {
           return reqEntity; // not excluded
         }
@@ -125,7 +125,7 @@ extends SirenScorer {
       if (this.toNonExcludedPosition() != NO_MORE_POS) {
         return reqEntity; // found one non excluded position
       }
-    } while (reqScorer.nextDoc() != NO_MORE_DOCS);
+    } while (reqScorer.nextDocument() != NO_MORE_DOCS);
     reqScorer = null; // exhausted, nothing left
     return NO_MORE_DOCS;
   }
@@ -158,8 +158,8 @@ extends SirenScorer {
    * <ul>
    * <li>reqScorer != null,
    * <li>exclScorer != null,
-   * <li>reqScorer and exclScorer were advanced once via {@link #nextDoc()} or
-   * {@link #advance(int)} and be positioned on the same entity number
+   * <li>reqScorer and exclScorer were advanced once via {@link #nextDocument()} or
+   * {@link #skipTo(int)} and be positioned on the same entity number
    * <li> reqScorer.entity() and reqScorer.cell() may still be excluded.
    * </ul>
    * Advances reqScorer to the next non excluded required cell, if any.
@@ -179,7 +179,7 @@ extends SirenScorer {
       final int[] exclNode = exclScorer.node().clone();
 
       // exclScorer entity number cannot be inferior to reqScorer entity number
-      if (reqScorer.docID() < exclScorer.docID()) {
+      if (reqScorer.doc() < exclScorer.doc()) {
         return 0; // position is invalid in this scorer, return 0.
       }
       else if (isBefore(reqNode, exclNode)) {
@@ -201,8 +201,8 @@ extends SirenScorer {
   }
 
   @Override
-  public int docID() {
-    return reqScorer.docID(); // reqScorer may be null when next() or skipTo()
+  public int doc() {
+    return reqScorer.doc(); // reqScorer may be null when next() or skipTo()
                             // already return false
   }
 
@@ -244,10 +244,10 @@ extends SirenScorer {
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(final int entityID) throws IOException {
+  public int skipTo(final int entityID) throws IOException {
     if (firstTime) {
       firstTime = false;
-      if (exclScorer.advance(entityID) == NO_MORE_DOCS) {
+      if (exclScorer.skipTo(entityID) == NO_MORE_DOCS) {
         exclScorer = null; // exhausted
       }
     }
@@ -255,9 +255,9 @@ extends SirenScorer {
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.advance(entityID);
+      return reqScorer.skipTo(entityID);
     }
-    if (reqScorer.advance(entityID) == NO_MORE_DOCS) {
+    if (reqScorer.skipTo(entityID) == NO_MORE_DOCS) {
       reqScorer = null;
       return NO_MORE_DOCS;
     }
@@ -265,11 +265,11 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     if (firstTime) {
       firstTime = false;
-      if (exclScorer.advance(docID, nodes) == NO_MORE_DOCS) {
+      if (exclScorer.skipTo(docID, nodes) == NO_MORE_DOCS) {
         exclScorer = null; // exhausted
       }
     }
@@ -277,9 +277,9 @@ extends SirenScorer {
       return NO_MORE_DOCS;
     }
     if (exclScorer == null) {
-      return reqScorer.advance(docID, nodes);
+      return reqScorer.skipTo(docID, nodes);
     }
-    if (reqScorer.advance(docID, nodes) == NO_MORE_DOCS) {
+    if (reqScorer.skipTo(docID, nodes) == NO_MORE_DOCS) {
       reqScorer = null;
       return NO_MORE_DOCS;
     }
@@ -288,7 +288,7 @@ extends SirenScorer {
   
   @Override
   public String toString() {
-    return "SirenReqExclScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
+    return "SirenReqExclScorer(" + this.doc() + "," + Arrays.toString(node()) + ")";
   }
 
 }

@@ -37,7 +37,7 @@ import org.apache.lucene.search.Weight;
  * Scorer for conjunctions, sets of queries, within a cell. All the queries
  * are required.
  * <p> A cell is considered matching if all the queries match in the same cell.
- * The {@link #nextDoc()} method iterates over entities that contain one
+ * The {@link #nextDocument()} method iterates over entities that contain one
  * or more matching cells. The {@link #nextPosition()} allows to iterate
  * over the cells within an entity.
  * <p> Code taken from {@link ConjunctionScorer} and adapted for the Siren use
@@ -76,7 +76,7 @@ extends SirenScorer {
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return lastEntity;
   }
 
@@ -90,12 +90,12 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc()
+  public int nextDocument()
   throws IOException {
     if (firstTime)
       return this.init(0);
     else if (more) {
-      more = (scorers[(scorers.length - 1)].nextDoc() != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].nextDocument() != NO_MORE_DOCS);
     }
     return this.doNext();
   }
@@ -123,16 +123,16 @@ extends SirenScorer {
     SirenScorer firstScorer = scorers[first];
 
     while (more &&
-           (firstScorer.docID() < lastScorer.docID() ||
-            isBefore(firstScorer.docID(), firstScorer.node(), lastScorer.docID(), lastScorer.node()))) {
-      more = (firstScorer.advance(lastScorer.docID(), lastScorer.node()) != NO_MORE_DOCS);
+           (firstScorer.doc() < lastScorer.doc() ||
+            isBefore(firstScorer.doc(), firstScorer.node(), lastScorer.doc(), lastScorer.node()))) {
+      more = (firstScorer.skipTo(lastScorer.doc(), lastScorer.node()) != NO_MORE_DOCS);
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
     }
 
     if (more) {
-      lastEntity = lastScorer.docID();
+      lastEntity = lastScorer.doc();
       lastNode = lastScorer.node().clone();
       return lastEntity;
     }
@@ -181,22 +181,22 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entityID) throws IOException {
+  public int skipTo(final int entityID) throws IOException {
     if (firstTime)
       return this.init(entityID);
     else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(entityID) != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].skipTo(entityID) != NO_MORE_DOCS);
     }
     return this.doNext();
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     if (firstTime)
       return this.init(docID); //TODO: should not skip to the right tuple in certain case
     else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(docID, nodes) != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].skipTo(docID, nodes) != NO_MORE_DOCS);
     }
     return this.doNext();
   }
@@ -210,9 +210,9 @@ extends SirenScorer {
 
     for (final SirenScorer scorer : scorers) {
       more = target == 0 ?
-                          (scorer.nextDoc() != NO_MORE_DOCS)
+                          (scorer.nextDocument() != NO_MORE_DOCS)
                          :
-                          (scorer.advance(target) != NO_MORE_DOCS);
+                          (scorer.skipTo(target) != NO_MORE_DOCS);
 
       if (!more) return NO_MORE_DOCS;
     }
@@ -224,8 +224,8 @@ extends SirenScorer {
     // note that this comparator is not consistent with equals!
     Arrays.sort(scorers, new Comparator<SirenScorer>() { // sort the array
         public int compare(final SirenScorer o1, final SirenScorer o2) {
-          if (o1.docID() != o2.docID()) {
-            return o1.docID() - o2.docID(); 
+          if (o1.doc() != o2.doc()) {
+            return o1.doc() - o2.doc(); 
           }
           final int maxIndex = o1.node().length - 1;
           for (int i = 0; i < maxIndex; i++) {
@@ -271,7 +271,7 @@ extends SirenScorer {
 
   @Override
   public String toString() {
-    return "SirenConjunctionScorer(" + this.docID() + "," + Arrays.toString(lastNode) + ")";
+    return "SirenConjunctionScorer(" + this.doc() + "," + Arrays.toString(lastNode) + ")";
   }
 
   @Override

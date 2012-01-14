@@ -60,7 +60,7 @@ public class ScorerCellQueue {
     final int[] nodes;
     
     HeapedScorerCell(final SirenScorer s) {
-      this(s, s.docID(), s.node());
+      this(s, s.doc(), s.node());
     }
 
     HeapedScorerCell(final SirenScorer scorer, final int entity, final int[] nodes) {
@@ -70,7 +70,7 @@ public class ScorerCellQueue {
     }
 
     void adjust() {
-      docID = scorer.docID();
+      docID = scorer.doc();
       for (int i = 0; i < scorer.node().length; i++) {
         nodes[i] = scorer.node()[i];
       }
@@ -232,7 +232,7 @@ public class ScorerCellQueue {
    */
   public final boolean topNextAndAdjustElsePop()
   throws IOException {
-    if (topHSC.scorer.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+    if (topHSC.scorer.nextDocument() != DocIdSetIterator.NO_MORE_DOCS) {
       return this.checkAdjustElsePop(true);
     }
     return this.checkAdjustElsePop(false);
@@ -249,7 +249,7 @@ public class ScorerCellQueue {
     int counter = 0;
     final int entity = topHSC.docID;
     while (size > 0 && topHSC.docID == entity) {
-      if (topHSC.scorer.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+      if (topHSC.scorer.nextDocument() != DocIdSetIterator.NO_MORE_DOCS) {
         this.checkAdjustElsePop(true);
       }
       else {
@@ -299,17 +299,17 @@ public class ScorerCellQueue {
 
   public final boolean topSkipToAndAdjustElsePop(final int entity)
   throws IOException {
-    return this.checkAdjustElsePop(topHSC.scorer.advance(entity) != DocIdSetIterator.NO_MORE_DOCS);
+    return this.checkAdjustElsePop(topHSC.scorer.skipTo(entity) != DocIdSetIterator.NO_MORE_DOCS);
   }
 
   public final boolean topSkipToAndAdjustElsePop(final int entity, final int[] nodes)
   throws IOException {
-    return this.checkAdjustElsePop(topHSC.scorer.advance(entity, nodes) != DocIdSetIterator.NO_MORE_DOCS);
+    return this.checkAdjustElsePop(topHSC.scorer.skipTo(entity, nodes) != DocIdSetIterator.NO_MORE_DOCS);
   }
 
   private boolean checkAdjustElsePop(final boolean cond) {
     if (cond) { // see also adjustTop
-      topHSC.docID = topHSC.scorer.docID();
+      topHSC.docID = topHSC.scorer.doc();
       for (int i = 0; i < topHSC.nodes.length; i++) {
         topHSC.nodes[i] = topHSC.scorer.node()[i];
       }
@@ -418,11 +418,11 @@ public class ScorerCellQueue {
   }
 
   private int compareTo(final SirenScorer scorer, final HeapedScorerCell heapedScorer) {
-    if (scorer.docID() < topHSC.docID)
+    if (scorer.doc() < topHSC.docID)
       return -1;
-    else if (scorer.docID() > topHSC.docID)
+    else if (scorer.doc() > topHSC.docID)
       return 1;
-    else if (scorer.docID() == topHSC.docID) {
+    else if (scorer.doc() == topHSC.docID) {
       for (int i = 0; i < scorer.node().length; i++) {
         if (scorer.node()[i] < topHSC.nodes[i])
           return -1;

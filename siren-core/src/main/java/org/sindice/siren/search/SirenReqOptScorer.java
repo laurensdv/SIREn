@@ -68,8 +68,8 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
-    return reqScorer.nextDoc();
+  public int nextDocument() throws IOException {
+    return reqScorer.nextDocument();
   }
 
   @Override
@@ -78,14 +78,14 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entity) throws IOException {
-    return reqScorer.advance(entity);
+  public int skipTo(final int entity) throws IOException {
+    return reqScorer.skipTo(entity);
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
-    return reqScorer.advance(docID, nodes);
+    return reqScorer.skipTo(docID, nodes);
   }
 
   @Override
@@ -94,8 +94,8 @@ extends SirenScorer {
   }
   
   @Override
-  public int docID() {
-    return reqScorer.docID();
+  public int doc() {
+    return reqScorer.doc();
   }
 
   @Override
@@ -105,7 +105,7 @@ extends SirenScorer {
 
   /**
    * Returns the score of the current entity matching the query. Initially
-   * invalid, until {@link #nextDoc()} is called the first time.
+   * invalid, until {@link #nextDocument()} is called the first time.
    *
    * @return The score of the required scorer, eventually increased by the score
    *         of the optional scorer when it also matches the current entity.
@@ -121,7 +121,7 @@ extends SirenScorer {
     if (firstTimeOptScorer) {
       firstTimeOptScorer = false;
       // Advance to the matching cell
-      if (optScorer.advance(docID(), node()) == NO_MORE_DOCS) {
+      if (optScorer.skipTo(doc(), node()) == NO_MORE_DOCS) {
         optScorer = null;
         return reqScore;
       }
@@ -129,21 +129,21 @@ extends SirenScorer {
     else if (optScorer == null) {
       return reqScore;
     }
-    else if ((optScorer.docID() < docID()) &&
-             (optScorer.advance(docID()) == NO_MORE_DOCS)) {
+    else if ((optScorer.doc() < doc()) &&
+             (optScorer.skipTo(doc()) == NO_MORE_DOCS)) {
       optScorer = null;
       return reqScore;
     }
 
     // If the optional scorer matches the same cell, increase the score
-    return (optScorer.docID() == docID() && Arrays.equals(optScorer.node(), node()))
+    return (optScorer.doc() == doc() && Arrays.equals(optScorer.node(), node()))
            ? reqScore + optScorer.score()
            : reqScore;
   }
 
   @Override
   public String toString() {
-    return "SirenReqOptScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
+    return "SirenReqOptScorer(" + this.doc() + "," + Arrays.toString(node()) + ")";
   }
 
 }

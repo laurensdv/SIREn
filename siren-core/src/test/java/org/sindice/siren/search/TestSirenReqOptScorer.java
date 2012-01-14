@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.lucene.search.DocIdSetIterator;
 import org.junit.Test;
+import org.sindice.siren.index.DocsNodesAndPositionsIterator;
 
 public class TestSirenReqOptScorer
 extends AbstractTestSirenScorer {
@@ -45,29 +46,29 @@ extends AbstractTestSirenScorer {
 
     final SirenReqOptScorer scorer = this.getReqOptScorer("aaa", "bbb");
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(1, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Override

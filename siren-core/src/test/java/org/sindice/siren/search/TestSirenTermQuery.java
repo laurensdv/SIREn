@@ -28,42 +28,35 @@ package org.sindice.siren.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.index.IndexReader.AtomicReaderContext;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.util.BasicSirenTestCase;
 
-public class TestSirenTermQuery extends LuceneTestCase {
+public class TestSirenTermQuery extends BasicSirenTestCase {
 
-  
-  private QueryTestingHelper _helper = null;
-
+  @Override
   @Before
   public void setUp()
   throws Exception {
     super.setUp();
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
-    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT, 
-    	new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-    _helper = new QueryTestingHelper(analyzer);
   }
 
+  @Override
   @After
   public void tearDown()
   throws Exception {
+    this.deleteAll();
     super.tearDown();
-    _helper.close();
+  }
+
+  protected SirenTermQuery getTermQuery(final String term) throws IOException {
+    return new SirenTermQuery(new Term(DEFAULT_FIELD, term));
   }
 
   /**
@@ -71,16 +64,16 @@ public class TestSirenTermQuery extends LuceneTestCase {
    */
   @Test
   public void testSimpleMatch() throws Exception {
-    _helper.addDocument("\"Renaud Delbru\" . ");
-    _helper.addDocument("\"Renaud\" . ");
+    this.addDocument("\"Renaud Delbru\" . ");
+    this.addDocument("\"Renaud\" . ");
 
-    SirenTermQuery query = new SirenTermQuery(new Term("content", "renaud"));
-    ScoreDoc[] hits = _helper.search(query);
-    assertEquals(2, hits.length);
+    SirenTermQuery query = this.getTermQuery("renaud");
+    TopDocs hits = searcher.search(query, 100);
+    assertEquals(2, hits.totalHits);
 
-    query = new SirenTermQuery(new Term("content", "delbru"));
-    hits = _helper.search(query);
-    assertEquals(1, hits.length);
+    query = this.getTermQuery("delbru");
+    hits = searcher.search(query, 100);
+    assertEquals(1, hits.totalHits);
   }
 
   /**
@@ -90,35 +83,16 @@ public class TestSirenTermQuery extends LuceneTestCase {
    */
   @Test
   public void testSimpleMatchWithNoNorms() throws Exception {
-    _helper.addDocumentNoNorms("\"Renaud Delbru\" . ");
-    _helper.addDocumentNoNorms("\"Renaud\" . ");
+    this.addDocumentNoNorms("\"Renaud Delbru\" . ");
+    this.addDocumentNoNorms("\"Renaud\" . ");
 
-    SirenTermQuery query = new SirenTermQuery(new Term("content", "renaud"));
-    ScoreDoc[] hits = _helper.search(query);
-    assertEquals(2, hits.length);
+    SirenTermQuery query = this.getTermQuery("renaud");
+    TopDocs hits = searcher.search(query, 100);
+    assertEquals(2, hits.totalHits);
 
-    query = new SirenTermQuery(new Term("content", "delbru"));
-    hits = _helper.search(query);
-    assertEquals(1, hits.length);
-  }
-
-  /**
-   * Ensures simple term queries match all the cells
-   */
-  @Test
-  public void testMatchTuple() throws Exception {
-    /*
-     * TODO: before, this document was added with norms. However, the score
-     * expected score is the normalized one. Why is it so ? 
-     */
-    _helper.addDocumentNoNorms("<http://renaud.delbru.fr/rdf/foaf#me> <http://xmlns.com/foaf/0.1/name> \"Renaud Delbru\" . ");
-
-    final SirenTermQuery query = new SirenTermQuery(new Term("content", "renaud"));
-    final ScoreDoc[] hits = _helper.search(query);
-    assertEquals(1, hits.length);
-    assertEquals(0, hits[0].doc);
-    System.out.println(_helper.getIndexSearcher().createNormalizedWeight(query).explain((AtomicReaderContext) _helper.getIndexReader().getSequentialSubReaders()[0].getTopReaderContext(), 0));
-    assertEquals(0.13, hits[0].score, 0.01f);
+    query = this.getTermQuery("delbru");
+    hits = searcher.search(query, 100);
+    assertEquals(1, hits.totalHits);
   }
 
   /**
@@ -126,52 +100,28 @@ public class TestSirenTermQuery extends LuceneTestCase {
    */
   @Test
   public void testSimpleDontMatch() throws Exception {
-    _helper.addDocument("\"Renaud Delbru\" . ");
+    this.addDocument("\"Renaud Delbru\" . ");
 
-    final SirenTermQuery query = new SirenTermQuery(new Term("content", "nomatch"));
-    final ScoreDoc[] hits = _helper.search(query);
-    assertEquals(0, hits.length);
-  }
-
-  /**
-   * Check if explanation is correct
-   */
-  @Test
-  public void testWeight() throws Exception {
-    _helper.addDocumentsWithIterator(new String[] { "\"Renaud Delbru\" . ",
-                                                    "\"Renaud\" . " });
-
-    final SirenTermQuery query = new SirenTermQuery(new Term("content", "renaud"));
-    final Weight w = _helper.getIndexSearcher().createNormalizedWeight(query);
-    assertNotNull(w);
-    final Explanation explain = w.explain((AtomicReaderContext) _helper.getIndexReader().getSequentialSubReaders()[0].getTopReaderContext(), 0);
-    assertNotNull(explain);
-//    System.out.println(explain.toString());
-    assertTrue(explain.isMatch());
-    assertEquals(0.37158427f, explain.getValue(), 0f);
+    final SirenTermQuery query = this.getTermQuery("nomatch");
+    final TopDocs hits = searcher.search(query, 100);
+    assertEquals(0, hits.totalHits);
   }
 
   @Test
   public void testExplain() throws IOException {
-    _helper.addDocument("\"Renaud\" . ");
+    this.addDocumentNoNorms("<http://renaud.delbru.fr/rdf/foaf#me> <http://xmlns.com/foaf/0.1/name> \"Renaud Delbru\" . ");
 
-    final Term t = new Term(QueryTestingHelper.DEFAULT_FIELD, "renaud");
-    final SirenTermQuery query = new SirenTermQuery(t);
-    /*
-     * Query does not have anymore the method #weight. It was normalizing the weight
-     * of this query. In order to obtain the same result, use now the method
-     * #createNormalizedWeight from IndexSearcher.
-     */
-    final Weight w = _helper.getIndexSearcher().createNormalizedWeight(query);
-    final IndexReader reader = _helper.getIndexReader();
-    final AtomicReaderContext atom = (AtomicReaderContext) reader.getSequentialSubReaders()[0].getTopReaderContext();
+    final SirenTermQuery query = this.getTermQuery("renaud");
+    final Weight w = searcher.createNormalizedWeight(query);
+    final AtomicReaderContext atom = (AtomicReaderContext) searcher.getTopReaderContext();
 
     // Explain entity 0
     Explanation explanation = w.explain(atom, 0);
     assertNotNull("explanation is null and it shouldn't be", explanation);
-//     System.out.println("Explanation: " + explanation.toString());
-    //All this Explain does is return the term frequency
-    assertEquals("term frq is not 1", 1f, explanation.getDetails()[0].getValue(), 0f);
+
+    // All this Explain does is return the term frequency
+    final float termFreq = explanation.getDetails()[0].getDetails()[0].getValue();
+    assertEquals("term frq is not 2", 2f, termFreq, 0f);
 
     // Explain non existing entity
     explanation = w.explain(atom, 1);

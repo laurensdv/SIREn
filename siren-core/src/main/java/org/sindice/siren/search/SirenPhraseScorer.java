@@ -105,7 +105,7 @@ extends SirenPrimitiveScorer {
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return docID;
   }
 
@@ -122,14 +122,14 @@ extends SirenPrimitiveScorer {
    * identifier.
    */
   @Override
-  public int nextDoc()
+  public int nextDocument()
   throws IOException {
     if (firstTime) {
       this.init();
       firstTime = false;
     }
     else if (more) {
-      more = (last.nextDoc() != NO_MORE_DOCS); // trigger further scanning
+      more = (last.nextDocument() != NO_MORE_DOCS); // trigger further scanning
     }
     return this.doNext();
   }
@@ -140,19 +140,19 @@ extends SirenPrimitiveScorer {
   private int doNext()
   throws IOException {
     while (more) {
-      while (more && first.docID() < last.docID()) { // find entity w/ all the terms
-        more = (first.advance(last.docID()) != NO_MORE_DOCS); // skip first upto last
+      while (more && first.doc() < last.doc()) { // find entity w/ all the terms
+        more = (first.skipTo(last.doc()) != NO_MORE_DOCS); // skip first upto last
         this.firstToLast(); // and move it to the end
       }
 
       if (more) { // found an entity with all of the terms
         this.initQueue();
         if (this.doNextPosition() != NO_MORE_POS) { // check for phrase
-          docID = first.docID();
+          docID = first.doc();
           return docID;
         }
         else {
-          more = (last.nextDoc() != NO_MORE_DOCS); // trigger further scanning
+          more = (last.nextDocument() != NO_MORE_DOCS); // trigger further scanning
         }
       }
     }
@@ -177,18 +177,18 @@ extends SirenPrimitiveScorer {
       throw new InvalidCallException("next or skipTo should be called first");
 
     final float raw = sim.tf(this.phraseFreq()) * value; // raw score
-    return norms == null ? raw : raw * sim.decodeNormValue(norms[first.docID()]); // normalize
+    return norms == null ? raw : raw * sim.decodeNormValue(norms[first.doc()]); // normalize
   }
 
   @Override
-  public int advance(final int entityID) throws IOException {
+  public int skipTo(final int entityID) throws IOException {
     if (docID == entityID) { // optimised case: do nothing
       return docID;
     }
 
     firstTime = false;
     for (SirenPhrasePositions pp = first; more && pp != null; pp = pp.next) {
-      more = (pp.advance(entityID) != NO_MORE_DOCS);
+      more = (pp.skipTo(entityID) != NO_MORE_DOCS);
     }
     if (more) {
       this.sort(); // re-sort
@@ -237,7 +237,7 @@ extends SirenPrimitiveScorer {
   }
   
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     if (this.docID == docID) { // optimised case: find tuple in occurrences
       while (isBefore(nodes) && this.nextPosition() != NO_MORE_POS) {
@@ -245,12 +245,12 @@ extends SirenPrimitiveScorer {
       }
       // If tuple found, return true, if not, skip to next entity
       // If tuple and cell found, return true, if not, skip to next entity
-      return (isAfterOrEquals(nodes)) ? docID : this.nextDoc();
+      return (isAfterOrEquals(nodes)) ? docID : this.nextDocument();
     }
 
     firstTime = false;
     for (SirenPhrasePositions pp = first; more && pp != null; pp = pp.next) {
-      more = (pp.advance(docID, nodes) != NO_MORE_DOCS);
+      more = (pp.skipTo(docID, nodes) != NO_MORE_DOCS);
     }
     if (more) {
       this.sort(); // re-sort
@@ -261,7 +261,7 @@ extends SirenPrimitiveScorer {
   private void init()
   throws IOException {
     for (SirenPhrasePositions pp = first; more && pp != null; pp = pp.next) {
-      more = (pp.nextDoc() != NO_MORE_DOCS);
+      more = (pp.nextDocument() != NO_MORE_DOCS);
     }
     if (more) {
       this.sort();

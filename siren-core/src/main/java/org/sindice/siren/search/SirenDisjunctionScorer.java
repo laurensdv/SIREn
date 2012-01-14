@@ -127,7 +127,7 @@ extends SirenScorer {
     queueSize = 0;
     while (si.hasNext()) {
       final SirenPrimitiveScorer se = si.next();
-      if (se.nextDoc() != NO_MORE_DOCS) { // entity(), tuple() and cell () method will be used in scorerDocQueue.
+      if (se.nextDocument() != NO_MORE_DOCS) { // entity(), tuple() and cell () method will be used in scorerDocQueue.
         if (scorerCellQueue.insert(se)) {
           queueSize++;
         }
@@ -148,7 +148,7 @@ extends SirenScorer {
   @Override
   public void score(final Collector collector) throws IOException {
     collector.setScorer(this);
-    while (this.nextDoc() != NO_MORE_DOCS) {
+    while (this.nextDocument() != NO_MORE_DOCS) {
       collector.collect(docID);
     }
   }
@@ -172,7 +172,7 @@ extends SirenScorer {
     collector.setScorer(this);
     while (docID < max) {
       collector.collect(docID);
-      if (this.nextDoc() == NO_MORE_DOCS) {
+      if (this.nextDocument() == NO_MORE_DOCS) {
         return false;
       }
     }
@@ -180,7 +180,7 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
+  public int nextDocument() throws IOException {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
       if ((nrMatchers = scorerCellQueue.nrMatches()) > 0) {
@@ -286,7 +286,7 @@ extends SirenScorer {
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(final int entityID) throws IOException {
+  public int skipTo(final int entityID) throws IOException {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
     }
@@ -364,7 +364,7 @@ extends SirenScorer {
    * @return true iff there is such a match.
    */
   @Override
-  public int advance(final int entityID, final int[] nodes)
+  public int skipTo(final int entityID, final int[] nodes)
   throws IOException {
     if (scorerCellQueue == null) {
       this.initScorerCellQueue();
@@ -389,7 +389,7 @@ extends SirenScorer {
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return docID;
   }
 
@@ -409,7 +409,7 @@ extends SirenScorer {
   
   @Override
   public String toString() {
-    return "SirenDisjunctionScorer(" + this.docID() + "," + Arrays.toString(node()) + ")";
+    return "SirenDisjunctionScorer(" + this.doc() + "," + Arrays.toString(node()) + ")";
   }
 
 }

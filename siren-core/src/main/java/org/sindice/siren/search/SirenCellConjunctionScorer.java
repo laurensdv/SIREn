@@ -38,7 +38,7 @@ import org.apache.lucene.search.similarities.SimilarityProvider;
  * Scorer for conjunctions, sets of cell, within a tuple. All the queries
  * are required.
  * <p> A tuple is considered matching if all the cell queries match in the same
- * tuple. The {@link #nextDoc()} method iterates over entities that contain
+ * tuple. The {@link #nextDocument()} method iterates over entities that contain
  * one or more matching tules. The {@link #nextPosition()} allows to iterate
  * over the tuples within an entity.
  * <p> Code taken from {@link ConjunctionScorer} and adapted for the Siren use
@@ -82,7 +82,7 @@ extends SirenScorer {
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return lastEntity;
   }
 
@@ -96,11 +96,11 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
+  public int nextDocument() throws IOException {
     if (firstTime)
       return this.init(0);
     else if (more) {
-      more = (scorers[(scorers.length - 1)].nextDoc() != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].nextDocument() != NO_MORE_DOCS);
     }
     return this.doNext();
   }
@@ -113,17 +113,17 @@ extends SirenScorer {
     SirenScorer lastScorer = scorers[scorers.length - 1];
     SirenScorer firstScorer = scorers[first];
     while (more &&
-           (firstScorer.docID() < lastScorer.docID() ||
-           (firstScorer.docID() == lastScorer.docID() && firstScorer.node()[0] < lastScorer.node()[0]))) {
+           (firstScorer.doc() < lastScorer.doc() ||
+           (firstScorer.doc() == lastScorer.doc() && firstScorer.node()[0] < lastScorer.node()[0]))) {
       // TODO: Remove this new!
-      more = (firstScorer.advance(lastScorer.docID(), new int[] { lastScorer.node()[0] }) != NO_MORE_DOCS);
+      more = (firstScorer.skipTo(lastScorer.doc(), new int[] { lastScorer.node()[0] }) != NO_MORE_DOCS);
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
     }
 
     if (more) {
-      lastEntity = lastScorer.docID();
+      lastEntity = lastScorer.doc();
       lastNodes[0] = lastScorer.node()[0];
       /**
        * Cell is invalid in high-level scorers. It will always return
@@ -169,17 +169,17 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entityID) throws IOException {
+  public int skipTo(final int entityID) throws IOException {
     if (firstTime)
       return this.init(entityID);
     else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(entityID) != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].skipTo(entityID) != NO_MORE_DOCS);
     }
     return this.doNext();
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
     if (nodes.length != 1) {
       throw new UnsupportedOperationException();  
@@ -187,7 +187,7 @@ extends SirenScorer {
     if (firstTime)
       return this.init(docID); //TODO: should not skip to the right tuple in certain case
     else if (more) {
-      more = (scorers[(scorers.length - 1)].advance(docID, nodes) != NO_MORE_DOCS);
+      more = (scorers[(scorers.length - 1)].skipTo(docID, nodes) != NO_MORE_DOCS);
     }
     return this.doNext();
   }
@@ -199,10 +199,10 @@ extends SirenScorer {
     more = scorers.length > 1;
     for (final SirenScorer scorer : scorers) {
       if (target == 0) {
-        more = (scorer.nextDoc() != NO_MORE_DOCS);
+        more = (scorer.nextDocument() != NO_MORE_DOCS);
       }
       else {
-        more = (scorer.advance(target) != NO_MORE_DOCS);
+        more = (scorer.skipTo(target) != NO_MORE_DOCS);
       }
       if (!more) {
         return NO_MORE_DOCS;
@@ -216,8 +216,8 @@ extends SirenScorer {
     // note that this comparator is not consistent with equals!
     Arrays.sort(scorers, new Comparator<SirenScorer>() { // sort the array
         public int compare(final SirenScorer o1, final SirenScorer o2) {
-          if (o1.docID() != o2.docID())
-            return o1.docID() - o2.docID();
+          if (o1.doc() != o2.doc())
+            return o1.doc() - o2.doc();
           else if (o1.node()[0] != o2.node()[0])
             return o1.node()[0] - o2.node()[0];
           else

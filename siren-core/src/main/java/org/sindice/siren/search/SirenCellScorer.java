@@ -103,14 +103,14 @@ extends SirenScorer {
   public void score(final Collector collector) throws IOException {
     int doc;
     collector.setScorer(this);
-    while ((doc = this.nextDoc()) != NO_MORE_DOCS) {
+    while ((doc = this.nextDocument()) != NO_MORE_DOCS) {
       collector.collect(doc);
     }
   }
 
   /**
    * Expert: Collects matching documents in a range. <br>
-   * Note that {@link #nextDoc()} must be called once before this method is called
+   * Note that {@link #nextDocument()} must be called once before this method is called
    * for the first time.
    *
    * @param hc
@@ -127,13 +127,13 @@ extends SirenScorer {
     collector.setScorer(this);
     while (doc < max) {
       collector.collect(doc);
-      doc = this.nextDoc();
+      doc = this.nextDocument();
     }
     return doc != NO_MORE_DOCS;
   }
 
   @Override
-  public int docID() {
+  public int doc() {
     return docID;
   }
 
@@ -147,8 +147,8 @@ extends SirenScorer {
   }
 
   @Override
-  public int nextDoc() throws IOException {
-    if (primitiveScorer.nextDoc() != NO_MORE_DOCS) {
+  public int nextDocument() throws IOException {
+    if (primitiveScorer.nextDocument() != NO_MORE_DOCS) {
       docID = this.doNext();
     }
     else {
@@ -169,13 +169,13 @@ extends SirenScorer {
     while (more && (primitiveScorer.node()[1] < cellConstraintStart ||
                     primitiveScorer.node()[1] > cellConstraintEnd)) {
       if (primitiveScorer.nextPosition() == NO_MORE_POS) {
-        more = (primitiveScorer.nextDoc() != NO_MORE_DOCS);
+        more = (primitiveScorer.nextDocument() != NO_MORE_DOCS);
       }
 //      cell = primitiveScorer.node()[1];
     }
 
     if (more) {
-      docID = primitiveScorer.docID();
+      docID = primitiveScorer.doc();
 //      tuple = primitiveScorer.node()[0];
     }
     else {
@@ -212,8 +212,8 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(final int entity) throws IOException {
-    if (primitiveScorer.advance(entity) != NO_MORE_DOCS) {
+  public int skipTo(final int entity) throws IOException {
+    if (primitiveScorer.skipTo(entity) != NO_MORE_DOCS) {
       this.docID = this.doNext();
 //      this.tuple = primitiveScorer.tuple();
 //      this.cell = primitiveScorer.cell();
@@ -224,14 +224,14 @@ extends SirenScorer {
   }
 
   @Override
-  public int advance(int docID, int[] nodes)
+  public int skipTo(int docID, int[] nodes)
   throws IOException {
-    if (primitiveScorer.advance(docID, nodes) != NO_MORE_DOCS) {
+    if (primitiveScorer.skipTo(docID, nodes) != NO_MORE_DOCS) {
       this.docID = this.doNext(); 
     } else {
       this.docID = NO_MORE_DOCS;
     }
-    return docID();
+    return doc();
   }
 
   @Override
@@ -241,7 +241,7 @@ extends SirenScorer {
   
   @Override
   public String toString() {
-    return "SingleCellScorer(" + this.docID() + "," + primitiveScorer + ")";
+    return "SingleCellScorer(" + this.doc() + "," + primitiveScorer + ")";
   }
 
 }

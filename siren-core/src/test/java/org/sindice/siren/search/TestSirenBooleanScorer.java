@@ -32,6 +32,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.lucene.search.DocIdSetIterator;
 import org.junit.Test;
+import org.sindice.siren.index.DocsNodesAndPositionsIterator;
 
 public class TestSirenBooleanScorer
 extends AbstractTestSirenScorer {
@@ -46,24 +47,24 @@ extends AbstractTestSirenScorer {
       new String[] {"aaa", "bbb"},
       null, null);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(1, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -76,19 +77,19 @@ extends AbstractTestSirenScorer {
       new String[] {"aaa", "bbb"},
       null, null);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(1, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -100,26 +101,26 @@ extends AbstractTestSirenScorer {
     final SirenBooleanScorer scorer = this.getBooleanScorer(
       new String[] {"aaa"}, null, new String[] {"ccc"});
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -131,14 +132,14 @@ extends AbstractTestSirenScorer {
     final SirenCellScorer scorer = this.getCellScorer(1, 1,
       new String[] {"aaa"}, null, new String[] {"ccc"});
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -150,41 +151,41 @@ extends AbstractTestSirenScorer {
     final SirenBooleanScorer scorer = this.getBooleanScorer(null,
       new String[] {"aaa", "ddd"}, null);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(1, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(1, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -196,26 +197,26 @@ extends AbstractTestSirenScorer {
     final SirenCellScorer scorer = this.getCellScorer(1, 1, null,
       new String[] {"aaa", "ddd"}, null);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(1, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -227,31 +228,31 @@ extends AbstractTestSirenScorer {
     final SirenBooleanScorer scorer = this.getBooleanScorer(new String[] {"aaa"},
       new String[] {"bbb"}, null);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -263,21 +264,21 @@ extends AbstractTestSirenScorer {
     final SirenBooleanScorer scorer = this.getBooleanScorer(null,
       new String[] {"bbb"}, new String[] {"ccc"});
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Test
@@ -289,26 +290,26 @@ extends AbstractTestSirenScorer {
     final SirenBooleanScorer scorer = this.getBooleanScorer(new String[] {"aaa"},
       new String[] {"bbb"}, new String[] {"ccc"});
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(0, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(0, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertFalse(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(0, scorer.node()[1]);
 
-    assertFalse(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
-    assertEquals(1, scorer.docID());
+    assertFalse(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
+    assertEquals(1, scorer.doc());
     assertEquals(0, scorer.node()[0]);
     assertEquals(1, scorer.node()[1]);
 
-    assertTrue(scorer.nextPosition() == NodIdSetIterator.NO_MORE_POS);
+    assertTrue(scorer.nextPosition() == DocsNodesAndPositionsIterator.NO_MORE_POS);
 
-    assertTrue(scorer.nextDoc() == DocIdSetIterator.NO_MORE_DOCS);
+    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
   }
 
   @Override

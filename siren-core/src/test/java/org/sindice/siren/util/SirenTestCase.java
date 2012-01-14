@@ -43,7 +43,7 @@ import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
 
-public class SirenTestCase extends LuceneTestCase {
+public abstract class SirenTestCase extends LuceneTestCase {
 
   public static final String DEFAULT_FIELD = "content";
 
