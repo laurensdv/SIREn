@@ -41,14 +41,21 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.tuple.SirenCellConjunctionScorer;
+import org.sindice.siren.search.tuple.SirenCellQuery;
+import org.sindice.siren.search.tuple.SirenTupleClause;
+import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 public class TestSirenTupleQuery extends LuceneTestCase {
 
-  private final SirenTermQuery aaa = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa"));
-  private final SirenTermQuery bbb = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb"));
-  private final SirenTermQuery ccc = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc"));
-  private final SirenTermQuery ddd = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd"));
-  private final SirenTermQuery eee = new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "eee"));
+  private final NodeTermQuery aaa = new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa"));
+  private final NodeTermQuery bbb = new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb"));
+  private final NodeTermQuery ccc = new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc"));
+  private final NodeTermQuery ddd = new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd"));
+  private final NodeTermQuery eee = new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "eee"));
 
   private QueryTestingHelper _helper = null;
 
@@ -70,18 +77,18 @@ public class TestSirenTupleQuery extends LuceneTestCase {
   @Test
   public void testEquality() throws Exception {
     final String fieldName = QueryTestingHelper.DEFAULT_FIELD;
-    final SirenBooleanQuery bq1a = new SirenBooleanQuery();
-    bq1a.add(new SirenTermQuery(new Term(fieldName, "value1")), SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery bq1b = new SirenBooleanQuery();
-    bq1b.add(new SirenTermQuery(new Term(fieldName, "value2")), SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery bq1a = new NodeBooleanQuery();
+    bq1a.add(new NodeTermQuery(new Term(fieldName, "value1")), NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery bq1b = new NodeBooleanQuery();
+    bq1b.add(new NodeTermQuery(new Term(fieldName, "value2")), NodeBooleanClause.Occur.SHOULD);
     final SirenTupleQuery tq1 = new SirenTupleQuery();
     tq1.add(new SirenCellQuery(bq1a), SirenTupleClause.Occur.SHOULD);
     tq1.add(new SirenCellQuery(bq1b), SirenTupleClause.Occur.SHOULD);
 
-    final SirenBooleanQuery bq2a = new SirenBooleanQuery();
-    bq2a.add(new SirenTermQuery(new Term(fieldName, "value1")), SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery bq2b = new SirenBooleanQuery();
-    bq2b.add(new SirenTermQuery(new Term(fieldName, "value2")), SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery bq2a = new NodeBooleanQuery();
+    bq2a.add(new NodeTermQuery(new Term(fieldName, "value1")), NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery bq2b = new NodeBooleanQuery();
+    bq2b.add(new NodeTermQuery(new Term(fieldName, "value2")), NodeBooleanClause.Occur.SHOULD);
     final SirenTupleQuery tq2 = new SirenTupleQuery();
     tq2.add(new SirenCellQuery(bq1a), SirenTupleClause.Occur.SHOULD);
     tq2.add(new SirenCellQuery(bq1b), SirenTupleClause.Occur.SHOULD);
@@ -94,38 +101,38 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"aaa ccc\" \"bbb ccc\" . \"aaa bbb\" \"ccc eee\" . ");
 
     // {[aaa]}
-    SirenBooleanQuery cq = new SirenBooleanQuery();
-    cq.add(aaa, SirenBooleanClause.Occur.SHOULD);
+    NodeBooleanQuery cq = new NodeBooleanQuery();
+    cq.add(aaa, NodeBooleanClause.Occur.SHOULD);
     SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq), SirenTupleClause.Occur.SHOULD);
     assertEquals(1, _helper.search(cq).length);
 
     // {[ccc]}
-    cq = new SirenBooleanQuery();
-    cq.add(ccc, SirenBooleanClause.Occur.SHOULD);
+    cq = new NodeBooleanQuery();
+    cq.add(ccc, NodeBooleanClause.Occur.SHOULD);
     tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq), SirenTupleClause.Occur.SHOULD);
     assertEquals(1, _helper.search(cq).length);
 
     // {[+ccc +aaa]}
-    cq = new SirenBooleanQuery();
-    cq.add(ccc, SirenBooleanClause.Occur.MUST);
-    cq.add(aaa, SirenBooleanClause.Occur.MUST);
+    cq = new NodeBooleanQuery();
+    cq.add(ccc, NodeBooleanClause.Occur.MUST);
+    cq.add(aaa, NodeBooleanClause.Occur.MUST);
     tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq), SirenTupleClause.Occur.SHOULD);
     assertEquals(1, _helper.search(cq).length);
 
     // {[ddd]}
-    cq = new SirenBooleanQuery();
-    cq.add(ddd, SirenBooleanClause.Occur.SHOULD);
+    cq = new NodeBooleanQuery();
+    cq.add(ddd, NodeBooleanClause.Occur.SHOULD);
     tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq), SirenTupleClause.Occur.SHOULD);
     assertEquals(0, _helper.search(cq).length);
 
     // {[bbb eee]}
-    cq = new SirenBooleanQuery();
-    cq.add(bbb, SirenBooleanClause.Occur.MUST);
-    cq.add(eee, SirenBooleanClause.Occur.MUST);
+    cq = new NodeBooleanQuery();
+    cq.add(bbb, NodeBooleanClause.Occur.MUST);
+    cq.add(eee, NodeBooleanClause.Occur.MUST);
     tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq), SirenTupleClause.Occur.SHOULD);
     assertEquals(0, _helper.search(cq).length);
@@ -143,10 +150,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"bbb\" . \"ccc eee\" \"ddd bbb\" . ");
     _helper.addDocument("\"bbb\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.MUST);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.MUST);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.MUST);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.SHOULD);
@@ -168,10 +175,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
   public void testParenthesisMust2() throws IOException {
     _helper.addDocument("\"bbb\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.MUST);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.MUST);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.MUST);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.SHOULD);
@@ -194,10 +201,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"bbb\" . \"ccc\" \"ddd bbb\" . ");
     _helper.addDocument("\"bbb\" . \"ccc eee\" \"ddd bbb\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.SHOULD);
@@ -220,16 +227,16 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"aaa\" . \"ccc\" . ");
     _helper.addDocument("\"aaa\" . \"eee\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(bbb, SirenBooleanClause.Occur.SHOULD);
-    cq1.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(bbb, NodeBooleanClause.Occur.SHOULD);
+    cq1.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq1 = new SirenTupleQuery();
     tq1.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.SHOULD);
 
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(ccc, SirenBooleanClause.Occur.SHOULD);
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(ccc, NodeBooleanClause.Occur.SHOULD);
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq2 = new SirenTupleQuery();
     tq2.add(new SirenCellQuery(cq2), SirenTupleClause.Occur.SHOULD);
@@ -248,10 +255,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"eee\" . \"ddd\" . ");
     _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.MUST);
@@ -269,10 +276,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"bbb\" . \"ddd\" . ");
     _helper.addDocument("\"bbb\" . \"eee\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.MUST);
@@ -290,10 +297,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"bbb\" \"ddd eee\" . ");
     _helper.addDocument("\"bbb\" \"ddd\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.MUST);
@@ -310,10 +317,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"eee\" \"ddd\" . ");
     _helper.addDocument("\"bbb\" \"ddd\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.SHOULD);
@@ -330,10 +337,10 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"eee\" . \"ddd\" . ");
     _helper.addDocument("\"bbb\" . \"ddd eee\" . ");
 
-    final SirenBooleanQuery cq1 = new SirenBooleanQuery();
-    cq1.add(ddd, SirenBooleanClause.Occur.SHOULD);
-    final SirenBooleanQuery cq2 = new SirenBooleanQuery();
-    cq2.add(eee, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq1 = new NodeBooleanQuery();
+    cq1.add(ddd, NodeBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery cq2 = new NodeBooleanQuery();
+    cq2.add(eee, NodeBooleanClause.Occur.SHOULD);
 
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq1), SirenTupleClause.Occur.SHOULD);
@@ -350,15 +357,15 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("<actor> \"actor 1\" <birthdate> \"456321\" . <actor> \"actor 2\" <birthdate> \"456321\" . ");
     _helper.addDocument("<actor> \"actor 1\" . <actor> \"actor 2\" . ");
 
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "actor")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "actor")), NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
     final SirenTupleQuery tq1 = new SirenTupleQuery();
     tq1.add(cq1, SirenTupleClause.Occur.MUST);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "actor")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "actor")), NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq1);
     cq2.setConstraint(0);
     final SirenTupleQuery tq2 = new SirenTupleQuery();
@@ -379,8 +386,8 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("<aaa> <bbb> . <ccc> <ddd> . ");
     _helper.addDocument("<ccc> . <aaa> <bbb> <ddd> . ");
 
-    final SirenBooleanQuery cq = new SirenBooleanQuery();
-    cq.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery cq = new NodeBooleanQuery();
+    cq.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), NodeBooleanClause.Occur.MUST);
     final SirenTupleQuery tq = new SirenTupleQuery();
     tq.add(new SirenCellQuery(cq), SirenTupleClause.Occur.MUST);
     tq.setConstraint(1); // constraint to match only in tuple 1
@@ -396,13 +403,13 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("<aaa> <bbb> . <ccc> <ddd> . ");
     _helper.addDocument("<ccc> <ddd> . <aaa> <bbb> <ddd> . ");
 
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd")), NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(1);
 
@@ -425,14 +432,14 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("\"ccc\" . <aaa> \"ddd\" . ");
     _helper.addDocument("\"ccc\" . <aaa> \"ddd eee\" . ");
 
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(aaa, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(aaa, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(eee, SirenBooleanClause.Occur.MUST_NOT);
-    bq2.add(ddd, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(eee, NodeBooleanClause.Occur.MUST_NOT);
+    bq2.add(ddd, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(1, Integer.MAX_VALUE);
 
@@ -454,14 +461,14 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     		"<bbb> \"ddd ccc\" \"ddd bbb eee\" \"eee ccc bbb\" \"eee ccc\" .\n" +
     		"<ccc> \"aaa eee ccc\" \"bbb eee ccc\" . ");
 
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(aaa, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(aaa, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(ddd, SirenBooleanClause.Occur.MUST);
-    bq2.add(ccc, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(ddd, NodeBooleanClause.Occur.MUST);
+    bq2.add(ccc, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(1, Integer.MAX_VALUE);
 
@@ -479,18 +486,18 @@ public class TestSirenTupleQuery extends LuceneTestCase {
     _helper.addDocument("<aaa> <ccc> <ddd> . ");
     _helper.addDocument("<aaa> <ccc> <eee> <ddd> . ");
 
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(aaa, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(aaa, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(eee, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(eee, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(1, Integer.MAX_VALUE);
 
-    final SirenBooleanQuery bq3 = new SirenBooleanQuery();
-    bq3.add(ddd, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq3 = new NodeBooleanQuery();
+    bq3.add(ddd, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq3 = new SirenCellQuery(bq3);
     cq3.setConstraint(1, Integer.MAX_VALUE);
 
@@ -510,18 +517,18 @@ public class TestSirenTupleQuery extends LuceneTestCase {
       _helper.addDocument("<http://www.lehigh.edu/~zhp2/2004/0401/univ-bench.owl#publicationTag> \"data accuracy minutes applying\" \"focus perceive em parameterization\" \"yield learning separation rule\" .");
     }
 
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD,
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD,
       "http://www.lehigh.edu/~zhp2/2004/0401/univ-bench.owl#publicationtag")),
-      SirenBooleanClause.Occur.MUST);
+      NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "data")),
-      SirenBooleanClause.Occur.MUST);
-    bq2.add(new SirenTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "accuracy")),
-      SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "data")),
+      NodeBooleanClause.Occur.MUST);
+    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "accuracy")),
+      NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(1, Integer.MAX_VALUE);
 

@@ -33,20 +33,24 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Bits;
 import org.junit.After;
 import org.junit.Before;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
 import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.PositionsIterator;
+import org.sindice.siren.search.base.NodePositionScorer;
+import org.sindice.siren.search.base.NodeScorer;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanScorer;
+import org.sindice.siren.search.node.NodeBooleanClause.Occur;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.primitive.NodeTermScorer;
 import org.sindice.siren.util.SirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends SirenTestCase {
@@ -90,40 +94,55 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
     searcher = newSearcher(reader);
   }
 
-  protected abstract void assertTo(final AssertFunctor functor, final String[] input,
+  protected void assertTo(final AssertFunctor functor, final String[] input,
                         final String[] terms, final int[][] deweyPath)
-  throws Exception;
+  throws Exception {
+    throw new UnsupportedOperationException();
+  }
 
-  protected abstract class AssertFunctor {
-    protected abstract void run(final SirenScorer scorer, int[][] deweyPaths)
+  public abstract class AssertFunctor {
+    public abstract void run(final NodeScorer scorer, int[][] deweyPaths)
     throws Exception;
   }
 
-  protected class AssertNextEntityFunctor
+  public class AssertNodeScorerFunctor
   extends AssertFunctor {
 
     @Override
-    protected void run(final SirenScorer scorer, final int[][] deweyPaths)
+    public void run(final NodeScorer scorer, final int[][] deweyPaths)
     throws Exception {
       int index = 0;
 
-      while (scorer.nextDocument()) {
-        // check document
-        assertEquals(deweyPaths[index][0], scorer.doc());
+      // Iterate over candidate documents
+      while (scorer.nextCandidateDocument()) {
 
+        // Iterate over matching nodes
         while (scorer.nextNode()) {
+          // check document only in matching nodes
+          assertEquals(deweyPaths[index][0], scorer.doc());
+
           // check node path
           for (int i = 1; i < deweyPaths[index].length - 1; i++) {
             assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
           }
 
-          while (scorer.nextPosition()) {
-            // check position
-            assertEquals(deweyPaths[index][deweyPaths[index].length - 1], scorer.pos());
-            index++;
+          if (scorer instanceof NodePositionScorer) {
+            final NodePositionScorer pscorer = (NodePositionScorer) scorer;
+            while (pscorer.nextPosition()) {
+              // check position
+              assertEquals(deweyPaths[index][deweyPaths[index].length - 1], pscorer.pos());
+              index++;
+            }
+            assertEquals(PositionsIterator.NO_MORE_POS, pscorer.pos());
           }
         }
+
+        assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
       }
+
+      assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
+
     }
   }
 
@@ -162,40 +181,47 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
 //    new DefaultSimilarity(), MultiNorms.norms(reader, field));
 //  }
 
-  protected SirenTermScorer getTermScorer(final String field,
-                                          final String term)
+  protected NodeTermScorer getTermScorer(final String field,
+                                         final String term)
   throws IOException {
     final Term t = new Term(field, term);
-    final SirenTermQuery termQuery = new SirenTermQuery(t);
+    final NodeTermQuery termQuery = new NodeTermQuery(t);
+    return this.getTermScorer(termQuery);
+  }
 
+  protected NodeTermScorer getTermScorer(final String field,
+                                         final String term,
+                                         final int[] lowerBound,
+                                         final int[] upperBound,
+                                         final boolean levelConstraint)
+  throws IOException {
+    final Term t = new Term(field, term);
+    final NodeTermQuery termQuery = new NodeTermQuery(t);
+    termQuery.setNodeConstraint(lowerBound, upperBound, levelConstraint);
+    return this.getTermScorer(termQuery);
+  }
+
+  private NodeTermScorer getTermScorer(final NodeTermQuery termQuery)
+  throws IOException {
     this.refreshReaderAndSearcher();
 
     final Weight weight = searcher.createNormalizedWeight(termQuery);
     assertTrue(searcher.getTopReaderContext().isAtomic);
     final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();
     final Scorer ts = weight.scorer(context, true, true, context.reader.getLiveDocs());
-    return (SirenTermScorer) ts;
+    return (NodeTermScorer) ts;
   }
 
-  /**
-   * Return a term scorer which is positioned to the first element, i.e.
-   * {@link SirenScorer#next()} has been called one time.
-   */
-  protected SirenTermScorer getPositionedTermScorer(final String field,
-                                                    final String term)
+  protected NodeBooleanScorer getConjunctionScorer(final String[] terms)
   throws IOException {
-    final SirenTermScorer ts = this.getTermScorer(field, term);
-    assertNotSame(DocIdSetIterator.NO_MORE_DOCS, ts.nextDocument());
-    return ts;
-  }
-
-  protected SirenConjunctionScorer getConjunctionScorer(final String[] terms)
-  throws IOException {
-    final SirenTermScorer[] scorers = new SirenTermScorer[terms.length];
-    for (int i = 0; i < terms.length; i++) {
-      scorers[i] = this.getTermScorer(DEFAULT_FIELD, terms[i]);
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    for (final String term : terms) {
+      final Term t = new Term(DEFAULT_FIELD, term);
+      final NodeTermQuery termQuery = new NodeTermQuery(t);
+      bq.add(termQuery, Occur.MUST);
     }
-    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
+
+    return this.getBooleanScorer(bq);
   }
 
 //  protected SirenConjunctionScorer getConjunctionScorer(final String[][] phraseTerms)
@@ -207,20 +233,30 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
 //    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
 //  }
 
-  protected SirenDisjunctionScorer getDisjunctionScorer(final String[] terms)
+  protected NodeBooleanScorer getDisjunctionScorer(final String[] terms)
   throws IOException {
-    final SirenTermScorer[] scorers = new SirenTermScorer[terms.length];
-    for (int i = 0; i < terms.length; i++) {
-      scorers[i] = this.getTermScorer(DEFAULT_FIELD, terms[i]);
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    for (final String term : terms) {
+      final Term t = new Term(DEFAULT_FIELD, term);
+      final NodeTermQuery termQuery = new NodeTermQuery(t);
+      bq.add(termQuery, Occur.SHOULD);
     }
-    return new SirenDisjunctionScorer(scorers[0].getWeight(), scorers);
+
+    return this.getBooleanScorer(bq);
   }
 
-  protected SirenReqExclScorer getReqExclScorer(final String reqTerm, final String exclTerm)
+  protected NodeBooleanScorer getReqExclScorer(final String reqTerm, final String exclTerm)
   throws IOException {
-    final SirenTermScorer reqScorer = this.getTermScorer(DEFAULT_FIELD, reqTerm);
-    final SirenTermScorer exclScorer = this.getTermScorer(DEFAULT_FIELD, exclTerm);
-    return new SirenReqExclScorer(reqScorer, exclScorer);
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    Term t = new Term(DEFAULT_FIELD, reqTerm);
+    NodeTermQuery termQuery = new NodeTermQuery(t);
+    bq.add(termQuery, Occur.MUST);
+
+    t = new Term(DEFAULT_FIELD, exclTerm);
+    termQuery = new NodeTermQuery(t);
+    bq.add(termQuery, Occur.MUST_NOT);
+
+    return this.getBooleanScorer(bq);
   }
 
 //  protected SirenReqExclScorer getReqExclScorer(final String[] reqPhrase, final String[] exclPhrase)
@@ -230,70 +266,88 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
 //    return new SirenReqExclScorer(reqScorer, exclScorer);
 //  }
 
-  protected SirenReqOptScorer getReqOptScorer(final String reqTerm, final String optTerm)
+  protected NodeBooleanScorer getReqOptScorer(final String reqTerm, final String optTerm)
   throws IOException {
-    final SirenTermScorer reqScorer = this.getTermScorer(DEFAULT_FIELD, reqTerm);
-    final SirenTermScorer optScorer = this.getTermScorer(DEFAULT_FIELD, optTerm);
-    return new SirenReqOptScorer(reqScorer, optScorer);
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    Term t = new Term(DEFAULT_FIELD, reqTerm);
+    NodeTermQuery termQuery = new NodeTermQuery(t);
+    bq.add(termQuery, Occur.MUST);
+
+    t = new Term(DEFAULT_FIELD, optTerm);
+    termQuery = new NodeTermQuery(t);
+    bq.add(termQuery, Occur.SHOULD);
+
+    return this.getBooleanScorer(bq);
   }
 
-  protected SirenBooleanScorer getBooleanScorer(final String[] reqTerms,
-                                                final String[] optTerms,
-                                                final String[] exclTerms)
+  protected NodeBooleanScorer getBooleanScorer(final String[] reqTerms,
+                                               final String[] optTerms,
+                                               final String[] exclTerms)
   throws IOException {
-    final SirenBooleanScorer scorer = new SirenBooleanScorer(new ConstantWeight());
+    final NodeBooleanQuery bq = this.getBooleanQuery(reqTerms, optTerms, exclTerms);
+    return this.getBooleanScorer(bq);
+  }
+
+  protected NodeBooleanScorer getBooleanScorer(final String[] reqTerms,
+                                               final String[] optTerms,
+                                               final String[] exclTerms,
+                                               final int[] lowerBound,
+                                               final int[] upperBound,
+                                               final boolean levelConstraint)
+  throws IOException {
+    final NodeBooleanQuery bq = this.getBooleanQuery(reqTerms, optTerms, exclTerms);
+    bq.setNodeConstraint(lowerBound, upperBound, levelConstraint);
+    return this.getBooleanScorer(bq);
+  }
+
+  private NodeBooleanScorer getBooleanScorer(final NodeBooleanQuery bq) throws IOException {
+    this.refreshReaderAndSearcher();
+
+    final Weight weight = searcher.createNormalizedWeight(bq);
+    assertTrue(searcher.getTopReaderContext().isAtomic);
+    final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();
+    final Scorer s = weight.scorer(context, true, true, context.reader.getLiveDocs());
+    return (NodeBooleanScorer) s;
+  }
+
+  private NodeBooleanQuery getBooleanQuery(final String[] reqTerms,
+                                           final String[] optTerms,
+                                           final String[] exclTerms)
+  throws IOException {
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+
     if (reqTerms != null) {
-      for (final String term : reqTerms)
-        scorer.add(this.getTermScorer(DEFAULT_FIELD, term), true, false);
+      for (final String term : reqTerms) {
+        final Term t = new Term(DEFAULT_FIELD, term);
+        final NodeTermQuery termQuery = new NodeTermQuery(t);
+        bq.add(termQuery, Occur.MUST);
+      }
     }
     if (optTerms != null) {
-      for (final String term : optTerms)
-        scorer.add(this.getTermScorer(DEFAULT_FIELD, term), false, false);
+      for (final String term : optTerms) {
+        final Term t = new Term(DEFAULT_FIELD, term);
+        final NodeTermQuery termQuery = new NodeTermQuery(t);
+        bq.add(termQuery, Occur.SHOULD);
+      }
     }
     if (exclTerms != null) {
-      for (final String term : exclTerms)
-        scorer.add(this.getTermScorer(DEFAULT_FIELD, term), false, true);
+      for (final String term : exclTerms) {
+        final Term t = new Term(DEFAULT_FIELD, term);
+        final NodeTermQuery termQuery = new NodeTermQuery(t);
+        bq.add(termQuery, Occur.MUST_NOT);
+      }
     }
-    return scorer;
+    return bq;
   }
 
-  protected SirenCellScorer getCellScorer(final int startCell, final int endCell,
-                                          final String[] reqTerms, final String[] optTerms,
-                                          final String[] exclTerms)
-  throws IOException {
-    final SirenCellScorer cscorer = new SirenCellScorer(new ConstantWeight(), startCell, endCell);
-    final SirenBooleanScorer bscorer = this.getBooleanScorer(reqTerms, optTerms, exclTerms);
-    cscorer.setScorer(bscorer);
-    return cscorer;
-  }
-
-  protected class ConstantWeight extends Weight {
-
-    @Override
-    public Query getQuery() { return null; }
-
-    @Override
-    public Explanation explain(final AtomicReaderContext context, final int doc)
-    throws IOException {
-      return null;
-    }
-
-    @Override
-    public float getValueForNormalization()
-    throws IOException {
-      return 1;
-    }
-
-    @Override
-    public void normalize(final float norm, final float topLevelBoost) {
-    }
-
-    @Override
-    public Scorer scorer(final AtomicReaderContext context, final boolean scoreDocsInOrder,
-                         final boolean topScorer, final Bits acceptDocs)
-    throws IOException {
-      return null;
-    }
-  }
+//  protected SirenCellScorer getCellScorer(final int startCell, final int endCell,
+//                                          final String[] reqTerms, final String[] optTerms,
+//                                          final String[] exclTerms)
+//  throws IOException {
+//    final SirenCellScorer cscorer = new SirenCellScorer(new ConstantWeight(), startCell, endCell);
+//    final NodeScorer bscorer = this.getBooleanScorer(reqTerms, optTerms, exclTerms);
+//    cscorer.setScorer(bscorer);
+//    return cscorer;
+//  }
 
 }

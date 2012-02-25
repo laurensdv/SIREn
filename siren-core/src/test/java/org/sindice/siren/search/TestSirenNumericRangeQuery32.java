@@ -49,6 +49,11 @@ import org.junit.Test;
 import org.sindice.siren.analysis.FloatNumericAnalyzer;
 import org.sindice.siren.analysis.IntNumericAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.primitive.SirenMultiTermQuery;
+import org.sindice.siren.search.primitive.SirenNumericRangeQuery;
+import org.sindice.siren.search.primitive.SirenTermRangeQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.util.XSDDatatype;
 
 public class TestSirenNumericRangeQuery32 extends LuceneTestCase {
@@ -130,7 +135,7 @@ public class TestSirenNumericRangeQuery32 extends LuceneTestCase {
   public void setUp() throws Exception {
     super.setUp();
     // Remove maximum clause limit for the tests
-    SirenBooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);
+    NodeBooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);
   }
 
   private static String getTriple(final int val, final String datatypeURI) {

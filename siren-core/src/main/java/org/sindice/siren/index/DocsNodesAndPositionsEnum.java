@@ -33,7 +33,7 @@ import org.apache.lucene.util.AttributeSource;
  * A node is defined by a list of node identifiers which represents the path
  * in the tree to reach the node.
  */
-public abstract class DocsNodesAndPositionsEnum implements DocsNodesAndPositionsIterator {
+public abstract class DocsNodesAndPositionsEnum implements DocsAndNodesIterator, PositionsIterator {
 
   private AttributeSource atts = null;
 

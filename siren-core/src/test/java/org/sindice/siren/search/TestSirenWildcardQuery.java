@@ -43,6 +43,16 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.primitive.NodePrimitiveQuery;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.primitive.SirenConstantScoreQuery;
+import org.sindice.siren.search.primitive.SirenFuzzyQuery;
+import org.sindice.siren.search.primitive.SirenMultiTermQuery;
+import org.sindice.siren.search.primitive.SirenPrefixQuery;
+import org.sindice.siren.search.primitive.SirenWildcardQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
 
 /**
  * TestSirenWildcardQuery tests the '*' and '?' wildcard characters.
@@ -135,7 +145,7 @@ public class TestSirenWildcardQuery extends LuceneTestCase {
       wq.setRewriteMethod(SirenMultiTermQuery.SCORING_BOOLEAN_QUERY_REWRITE);
       wq.setBoost(0.1F);
       Query q = searcher.rewrite(wq);
-      assertTrue(q instanceof SirenTermQuery);
+      assertTrue(q instanceof NodeTermQuery);
       assertEquals(q.getBoost(), wq.getBoost());
 
       wq.setRewriteMethod(SirenMultiTermQuery.CONSTANT_SCORE_AUTO_REWRITE_DEFAULT);
@@ -166,8 +176,8 @@ public class TestSirenWildcardQuery extends LuceneTestCase {
     wq.setRewriteMethod(SirenMultiTermQuery.SCORING_BOOLEAN_QUERY_REWRITE);
     this.assertMatches(searcher, wq, 0);
     final Query q = searcher.rewrite(wq);
-    assertTrue(q instanceof SirenBooleanQuery);
-    assertEquals(0, ((SirenBooleanQuery) q).clauses().size());
+    assertTrue(q instanceof NodeBooleanQuery);
+    assertEquals(0, ((NodeBooleanQuery) q).clauses().size());
 
     searcher.close();
     indexStore.close();
@@ -217,21 +227,21 @@ public class TestSirenWildcardQuery extends LuceneTestCase {
     {"metal", "metals"});
     final IndexSearcher searcher = new IndexSearcher(indexStore, true);
 
-    final SirenPrimitiveQuery query1 = new SirenTermQuery(new Term("body", "metal"));
-    final SirenPrimitiveQuery query2 = new SirenWildcardQuery(new Term("body", "metal*"));
-    final SirenPrimitiveQuery query3 = new SirenWildcardQuery(new Term("body", "m*tal"));
-    final SirenPrimitiveQuery query4 = new SirenWildcardQuery(new Term("body", "m*tal*"));
-    final SirenPrimitiveQuery query5 = new SirenWildcardQuery(new Term("body", "m*tals"));
+    final NodePrimitiveQuery query1 = new NodeTermQuery(new Term("body", "metal"));
+    final NodePrimitiveQuery query2 = new SirenWildcardQuery(new Term("body", "metal*"));
+    final NodePrimitiveQuery query3 = new SirenWildcardQuery(new Term("body", "m*tal"));
+    final NodePrimitiveQuery query4 = new SirenWildcardQuery(new Term("body", "m*tal*"));
+    final NodePrimitiveQuery query5 = new SirenWildcardQuery(new Term("body", "m*tals"));
 
-    final SirenBooleanQuery query6 = new SirenBooleanQuery();
-    query6.add(query5, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery query6 = new NodeBooleanQuery();
+    query6.add(query5, NodeBooleanClause.Occur.SHOULD);
 
-    final SirenBooleanQuery query7 = new SirenBooleanQuery();
-    query7.add(query3, SirenBooleanClause.Occur.SHOULD);
-    query7.add(query5, SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery query7 = new NodeBooleanQuery();
+    query7.add(query3, NodeBooleanClause.Occur.SHOULD);
+    query7.add(query5, NodeBooleanClause.Occur.SHOULD);
 
     // Queries do not automatically lower-case search terms:
-    final SirenPrimitiveQuery query8 = new SirenWildcardQuery(new Term("body", "M*tal*"));
+    final NodePrimitiveQuery query8 = new SirenWildcardQuery(new Term("body", "M*tal*"));
 
     // Cell query
     final SirenCellQuery cq1 = new SirenCellQuery(query7);
@@ -274,7 +284,7 @@ public class TestSirenWildcardQuery extends LuceneTestCase {
     }
     term.append("tal");
 
-    final SirenPrimitiveQuery query3 = new SirenWildcardQuery(new Term("body", term.toString()));
+    final NodePrimitiveQuery query3 = new SirenWildcardQuery(new Term("body", term.toString()));
 
     this.assertMatches(searcher, query3, 1);
 
@@ -292,12 +302,12 @@ public class TestSirenWildcardQuery extends LuceneTestCase {
     final Directory indexStore = this.getIndexStore("body",
       new String[]{"metal", "metals", "mXtals", "mXtXls"});
     final IndexSearcher searcher = new IndexSearcher(indexStore, true);
-    final SirenPrimitiveQuery query1 = new SirenWildcardQuery(new Term("body", "m?tal"));
-    final SirenPrimitiveQuery query2 = new SirenWildcardQuery(new Term("body", "metal?"));
-    final SirenPrimitiveQuery query3 = new SirenWildcardQuery(new Term("body", "metals?"));
-    final SirenPrimitiveQuery query4 = new SirenWildcardQuery(new Term("body", "m?t?ls"));
-    final SirenPrimitiveQuery query5 = new SirenWildcardQuery(new Term("body", "M?t?ls"));
-    final SirenPrimitiveQuery query6 = new SirenWildcardQuery(new Term("body", "meta??"));
+    final NodePrimitiveQuery query1 = new SirenWildcardQuery(new Term("body", "m?tal"));
+    final NodePrimitiveQuery query2 = new SirenWildcardQuery(new Term("body", "metal?"));
+    final NodePrimitiveQuery query3 = new SirenWildcardQuery(new Term("body", "metals?"));
+    final NodePrimitiveQuery query4 = new SirenWildcardQuery(new Term("body", "m?t?ls"));
+    final NodePrimitiveQuery query5 = new SirenWildcardQuery(new Term("body", "M?t?ls"));
+    final NodePrimitiveQuery query6 = new SirenWildcardQuery(new Term("body", "meta??"));
 
     this.assertMatches(searcher, query1, 1);
     this.assertMatches(searcher, query2, 1);

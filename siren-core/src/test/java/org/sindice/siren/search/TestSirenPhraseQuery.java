@@ -42,7 +42,10 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.search.SirenTupleClause.Occur;
+import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
+import org.sindice.siren.search.tuple.SirenTupleQuery;
+import org.sindice.siren.search.tuple.SirenTupleClause.Occur;
 
 public class TestSirenPhraseQuery extends LuceneTestCase {
 

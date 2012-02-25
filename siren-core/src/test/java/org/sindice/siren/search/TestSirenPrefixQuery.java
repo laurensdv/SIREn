@@ -37,6 +37,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.search.primitive.SirenPrefixQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
 
 /**
  * Tests {@link SirenPrefixQuery} class.

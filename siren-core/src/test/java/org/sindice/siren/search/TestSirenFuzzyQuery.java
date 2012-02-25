@@ -43,7 +43,10 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.search.SirenMultiTermQuery.TopTermsBoostOnlySirenBooleanQueryRewrite;
+import org.sindice.siren.search.primitive.SirenFuzzyQuery;
+import org.sindice.siren.search.primitive.SirenMultiTermQuery;
+import org.sindice.siren.search.primitive.SirenMultiTermQuery.TopTermsBoostOnlySirenBooleanQueryRewrite;
+import org.sindice.siren.search.tuple.SirenCellQuery;
 
 /**
  * Tests copied from {@link FuzzyQuery} for the siren use case.

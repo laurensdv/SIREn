@@ -51,6 +51,13 @@ import org.sindice.siren.analysis.TupleTokenizer;
 import org.sindice.siren.analysis.filter.DatatypeAnalyzerFilter;
 import org.sindice.siren.analysis.filter.SirenDeltaPayloadFilter;
 import org.sindice.siren.analysis.filter.TokenTypeFilter;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.primitive.NodePrimitiveQuery;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.primitive.SirenMultiTermQuery;
+import org.sindice.siren.search.primitive.SirenTermRangeQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
 
 
 public class TestSirenTermRangeQuery extends LuceneTestCase {
@@ -71,7 +78,7 @@ public class TestSirenTermRangeQuery extends LuceneTestCase {
   }
 
   public void testExclusive() throws Exception {
-    final SirenPrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C", false, false);
+    final NodePrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C", false, false);
     final SirenCellQuery query = new SirenCellQuery(q);
     query.setConstraint(2);
 
@@ -95,7 +102,7 @@ public class TestSirenTermRangeQuery extends LuceneTestCase {
   }
 
   public void testInclusive() throws Exception {
-    final SirenPrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C", true, true);
+    final NodePrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C", true, true);
     final SirenCellQuery query = new SirenCellQuery(q);
     query.setConstraint(2);
 
@@ -127,24 +134,24 @@ public class TestSirenTermRangeQuery extends LuceneTestCase {
     final SirenTermRangeQuery query = new SirenTermRangeQuery("content", "B", "J", true, true);
     this.checkBooleanTerms(searcher, query, "B", "C", "D", "E", "F", "G", "H", "I", "J");
 
-    final int savedClauseCount = SirenBooleanQuery.getMaxClauseCount();
+    final int savedClauseCount = NodeBooleanQuery.getMaxClauseCount();
     try {
-      SirenBooleanQuery.setMaxClauseCount(3);
+      NodeBooleanQuery.setMaxClauseCount(3);
       this.checkBooleanTerms(searcher, query, "B", "C", "D");
     } finally {
-      SirenBooleanQuery.setMaxClauseCount(savedClauseCount);
+      NodeBooleanQuery.setMaxClauseCount(savedClauseCount);
     }
     searcher.close();
   }
 
   private void checkBooleanTerms(final Searcher searcher, final SirenTermRangeQuery query, final String... terms) throws IOException {
     query.setRewriteMethod(new SirenMultiTermQuery.TopTermsScoringSirenBooleanQueryRewrite(50));
-    final SirenBooleanQuery bq = (SirenBooleanQuery) searcher.rewrite(query);
+    final NodeBooleanQuery bq = (NodeBooleanQuery) searcher.rewrite(query);
     final Set<String> allowedTerms = new HashSet<String>(Arrays.asList(terms));
     assertEquals(allowedTerms.size(), bq.clauses().size());
-    for (final SirenBooleanClause c : bq.clauses()) {
-      assertTrue(c.getQuery() instanceof SirenTermQuery);
-      final SirenTermQuery tq = (SirenTermQuery) c.getQuery();
+    for (final NodeBooleanClause c : bq.clauses()) {
+      assertTrue(c.getQuery() instanceof NodeTermQuery);
+      final NodeTermQuery tq = (NodeTermQuery) c.getQuery();
       final String term = tq.getTerm().text();
       assertTrue("invalid term: "+ term, allowedTerms.contains(term));
       allowedTerms.remove(term); // remove to fail on double terms
@@ -199,7 +206,7 @@ public class TestSirenTermRangeQuery extends LuceneTestCase {
   }
 
   public void testExclusiveCollating() throws Exception {
-    final SirenPrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C", false, false, Collator.getInstance(Locale.ENGLISH));
+    final NodePrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C", false, false, Collator.getInstance(Locale.ENGLISH));
     final SirenCellQuery query = new SirenCellQuery(q);
     query.setConstraint(2);
 
@@ -223,7 +230,7 @@ public class TestSirenTermRangeQuery extends LuceneTestCase {
   }
 
   public void testInclusiveCollating() throws Exception {
-    final SirenPrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C",true, true, Collator.getInstance(Locale.ENGLISH));
+    final NodePrimitiveQuery q = new SirenTermRangeQuery("content", "A", "C",true, true, Collator.getInstance(Locale.ENGLISH));
     final SirenCellQuery query = new SirenCellQuery(q);
     query.setConstraint(2);
 

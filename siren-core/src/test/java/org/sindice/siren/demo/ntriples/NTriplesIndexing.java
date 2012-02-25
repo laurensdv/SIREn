@@ -51,13 +51,13 @@ import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.search.SirenBooleanClause;
-import org.sindice.siren.search.SirenBooleanQuery;
-import org.sindice.siren.search.SirenCellQuery;
-import org.sindice.siren.search.SirenPhraseQuery;
-import org.sindice.siren.search.SirenTermQuery;
-import org.sindice.siren.search.SirenTupleClause;
-import org.sindice.siren.search.SirenTupleQuery;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
+import org.sindice.siren.search.tuple.SirenTupleClause;
+import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 /**
  * A demo that shows how to index and query plain N-Triples documents.
@@ -121,9 +121,9 @@ public class NTriplesIndexing {
   public Query getQuery1() {
     // Create a cell query matching either the keyword "renaud" or the full URI
     // "http://renaud.delbru.fr/rdf/foaf#me".
-    final SirenBooleanQuery bq = new SirenBooleanQuery();
-    bq.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "renaud")), SirenBooleanClause.Occur.SHOULD);
-    bq.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "http://renaud.delbru.fr/rdf/foaf#me")), SirenBooleanClause.Occur.SHOULD);
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    bq.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "renaud")), NodeBooleanClause.Occur.SHOULD);
+    bq.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "http://renaud.delbru.fr/rdf/foaf#me")), NodeBooleanClause.Occur.SHOULD);
     // Constraint the cell index to 0 (first column: subject position)
     final SirenCellQuery cq = new SirenCellQuery(bq);
     cq.setConstraint(0);
@@ -138,8 +138,8 @@ public class NTriplesIndexing {
    */
   public Query getQuery2() {
     // Create a cell query matching "name"
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "name")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "name")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 1 (second column: predicate position)
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(1);
@@ -148,8 +148,8 @@ public class NTriplesIndexing {
     final SirenPhraseQuery pq = new SirenPhraseQuery();
     pq.add(new Term(DEFAULT_FIELD, "renaud"));
     pq.add(new Term(DEFAULT_FIELD, "delbru"));
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(pq, SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(pq, NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 2 (third column: object position)
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
@@ -170,15 +170,15 @@ public class NTriplesIndexing {
    */
   public Query getQuery3() {
     // Create a cell query matching "workplace"
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "workplace")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "workplace")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 1 (second column: predicate position)
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(1);
 
     // Create a cell query matching the "deri"
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "deri")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "deri")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 2 (third column: object position)
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
@@ -208,15 +208,15 @@ public class NTriplesIndexing {
     // Create a cell query matching "http://xmlns.com/foaf/0.1/primarytopic"
     // Here, you should take care, since URI are normalised, you should use
     // a normalised version of the URI (lowercase, and without trailing backslash)
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/primarytopic")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/primarytopic")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 1 (second column: predicate position)
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(1);
 
     // Create a cell query matching the "deri"
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "http://g1o.net/foaf.rdf#me")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "http://g1o.net/foaf.rdf#me")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 2 (third column: object position)
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);

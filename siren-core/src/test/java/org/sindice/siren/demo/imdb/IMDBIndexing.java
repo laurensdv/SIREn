@@ -54,12 +54,12 @@ import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.search.SirenBooleanClause;
-import org.sindice.siren.search.SirenBooleanQuery;
-import org.sindice.siren.search.SirenCellQuery;
-import org.sindice.siren.search.SirenTermQuery;
-import org.sindice.siren.search.SirenTupleClause;
-import org.sindice.siren.search.SirenTupleQuery;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
+import org.sindice.siren.search.tuple.SirenTupleClause;
+import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 public class IMDBIndexing {
 
@@ -221,9 +221,9 @@ public class IMDBIndexing {
   }
 
   private SirenCellQuery termInCell(final String term, final int cell) {
-    final SirenBooleanQuery bq = new SirenBooleanQuery();
-    bq.add(new SirenTermQuery(new Term(DEFAULT_FIELD, term)),
-      SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    bq.add(new NodeTermQuery(new Term(DEFAULT_FIELD, term)),
+      NodeBooleanClause.Occur.MUST);
     final SirenCellQuery scq = new SirenCellQuery(bq);
     if (cell != COLUMN_ANY) {
       scq.setConstraint(cell);

@@ -50,13 +50,13 @@ import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.search.SirenBooleanClause;
-import org.sindice.siren.search.SirenBooleanQuery;
-import org.sindice.siren.search.SirenCellQuery;
-import org.sindice.siren.search.SirenPhraseQuery;
-import org.sindice.siren.search.SirenTermQuery;
-import org.sindice.siren.search.SirenTupleClause;
-import org.sindice.siren.search.SirenTupleQuery;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.tuple.SirenCellQuery;
+import org.sindice.siren.search.tuple.SirenTupleClause;
+import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 /**
  * A demo that shows how to index and query entity description. The entity
@@ -120,16 +120,16 @@ public class EntityCentricIndexing {
   public Query getQuery1() {
     // Create a cell query matching
     // 'http://xmlns.com/foaf/0.1/name "renaud delbru"'.
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/name")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/name")), NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
     final SirenPhraseQuery spq = new SirenPhraseQuery();
     spq.add(new Term(DEFAULT_FIELD, "renaud"));
     spq.add(new Term(DEFAULT_FIELD, "delbru"));
-    bq2.add(spq, SirenBooleanClause.Occur.MUST);
+    bq2.add(spq, NodeBooleanClause.Occur.MUST);
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(1);
 
@@ -148,22 +148,22 @@ public class EntityCentricIndexing {
    */
   public Query getQuery2() {
     // Create a cell query matching "http://xmlns.com/foaf/0.1/knows"
-    final SirenBooleanQuery bq1 = new SirenBooleanQuery();
-    bq1.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/knows")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/knows")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 0 (first column: predicate position)
     final SirenCellQuery cq1 = new SirenCellQuery(bq1);
     cq1.setConstraint(0);
 
     // Create a cell query matching "http://xmlns.com/foaf/0.1/name"
-    final SirenBooleanQuery bq2 = new SirenBooleanQuery();
-    bq2.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/name")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "http://xmlns.com/foaf/0.1/name")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 2 (third column: predicate position)
     final SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
     // Create a cell query matching "giovanni"
-    final SirenBooleanQuery bq3 = new SirenBooleanQuery();
-    bq3.add(new SirenTermQuery(new Term(DEFAULT_FIELD, "giovanni")), SirenBooleanClause.Occur.MUST);
+    final NodeBooleanQuery bq3 = new NodeBooleanQuery();
+    bq3.add(new NodeTermQuery(new Term(DEFAULT_FIELD, "giovanni")), NodeBooleanClause.Occur.MUST);
     // Constraint the cell index to 3 (fourth column: object position)
     final SirenCellQuery cq3 = new SirenCellQuery(bq3);
     cq3.setConstraint(3);
