@@ -34,9 +34,9 @@ import org.sindice.siren.util.NodeUtils;
 public abstract class NodeQuery extends Query {
 
   /**
-   * The node level constraint
+   * The node level constraint. Set to sentinel value -1.
    */
-  protected int nodeLevelConstraint;
+  protected int nodeLevelConstraint = -1;
 
   /**
    * Set a constraint on the node's level
@@ -56,19 +56,14 @@ public abstract class NodeQuery extends Query {
   protected int[] nodeUpperBoundConstraint = null;
 
   /**
-   * Is the node level is constrained ?
-   */
-  protected boolean isNodeLevelConstrained = false;
-
-  /**
    * Set an interval constraint for a node path. These constraints are
    * inclusives.
    * <br>
    * <b>NOTE:</b> The node path constraints must be of the same length.
    *
-   * @see NodeUtils#isConstraintSatisfied(int[], int[], int[], boolean)
+   * @see NodeUtils#isConstraintSatisfied(int[], int[], int[], int)
    */
-  public void setNodeConstraint(final int[] lowerBound, final int[] upperBound, final boolean isNodeLevelConstrained) {
+  public void setNodeConstraint(final int[] lowerBound, final int[] upperBound) {
     if (lowerBound == null || upperBound == null) {
       return;
     }
@@ -79,7 +74,31 @@ public abstract class NodeQuery extends Query {
 
     this.nodeLowerBoundConstraint = lowerBound;
     this.nodeUpperBoundConstraint = upperBound;
-    this.isNodeLevelConstrained = isNodeLevelConstrained;
+  }
+
+  /**
+   * Set an interval constraint and a level constraint for a node path. The
+   * interval constraints are inclusives.
+   * <br>
+   * <b>NOTE:</b> The node path constraints must be of the same length.
+   *
+   * @see NodeUtils#isConstraintSatisfied(int[], int[], int[], int)
+   */
+  public void setNodeConstraint(final int[] lowerBound, final int[] upperBound, final int nodeLevelConstraint) {
+    this.setNodeLevelConstraint(nodeLevelConstraint);
+    this.setNodeConstraint(lowerBound, upperBound);
+  }
+
+  /**
+   * Return true if this query defines a node constraint.
+   */
+  public boolean isConstrained() {
+    if (this.nodeLowerBoundConstraint == null &&
+        this.nodeUpperBoundConstraint == null &&
+        this.nodeLevelConstraint == -1) {
+      return false;
+    }
+    return true;
   }
 
 }

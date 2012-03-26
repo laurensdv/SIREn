@@ -28,38 +28,30 @@ package org.sindice.siren.search.node;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.search.similarities.SimilarityProvider;
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery.NodeBooleanWeight;
-import org.sindice.siren.search.primitive.NodeTermQuery;
 
 /**
- * A Query that matches cells matching boolean combinations of other primitive
- * queries, e.g. {@link NodeTermQuery}s, {@link NodePhraseQuery}s, etc.
- * Implements skipTo(), and has no limitations on the numbers of added scorers.
+ * A scorer that matches a boolean combination of node scorers.
  * <p>
  * Uses {@link NodeConjunctionScorer}, {@link NodeDisjunctionScorer},
  * {@link NodeReqExclScorer} and {@link NodeReqOptScorer}.
- * <p>
- * We consider a {@link NodeBooleanScorer} as a primitive scorer in order to
- * support nested (group) boolean query within a cell.
  * <p>
  * Code taken from {@link BooleanScorer2} and adapted for the Siren use case.
  */
 public class NodeBooleanScorer extends NodeScorer {
 
-  private final List<NodeScorer> requiredScorers;
-  private final List<NodeScorer> optionalScorers;
-  private final List<NodeScorer> prohibitedScorers;
+  protected final List<NodeScorer> requiredScorers;
+  protected final List<NodeScorer> optionalScorers;
+  protected final List<NodeScorer> prohibitedScorers;
 
   private final Coordinator coordinator;
 
@@ -67,12 +59,10 @@ public class NodeBooleanScorer extends NodeScorer {
    * The scorer to which all scoring will be delegated, except for computing and
    * using the coordination factor.
    */
-  private NodeScorer countingSumScorer = null;
-
-  private static SimilarityProvider defaultSimProvider = new DefaultSimilarityProvider();
+  protected NodeScorer countingSumScorer = null;
 
   /**
-   * Creates a {@link NodeBooleanScorer} with the given similarity and lists of
+   * Creates a {@link NodeBooleanScorer} with the given lists of
    * required, prohibited and optional scorers. In no required scorers are added,
    * at least one of the optional scorers will have to match during the search.
    *
@@ -89,11 +79,11 @@ public class NodeBooleanScorer extends NodeScorer {
    *          the list of optional scorers.
    */
   public NodeBooleanScorer(final NodeBooleanWeight weight,
-                            final boolean disableCoord,
-                            final List<NodeScorer> required,
-                            final List<NodeScorer> prohibited,
-                            final List<NodeScorer> optional,
-                            final int maxCoord) throws IOException {
+                           final boolean disableCoord,
+                           final List<NodeScorer> required,
+                           final List<NodeScorer> prohibited,
+                           final List<NodeScorer> optional,
+                           final int maxCoord) throws IOException {
     super(weight);
     coordinator = new Coordinator();
     coordinator.maxCoord = maxCoord;
@@ -287,7 +277,7 @@ public class NodeBooleanScorer extends NodeScorer {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return countingSumScorer.node();
   }
 
@@ -332,7 +322,7 @@ public class NodeBooleanScorer extends NodeScorer {
   @Override
   public String toString() {
     return "NodeBooleanScorer(" + this.weight + "," + this.doc() + "," +
-      Arrays.toString(this.node()) + ")";
+      this.node() + ")";
   }
 
   private class Coordinator {
@@ -386,7 +376,7 @@ public class NodeBooleanScorer extends NodeScorer {
     }
 
     @Override
-    public int[] node() {
+    public IntsRef node() {
       return scorer.node();
     }
 
@@ -408,7 +398,7 @@ public class NodeBooleanScorer extends NodeScorer {
     @Override
     public String toString() {
       return "SingleMatchScorer(" + weight + "," + this.doc() + "," +
-        Arrays.toString(this.node()) + ")";
+        this.node() + ")";
     }
 
   }

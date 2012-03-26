@@ -27,6 +27,8 @@ package org.sindice.siren.index;
 
 import java.io.IOException;
 
+import org.apache.lucene.util.IntsRef;
+
 /**
  * This interface defines methods to iterate over a set of increasing
  * doc ids and node paths. Note that this class assumes it iterates
@@ -47,7 +49,7 @@ public interface DocsAndNodesIterator  {
    * When returned by {@link #node()} it means there are no more nodes in the
    * iterator.
    */
-  public static final int[] NO_MORE_NOD = new int[] { Integer.MAX_VALUE };
+  public static final IntsRef NO_MORE_NOD = new IntsRef(new int[] { Integer.MAX_VALUE }, 0, 1);
 
   /**
    * Advances to the next document in the set.
@@ -112,6 +114,6 @@ public interface DocsAndNodesIterator  {
    * <li>Otherwise it should return the node it is currently on.
    * </ul>
    */
-  public int[] node();
+  public IntsRef node();
 
 }

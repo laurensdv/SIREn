@@ -26,124 +26,39 @@
  */
 package org.sindice.siren.search;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuilder.ntq;
+
 import java.io.IOException;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReader.AtomicReaderContext;
-import org.apache.lucene.index.RandomIndexWriter;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.store.Directory;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.DocsAndNodesIterator;
-import org.sindice.siren.index.PositionsIterator;
-import org.sindice.siren.search.base.NodePositionScorer;
+import org.sindice.siren.search.base.NodeQuery;
 import org.sindice.siren.search.base.NodeScorer;
-import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.node.NodeBooleanScorer;
+import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
+import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.NodeTermScorer;
-import org.sindice.siren.util.SirenTestCase;
+import org.sindice.siren.search.twig.TwigQuery;
+import org.sindice.siren.util.BasicSirenTestCase;
 
-public abstract class AbstractTestSirenScorer extends SirenTestCase {
-
-  protected Directory directory;
-  protected RandomIndexWriter writer;
-  protected IndexReader reader;
-  protected IndexSearcher searcher;
+public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
   @Override
-  @Before
-  public void setUp()
-  throws Exception {
-    super.setUp();
-
+  protected Analyzer initAnalyzer() {
     final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT,
+    return new TupleAnalyzer(TEST_VERSION_CURRENT,
       new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-
-    directory = newDirectory();
-
-    writer = this.newRandomIndexWriter(directory, analyzer);
-    reader = this.newIndexReader(writer);
-    searcher = newSearcher(reader);
-  }
-
-  @Override
-  @After
-  public void tearDown()
-  throws Exception {
-    reader.close();
-    writer.close();
-    directory.close();
-    super.tearDown();
-  }
-
-  private void refreshReaderAndSearcher() throws IOException {
-    reader.close();
-    reader = this.newIndexReader(writer);
-    searcher = newSearcher(reader);
-  }
-
-  protected void assertTo(final AssertFunctor functor, final String[] input,
-                        final String[] terms, final int[][] deweyPath)
-  throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  public abstract class AssertFunctor {
-    public abstract void run(final NodeScorer scorer, int[][] deweyPaths)
-    throws Exception;
-  }
-
-  public class AssertNodeScorerFunctor
-  extends AssertFunctor {
-
-    @Override
-    public void run(final NodeScorer scorer, final int[][] deweyPaths)
-    throws Exception {
-      int index = 0;
-
-      // Iterate over candidate documents
-      while (scorer.nextCandidateDocument()) {
-
-        // Iterate over matching nodes
-        while (scorer.nextNode()) {
-          // check document only in matching nodes
-          assertEquals(deweyPaths[index][0], scorer.doc());
-
-          // check node path
-          for (int i = 1; i < deweyPaths[index].length - 1; i++) {
-            assertEquals(deweyPaths[index][i], scorer.node()[i - 1]);
-          }
-
-          if (scorer instanceof NodePositionScorer) {
-            final NodePositionScorer pscorer = (NodePositionScorer) scorer;
-            while (pscorer.nextPosition()) {
-              // check position
-              assertEquals(deweyPaths[index][deweyPaths[index].length - 1], pscorer.pos());
-              index++;
-            }
-            assertEquals(PositionsIterator.NO_MORE_POS, pscorer.pos());
-          }
-        }
-
-        assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
-
-      }
-
-      assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-
-    }
   }
 
 //  protected SirenExactPhraseScorer getExactScorer(final String field,
@@ -181,163 +96,17 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
 //    new DefaultSimilarity(), MultiNorms.norms(reader, field));
 //  }
 
-  protected NodeTermScorer getTermScorer(final String field,
-                                         final String term)
-  throws IOException {
-    final Term t = new Term(field, term);
-    final NodeTermQuery termQuery = new NodeTermQuery(t);
-    return this.getTermScorer(termQuery);
+  protected NodeScorer getScorer(final NodeQueryBuilder builder) throws IOException {
+    return this.getScorer(builder.getQuery());
   }
 
-  protected NodeTermScorer getTermScorer(final String field,
-                                         final String term,
-                                         final int[] lowerBound,
-                                         final int[] upperBound,
-                                         final boolean levelConstraint)
-  throws IOException {
-    final Term t = new Term(field, term);
-    final NodeTermQuery termQuery = new NodeTermQuery(t);
-    termQuery.setNodeConstraint(lowerBound, upperBound, levelConstraint);
-    return this.getTermScorer(termQuery);
-  }
-
-  private NodeTermScorer getTermScorer(final NodeTermQuery termQuery)
-  throws IOException {
+  private NodeScorer getScorer(final Query query) throws IOException {
     this.refreshReaderAndSearcher();
-
-    final Weight weight = searcher.createNormalizedWeight(termQuery);
-    assertTrue(searcher.getTopReaderContext().isAtomic);
+    final Weight weight = searcher.createNormalizedWeight(query);
+    assertTrue(searcher.getTopReaderContext() instanceof AtomicReaderContext);
     final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();
-    final Scorer ts = weight.scorer(context, true, true, context.reader.getLiveDocs());
-    return (NodeTermScorer) ts;
-  }
-
-  protected NodeBooleanScorer getConjunctionScorer(final String[] terms)
-  throws IOException {
-    final NodeBooleanQuery bq = new NodeBooleanQuery();
-    for (final String term : terms) {
-      final Term t = new Term(DEFAULT_FIELD, term);
-      final NodeTermQuery termQuery = new NodeTermQuery(t);
-      bq.add(termQuery, Occur.MUST);
-    }
-
-    return this.getBooleanScorer(bq);
-  }
-
-//  protected SirenConjunctionScorer getConjunctionScorer(final String[][] phraseTerms)
-//  throws IOException {
-//    final SirenPhraseScorer[] scorers = new SirenPhraseScorer[phraseTerms.length];
-//    for (int i = 0; i < phraseTerms.length; i++) {
-//      scorers[i] = this.getExactScorer(DEFAULT_FIELD, phraseTerms[i]);
-//    }
-//    return new SirenConjunctionScorer(scorers[0].getWeight(), scorers, new DefaultSimilarityProvider().coord(scorers.length, scorers.length));
-//  }
-
-  protected NodeBooleanScorer getDisjunctionScorer(final String[] terms)
-  throws IOException {
-    final NodeBooleanQuery bq = new NodeBooleanQuery();
-    for (final String term : terms) {
-      final Term t = new Term(DEFAULT_FIELD, term);
-      final NodeTermQuery termQuery = new NodeTermQuery(t);
-      bq.add(termQuery, Occur.SHOULD);
-    }
-
-    return this.getBooleanScorer(bq);
-  }
-
-  protected NodeBooleanScorer getReqExclScorer(final String reqTerm, final String exclTerm)
-  throws IOException {
-    final NodeBooleanQuery bq = new NodeBooleanQuery();
-    Term t = new Term(DEFAULT_FIELD, reqTerm);
-    NodeTermQuery termQuery = new NodeTermQuery(t);
-    bq.add(termQuery, Occur.MUST);
-
-    t = new Term(DEFAULT_FIELD, exclTerm);
-    termQuery = new NodeTermQuery(t);
-    bq.add(termQuery, Occur.MUST_NOT);
-
-    return this.getBooleanScorer(bq);
-  }
-
-//  protected SirenReqExclScorer getReqExclScorer(final String[] reqPhrase, final String[] exclPhrase)
-//  throws IOException {
-//    final SirenExactPhraseScorer reqScorer = this.getExactScorer(DEFAULT_FIELD, reqPhrase);
-//    final SirenExactPhraseScorer exclScorer = this.getExactScorer(DEFAULT_FIELD, exclPhrase);
-//    return new SirenReqExclScorer(reqScorer, exclScorer);
-//  }
-
-  protected NodeBooleanScorer getReqOptScorer(final String reqTerm, final String optTerm)
-  throws IOException {
-    final NodeBooleanQuery bq = new NodeBooleanQuery();
-    Term t = new Term(DEFAULT_FIELD, reqTerm);
-    NodeTermQuery termQuery = new NodeTermQuery(t);
-    bq.add(termQuery, Occur.MUST);
-
-    t = new Term(DEFAULT_FIELD, optTerm);
-    termQuery = new NodeTermQuery(t);
-    bq.add(termQuery, Occur.SHOULD);
-
-    return this.getBooleanScorer(bq);
-  }
-
-  protected NodeBooleanScorer getBooleanScorer(final String[] reqTerms,
-                                               final String[] optTerms,
-                                               final String[] exclTerms)
-  throws IOException {
-    final NodeBooleanQuery bq = this.getBooleanQuery(reqTerms, optTerms, exclTerms);
-    return this.getBooleanScorer(bq);
-  }
-
-  protected NodeBooleanScorer getBooleanScorer(final String[] reqTerms,
-                                               final String[] optTerms,
-                                               final String[] exclTerms,
-                                               final int[] lowerBound,
-                                               final int[] upperBound,
-                                               final boolean levelConstraint)
-  throws IOException {
-    final NodeBooleanQuery bq = this.getBooleanQuery(reqTerms, optTerms, exclTerms);
-    bq.setNodeConstraint(lowerBound, upperBound, levelConstraint);
-    return this.getBooleanScorer(bq);
-  }
-
-  private NodeBooleanScorer getBooleanScorer(final NodeBooleanQuery bq) throws IOException {
-    this.refreshReaderAndSearcher();
-
-    final Weight weight = searcher.createNormalizedWeight(bq);
-    assertTrue(searcher.getTopReaderContext().isAtomic);
-    final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();
-    final Scorer s = weight.scorer(context, true, true, context.reader.getLiveDocs());
-    return (NodeBooleanScorer) s;
-  }
-
-  private NodeBooleanQuery getBooleanQuery(final String[] reqTerms,
-                                           final String[] optTerms,
-                                           final String[] exclTerms)
-  throws IOException {
-    final NodeBooleanQuery bq = new NodeBooleanQuery();
-
-    if (reqTerms != null) {
-      for (final String term : reqTerms) {
-        final Term t = new Term(DEFAULT_FIELD, term);
-        final NodeTermQuery termQuery = new NodeTermQuery(t);
-        bq.add(termQuery, Occur.MUST);
-      }
-    }
-    if (optTerms != null) {
-      for (final String term : optTerms) {
-        final Term t = new Term(DEFAULT_FIELD, term);
-        final NodeTermQuery termQuery = new NodeTermQuery(t);
-        bq.add(termQuery, Occur.SHOULD);
-      }
-    }
-    if (exclTerms != null) {
-      for (final String term : exclTerms) {
-        final Term t = new Term(DEFAULT_FIELD, term);
-        final NodeTermQuery termQuery = new NodeTermQuery(t);
-        bq.add(termQuery, Occur.MUST_NOT);
-      }
-    }
-    return bq;
+    final Scorer s = weight.scorer(context, true, true, context.reader().getLiveDocs());
+    return (NodeScorer) s;
   }
 
 //  protected SirenCellScorer getCellScorer(final int startCell, final int endCell,
@@ -349,5 +118,226 @@ public abstract class AbstractTestSirenScorer extends SirenTestCase {
 //    cscorer.setScorer(bscorer);
 //    return cscorer;
 //  }
+
+  public static abstract class NodeQueryBuilder {
+
+    public NodeQueryBuilder bound(final IntsRef lowerBound, final IntsRef upperBound) {
+      this.getQuery().setNodeConstraint(lowerBound.ints, upperBound.ints);
+      return this;
+    }
+
+    public NodeQueryBuilder level(final int level) {
+      this.getQuery().setNodeLevelConstraint(level);
+      return this;
+    }
+
+    public abstract NodeQuery getQuery();
+
+  }
+
+  public static class NodeTermQueryBuilder extends NodeQueryBuilder {
+
+    protected final NodeTermQuery ntq;
+
+    private NodeTermQueryBuilder(final String fieldName, final String term) {
+      final Term t = new Term(fieldName, term);
+      ntq = new NodeTermQuery(t);
+    }
+
+    public static NodeTermQueryBuilder ntq(final String term) {
+      return new NodeTermQueryBuilder(DEFAULT_FIELD, term);
+    }
+
+    @Override
+    public NodeQuery getQuery() {
+      return ntq;
+    }
+
+  }
+
+  public static class NodeBooleanClauseBuilder {
+
+    public static NodeBooleanClause must(final NodeQueryBuilder builder) {
+      return new NodeBooleanClause(builder.getQuery(), Occur.MUST);
+    }
+
+    public static NodeBooleanClause must(final String term) {
+      return new NodeBooleanClause(ntq(term).ntq, Occur.MUST);
+    }
+
+    public static NodeBooleanClause[] must(final String ... terms) {
+      final NodeBooleanClause[] clauses = new NodeBooleanClause[terms.length];
+      for (int i = 0; i < terms.length; i++) {
+        clauses[i] = new NodeBooleanClause(ntq(terms[i]).ntq, Occur.MUST);
+      }
+      return clauses;
+    }
+
+    public static NodeBooleanClause should(final NodeQueryBuilder builder) {
+      return new NodeBooleanClause(builder.getQuery(), Occur.SHOULD);
+    }
+
+    public static NodeBooleanClause should(final String term) {
+      return new NodeBooleanClause(ntq(term).ntq, Occur.SHOULD);
+    }
+
+    public static NodeBooleanClause[] should(final String ... terms) {
+      final NodeBooleanClause[] clauses = new NodeBooleanClause[terms.length];
+      for (int i = 0; i < terms.length; i++) {
+        clauses[i] = new NodeBooleanClause(ntq(terms[i]).ntq, Occur.SHOULD);
+      }
+      return clauses;
+    }
+
+    public static NodeBooleanClause not(final NodeQueryBuilder builder) {
+      return new NodeBooleanClause(builder.getQuery(), Occur.MUST_NOT);
+    }
+
+    public static NodeBooleanClause not(final String term) {
+      return new NodeBooleanClause(ntq(term).ntq, Occur.MUST_NOT);
+    }
+
+    public static NodeBooleanClause[] not(final String ... terms) {
+      final NodeBooleanClause[] clauses = new NodeBooleanClause[terms.length];
+      for (int i = 0; i < terms.length; i++) {
+        clauses[i] = new NodeBooleanClause(ntq(terms[i]).ntq, Occur.MUST_NOT);
+      }
+      return clauses;
+    }
+
+  }
+
+  public static class NodeBooleanQueryBuilder extends NodeQueryBuilder {
+
+    protected NodeBooleanQuery nbq;
+
+    private NodeBooleanQueryBuilder(final NodeBooleanClause[] clauses) {
+      nbq = new NodeBooleanQuery();
+      for (final NodeBooleanClause clause : clauses) {
+        nbq.add(clause);
+      }
+    }
+
+    public static NodeBooleanQueryBuilder nbq(final NodeBooleanClause ... clauses) {
+      return new NodeBooleanQueryBuilder(clauses);
+    }
+
+    @Override
+    public NodeQuery getQuery() {
+      return nbq;
+    }
+
+  }
+
+  public static class TwigQueryBuilder extends NodeQueryBuilder {
+
+    protected TwigQuery twq;
+
+    private TwigQueryBuilder(final int rootLevel, final NodeQueryBuilder builder) {
+      twq = new TwigQuery(rootLevel, builder.getQuery());
+    }
+
+    public static TwigQueryBuilder twq(final int rootLevel, final NodeBooleanClause ... clauses) {
+      return new TwigQueryBuilder(rootLevel, NodeBooleanQueryBuilder.nbq(clauses));
+    }
+
+    public TwigQueryBuilder with(final TwigChildBuilder child) {
+      twq.addChild(child.nbq, Occur.MUST);
+      return this;
+    }
+
+    public TwigQueryBuilder without(final TwigChildBuilder child) {
+      twq.addChild(child.nbq, Occur.MUST_NOT);
+      return this;
+    }
+
+    public TwigQueryBuilder optional(final TwigChildBuilder child) {
+      twq.addChild(child.nbq, Occur.SHOULD);
+      return this;
+    }
+
+    public TwigQueryBuilder with(final TwigDescendantBuilder desc) {
+      twq.addDescendant(desc.level, desc.nbq, Occur.MUST);
+      return this;
+    }
+
+    public TwigQueryBuilder without(final TwigDescendantBuilder desc) {
+      twq.addDescendant(desc.level, desc.nbq, Occur.MUST_NOT);
+      return this;
+    }
+
+    public TwigQueryBuilder optional(final TwigDescendantBuilder desc) {
+      twq.addDescendant(desc.level, desc.nbq, Occur.SHOULD);
+      return this;
+    }
+
+    @Override
+    public NodeQuery getQuery() {
+      return twq;
+    }
+
+//    public TwigQueryBuilder desc(final NodeBooleanClause clause) {
+//      if (!(clause.getQuery() instanceof TwigQuery)) {
+//        throw new UnsupportedOperationException("Must call instead #desc(NodeBooleanClause, int)");
+//      }
+//      twq.addDescendant((TwigQuery) clause.getQuery(), clause.getOccur());
+//      return this;
+//    }
+//
+//    public TwigQueryBuilder desc(final NodeBooleanClause clause, final int level) {
+//      if (clause.getQuery() instanceof TwigQuery) {
+//        throw new UnsupportedOperationException("Must call instead #desc(NodeBooleanClause)");
+//      }
+//      else if (clause.getQuery() instanceof NodePrimitiveQuery) {
+//        twq.addDescendant((NodePrimitiveQuery) clause.getQuery(), level, clause.getOccur());
+//      }
+//      else {
+//        twq.addDescendant((NodeBooleanQuery) clause.getQuery(), level, clause.getOccur());
+//      }
+//      return this;
+//    }
+
+  }
+
+  public static class TwigChildBuilder {
+
+    NodeBooleanQuery nbq;
+
+    private TwigChildBuilder(final NodeBooleanClause[] clauses) {
+      nbq = NodeBooleanQueryBuilder.nbq(clauses).nbq;
+    }
+
+    public static TwigChildBuilder child(final NodeBooleanClause ... clauses) {
+      return new TwigChildBuilder(clauses);
+    }
+
+  }
+
+  public static class TwigDescendantBuilder {
+
+    int level;
+    NodeBooleanQuery nbq;
+
+    private TwigDescendantBuilder(final int level, final NodeBooleanClause[] clauses) {
+      this.level = level;
+      nbq = NodeBooleanQueryBuilder.nbq(clauses).nbq;
+    }
+
+    public static TwigDescendantBuilder desc(final int level, final NodeBooleanClause ... clauses) {
+      return new TwigDescendantBuilder(level, clauses);
+    }
+
+  }
+
+  /**
+   * Assert if a scorer reaches end of stream, and check if sentinel values are
+   * set.
+   */
+  public static void assertEndOfStream(final NodeScorer scorer) throws IOException {
+    assertFalse(scorer.nextCandidateDocument());
+    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+  }
 
 }

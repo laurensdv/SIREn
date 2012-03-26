@@ -25,19 +25,12 @@
  */
 package org.sindice.siren.analysis;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.Reader;
-import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.LowerCaseFilter;
-import org.apache.lucene.analysis.StopAnalyzer;
-import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.WhitespaceTokenizer;
-import org.apache.lucene.analysis.WordlistLoader;
+import org.apache.lucene.analysis.core.LowerCaseFilter;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.filter.AssignTokenTypeFilter;
 
@@ -47,65 +40,18 @@ import org.sindice.siren.analysis.filter.AssignTokenTypeFilter;
  */
 public class WhitespaceAnyURIAnalyzer extends Analyzer {
 
-  private final Set<?>            stopSet;
-
   private final Version matchVersion;
-  
-  /**
-   * An array containing some common English words that are usually not useful
-   * for searching.
-   */
-  public static final Set<?> STOP_WORDS = StopAnalyzer.ENGLISH_STOP_WORDS_SET;
-  
-  public WhitespaceAnyURIAnalyzer(Version version) {
-    this(version, STOP_WORDS);
-  }
-  
-  public WhitespaceAnyURIAnalyzer(Version version, final Set<?> stopWords) {
-    stopSet = stopWords;
+
+  public WhitespaceAnyURIAnalyzer(final Version version) {
     matchVersion = version;
-  }
-  
-  public WhitespaceAnyURIAnalyzer(Version version, final String[] stopWords) {
-    matchVersion = version;
-    stopSet = StopFilter.makeStopSet(matchVersion, stopWords);
-  }
-  
-  public WhitespaceAnyURIAnalyzer(Version version, final File stopwords) throws IOException {
-    this(version, new FileReader(stopwords));
-  }
-  
-  public WhitespaceAnyURIAnalyzer(Version version, final Reader stopWords) throws IOException {
-    stopSet = WordlistLoader.getWordSet(stopWords, version);
-    matchVersion = version;
-  }
-  
-  @Override
-  public final TokenStream tokenStream(final String fieldName, final Reader reader) {
-    TokenStream result = new WhitespaceTokenizer(matchVersion, reader);
-    result = new LowerCaseFilter(matchVersion, result);
-    result = new AssignTokenTypeFilter(result, TupleTokenizer.URI);
-    return result;
   }
 
   @Override
-  public final TokenStream reusableTokenStream(final String fieldName, final Reader reader) throws IOException {
-    SavedStreams streams = (SavedStreams) this.getPreviousTokenStream();
-    if (streams == null) {
-      streams = new SavedStreams();
-      this.setPreviousTokenStream(streams);
-      streams.tokenStream = new WhitespaceTokenizer(matchVersion, reader);
-      streams.filteredTokenStream = new LowerCaseFilter(matchVersion, streams.tokenStream);
-      streams.filteredTokenStream = new AssignTokenTypeFilter(streams.filteredTokenStream, TupleTokenizer.URI);
-    } else {
-      streams.tokenStream.reset(reader);
-    }
-    return streams.filteredTokenStream;
-  }
-
-  private static final class SavedStreams {
-    WhitespaceTokenizer tokenStream;
-    TokenStream filteredTokenStream;
+  protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
+    final WhitespaceTokenizer source = new WhitespaceTokenizer(matchVersion, reader);
+    TokenStream sink = new LowerCaseFilter(matchVersion, source);
+    sink = new AssignTokenTypeFilter(sink, TupleTokenizer.URI);
+    return new TokenStreamComponents(source, sink);
   }
 
 }

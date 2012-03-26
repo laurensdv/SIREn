@@ -28,16 +28,14 @@ package org.sindice.siren.util;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.junit.After;
 import org.junit.Before;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.analysis.MockSirenDocument;
 
 public abstract class BasicSirenTestCase extends SirenTestCase {
 
@@ -45,6 +43,9 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected RandomIndexWriter writer;
   protected IndexReader reader;
   protected IndexSearcher searcher;
+  protected Analyzer analyzer;
+
+  protected abstract Analyzer initAnalyzer();
 
   @Override
   @Before
@@ -52,14 +53,12 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   throws Exception {
     super.setUp();
 
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
-    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
+    analyzer = this.initAnalyzer();
 
     directory = newDirectory();
 
     writer = this.newRandomIndexWriter(directory, analyzer);
+    super.deleteAll(writer);
     reader = this.newIndexReader(writer);
     searcher = newSearcher(reader);
   }
@@ -95,6 +94,18 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected void addDocumentsWithIterator(final Collection<String> data)
   throws IOException {
     super.addDocumentsWithIterator(writer, data);
+    this.refreshReaderAndSearcher();
+  }
+
+  protected void addDocumentsWithIterator(final String ... docs)
+  throws IOException {
+    super.addDocumentsWithIterator(writer, docs);
+    this.refreshReaderAndSearcher();
+  }
+
+  public void addDocuments(final MockSirenDocument ... sdocs)
+  throws IOException {
+    super.addDocuments(writer, sdocs);
     this.refreshReaderAndSearcher();
   }
 

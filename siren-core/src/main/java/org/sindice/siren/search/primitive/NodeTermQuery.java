@@ -29,10 +29,10 @@ package org.sindice.siren.search.primitive;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReader.AtomicReaderContext;
-import org.apache.lucene.index.IndexReader.ReaderContext;
+import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermState;
 import org.apache.lucene.index.TermsEnum;
@@ -44,7 +44,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.search.similarities.Similarity.ExactDocScorer;
+import org.apache.lucene.search.similarities.Similarity.ExactSimScorer;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.ReaderUtil;
@@ -53,6 +53,7 @@ import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.index.ConstrainedNodesEnum;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 import org.sindice.siren.index.codecs.siren020.Siren020DocNodAndPosEnum;
+import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleQuery;
 
@@ -71,17 +72,18 @@ public class NodeTermQuery extends NodePrimitiveQuery {
   protected class NodeTermWeight extends Weight {
 
     private final Similarity similarity;
-    private final Similarity.Stats stats;
+    private final Similarity.SimWeight stats;
     private final TermContext termStates;
 
     public NodeTermWeight(final IndexSearcher searcher, final TermContext termStates)
     throws IOException {
       assert termStates != null : "TermContext must not be null";
       this.termStates = termStates;
-      similarity = searcher.getSimilarityProvider().get(term.field());
-      stats = similarity.computeStats(searcher.collectionStatistics(term.field()),
-                                      NodeTermQuery.this.getBoost(),
-                                      searcher.termStatistics(term, termStates));
+      this.similarity = searcher.getSimilarity();
+      this.stats = similarity.computeWeight(
+        NodeTermQuery.this.getBoost(),
+        searcher.collectionStatistics(term.field()),
+        searcher.termStatistics(term, termStates));
     }
 
     @Override
@@ -116,24 +118,26 @@ public class NodeTermQuery extends NodePrimitiveQuery {
         return null;
       }
 
-      final DocsAndPositionsEnum docs = termsEnum.docsAndPositions(acceptDocs, null);
+      final DocsAndPositionsEnum docs = termsEnum.docsAndPositions(acceptDocs, null, false);
       final DocsNodesAndPositionsEnum dnpe = new Siren020DocNodAndPosEnum(docs);
 
-      if (nodeLowerBoundConstraint == null) { // if no constraints
-        return new NodeTermScorer(this, dnpe, this.createDocScorer(context));
-      }
-      else { // if constraints, wraps the enum
+      // if node constraints are defined, wraps the enum
+      if (NodeTermQuery.this.isConstrained()) {
         return new NodeTermScorer(this,
-          new ConstrainedNodesEnum(dnpe, nodeLowerBoundConstraint, nodeUpperBoundConstraint, isNodeLevelConstrained),
+          new ConstrainedNodesEnum(dnpe, nodeLowerBoundConstraint,
+            nodeUpperBoundConstraint, nodeLevelConstraint),
           this.createDocScorer(context));
+      }
+      else {
+        return new NodeTermScorer(this, dnpe, this.createDocScorer(context));
       }
     }
 
     /**
      * Creates an {@link ExactDocScorer} for this {@link TermWeight}*/
-    ExactDocScorer createDocScorer(final AtomicReaderContext context)
+    ExactSimScorer createDocScorer(final AtomicReaderContext context)
         throws IOException {
-      return similarity.exactDocScorer(stats, term.field(), context);
+      return similarity.exactSimScorer(stats, context);
     }
 
     /**
@@ -143,11 +147,11 @@ public class NodeTermQuery extends NodePrimitiveQuery {
     TermsEnum getTermsEnum(final AtomicReaderContext context) throws IOException {
       final TermState state = termStates.get(context.ord);
       if (state == null) { // term is not present in that reader
-        assert this.termNotInReader(context.reader, term.field(), term.bytes()) : "no termstate found but term exists in reader term=" + term;
+        assert this.termNotInReader(context.reader(), term.field(), term.bytes()) : "no termstate found but term exists in reader term=" + term;
         return null;
       }
       //System.out.println("LD=" + reader.getLiveDocs() + " set?=" + (reader.getLiveDocs() != null ? reader.getLiveDocs().get(0) : "null"));
-      final TermsEnum termsEnum = context.reader.terms(term.field()).iterator(null);
+      final TermsEnum termsEnum = context.reader().terms(term.field()).iterator(null);
       termsEnum.seekExact(term.bytes(), state);
       return termsEnum;
     }
@@ -160,12 +164,11 @@ public class NodeTermQuery extends NodePrimitiveQuery {
 
     @Override
     public Explanation explain(final AtomicReaderContext context, final int doc) throws IOException {
-      final Scorer scorer = this.scorer(context, true, false, context.reader.getLiveDocs());
-      if (scorer != null) {
-        final int newDoc = scorer.advance(doc);
-        if (newDoc == doc) {
+      final NodeScorer scorer = (NodeScorer) this.scorer(context, true, false, context.reader().getLiveDocs());
+      if (scorer != null && scorer.skipToCandidate(doc)) {
+        if (scorer.doc() == doc && scorer.nextNode()) {
           final float freq = scorer.freq();
-          final ExactDocScorer docScorer = similarity.exactDocScorer(stats, term.field(), context);
+          final ExactSimScorer docScorer = similarity.exactSimScorer(stats, context);
           final ComplexExplanation result = new ComplexExplanation();
           result.setDescription("weight("+this.getQuery()+" in "+doc+") [" + similarity.getClass().getSimpleName() + "], result of:");
           final Explanation scoreExplanation = docScorer.explain(doc, new Explanation(freq, "termFreq=" + freq));
@@ -211,7 +214,7 @@ public class NodeTermQuery extends NodePrimitiveQuery {
 
   @Override
   public Weight createWeight(final IndexSearcher searcher) throws IOException {
-    final ReaderContext context = searcher.getTopReaderContext();
+    final IndexReaderContext context = searcher.getTopReaderContext();
     final TermContext termState;
     if (perReaderTermState == null || perReaderTermState.topReaderContext != context) {
       // make TermQuery single-pass if we don't have a PRTS or if the context differs!
@@ -237,6 +240,21 @@ public class NodeTermQuery extends NodePrimitiveQuery {
   @Override
   public String toString(final String field) {
     final StringBuffer buffer = new StringBuffer();
+    if (nodeLevelConstraint != -1) {
+      buffer.append("[");
+      buffer.append(nodeLevelConstraint);
+
+      if (nodeLowerBoundConstraint != null && nodeUpperBoundConstraint != null) {
+        buffer.append(",");
+        buffer.append("[");
+        buffer.append(nodeLowerBoundConstraint);
+        buffer.append(",");
+        buffer.append(nodeUpperBoundConstraint);
+        buffer.append("]");
+      }
+
+      buffer.append("]");
+    }
     if (!term.field().equals(field)) {
       buffer.append(term.field());
       buffer.append(":");

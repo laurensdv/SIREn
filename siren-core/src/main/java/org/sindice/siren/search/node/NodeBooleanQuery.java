@@ -32,8 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReader.AtomicReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ComplexExplanation;
@@ -44,7 +44,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.search.similarities.SimilarityProvider;
+import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.base.NodeQuery;
@@ -84,9 +84,9 @@ public class NodeBooleanQuery extends NodeQuery {
     NodeBooleanQuery.maxClauseCount = maxClauseCount;
   }
 
-  private ArrayList<NodeBooleanClause> clauses = new ArrayList<NodeBooleanClause>();
+  protected ArrayList<NodeBooleanClause> clauses = new ArrayList<NodeBooleanClause>();
 
-  private boolean   disableCoord;
+  protected boolean   disableCoord;
 
   /** Constructs an empty boolean query. */
   public NodeBooleanQuery() {
@@ -165,23 +165,28 @@ public class NodeBooleanQuery extends NodeQuery {
    * Expert: the Weight for {@link NodeBooleanQuery}, used to
    * normalize, score and explain these queries.
    */
-  protected class NodeBooleanWeight extends Weight {
+  public class NodeBooleanWeight extends Weight {
 
-    protected SimilarityProvider similarityProvider;
+    /** The Similarity implementation. */
+    protected Similarity similarity;
     protected ArrayList<Weight> weights;
     protected int maxCoord;  // num optional + num required
     private final boolean disableCoord;
 
     public NodeBooleanWeight(final IndexSearcher searcher, final boolean disableCoord)
     throws IOException {
-      this.similarityProvider = searcher.getSimilarityProvider();
+      this.similarity = searcher.getSimilarity();
       this.disableCoord = disableCoord;
+      this.initWeights(searcher);
+    }
+
+    protected void initWeights(final IndexSearcher searcher) throws IOException {
       weights = new ArrayList<Weight>(clauses.size());
       for (int i = 0; i < clauses.size(); i++) {
         final NodeBooleanClause c = clauses.get(i);
         final NodeQuery q = c.getQuery();
         // pass to child query the node contraints
-        q.setNodeConstraint(nodeLowerBoundConstraint, nodeUpperBoundConstraint, isNodeLevelConstrained);
+        q.setNodeConstraint(nodeLowerBoundConstraint, nodeUpperBoundConstraint, nodeLevelConstraint);
         weights.add(q.createWeight(searcher));
         if (!c.isProhibited()) maxCoord++;
       }
@@ -217,7 +222,7 @@ public class NodeBooleanQuery extends NodeQuery {
     }
 
     public float coord(final int overlap, final int maxOverlap) {
-      return similarityProvider.coord(overlap, maxOverlap);
+      return similarity.coord(overlap, maxOverlap);
     }
 
     @Override
@@ -241,7 +246,7 @@ public class NodeBooleanQuery extends NodeQuery {
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
       for (final Weight w : weights) {
         final NodeBooleanClause c = cIter.next();
-        if (w.scorer(context, true, true, context.reader.getLiveDocs()) == null) {
+        if (w.scorer(context, true, true, context.reader().getLiveDocs()) == null) {
           if (c.isRequired()) {
             fail = true;
             final Explanation r = new Explanation(0.0f, "no match on required " +
@@ -346,11 +351,16 @@ public class NodeBooleanQuery extends NodeQuery {
       final NodeBooleanClause c = clauses.get(0);
       if (!c.isProhibited()) {        // just return clause
 
-        Query query = c.getQuery().rewrite(reader);    // rewrite first
+        // rewrite first
+        NodeQuery query = (NodeQuery) c.getQuery().rewrite(reader);
 
-        if (this.getBoost() != 1.0f) {                  // incorporate boost
-          if (query == c.getQuery()) {                  // if rewrite was no-op
-            query = (Query) query.clone();         // then clone before boost
+        // incorporate constraint
+        query.setNodeConstraint(this.nodeLowerBoundConstraint,
+          this.nodeUpperBoundConstraint, this.nodeLevelConstraint);
+
+        if (this.getBoost() != 1.0f) {                 // incorporate boost
+          if (query == c.getQuery()) {                 // if rewrite was no-op
+            query = (NodeQuery) query.clone();         // then clone before boost
           }
           query.setBoost(this.getBoost() * query.getBoost());
         }
@@ -389,7 +399,6 @@ public class NodeBooleanQuery extends NodeQuery {
   public Object clone() {
     final NodeBooleanQuery clone = (NodeBooleanQuery) super.clone();
     clone.clauses = (ArrayList<NodeBooleanClause>) this.clauses.clone();
-    clone.disableCoord = this.disableCoord;
     return clone;
   }
 

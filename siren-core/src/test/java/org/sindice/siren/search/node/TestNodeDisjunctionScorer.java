@@ -26,111 +26,105 @@
  */
 package org.sindice.siren.search.node;
 
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.should;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
+
 import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeDisjunctionScorer extends AbstractTestSirenScorer {
 
   @Test
-  public void testNextCandidateNextNode()
-  throws Exception {
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer, new String[] { "<http://renaud.delbru.fr/> . ",
+  public void testNextCandidateNextNode() throws Exception {
+    this.addDocumentsWithIterator(
+      "<http://renaud.delbru.fr/> . ",
       "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
       "<http://sindice.com/test/type> <http://sindice.com/test/Person> . ",
-      "<aaa> <bbb> . <http://sindice.com/test/name> \"R. Delbru\" . " });
+      "<aaa> <bbb> . <http://sindice.com/test/name> \"R. Delbru\" . "
+    );
 
-    final NodeBooleanScorer scorer =
-      this.getDisjunctionScorer(new String[] {"renaud", "delbru"});
+    final NodeScorer scorer = this.getScorer(
+      nbq(should("renaud"), should("delbru"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(1, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(3, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(1, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(1,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
-    assertFalse(scorer.nextCandidateDocument());
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
   @Test
-  public void testSkipToCandidateNextNode()
-  throws Exception {
-    this.deleteAll(writer);
+  public void testSkipToCandidateNextNode() throws Exception {
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 16; i++) {
       docs.add("\"aaa bbb\" \"aaa ccc\" . \"ccc\" \"bbb ccc\" .");
       docs.add("\"aaa ccc bbb\" . \"aaa aaa ccc bbb bbb\" . ");
     }
-    this.addDocumentsWithIterator(writer, docs);
+    this.addDocumentsWithIterator(docs);
 
-    final NodeBooleanScorer scorer =
-      this.getDisjunctionScorer(new String[] {"aaa", "bbb"});
+    final NodeScorer scorer = this.getScorer(
+      nbq(should("aaa"), should("bbb"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.skipToCandidate(16));
     assertEquals(16, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(17, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.skipToCandidate(20));
     assertEquals(20, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(21, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.skipToCandidate(30));
     assertEquals(30, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
+
     assertFalse(scorer.skipToCandidate(34));
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
 }

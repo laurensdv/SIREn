@@ -33,6 +33,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.util.LuceneTestCase;
@@ -40,8 +41,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.analysis.attributes.CellAttribute;
-import org.sindice.siren.analysis.attributes.TupleAttribute;
 import org.sindice.siren.analysis.filter.URILocalnameFilter;
 import org.sindice.siren.analysis.filter.URINormalisationFilter;
 
@@ -49,6 +48,7 @@ public class TestTupleAnalyzer extends LuceneTestCase {
 
   private TupleAnalyzer _a;
 
+  @Override
   @Before
   public void setUp()
   throws Exception {
@@ -58,6 +58,7 @@ public class TestTupleAnalyzer extends LuceneTestCase {
     _a = new TupleAnalyzer(TEST_VERSION_CURRENT, new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
   }
 
+  @Override
   @After
   public void tearDown()
   throws Exception {
@@ -94,10 +95,10 @@ public class TestTupleAnalyzer extends LuceneTestCase {
                                 final int[] expectedTupleID,
                                 final int[] expectedCellID)
   throws Exception {
-    final TokenStream t = a.reusableTokenStream("", new StringReader(input));
+    final TokenStream t = a.tokenStream("", new StringReader(input));
 
-    assertTrue("has TermAttribute", t.hasAttribute(TermAttribute.class));
-    final TermAttribute termAtt = t.getAttribute(TermAttribute.class);
+    assertTrue("has TermAttribute", t.hasAttribute(CharTermAttribute.class));
+    final CharTermAttribute termAtt = t.getAttribute(CharTermAttribute.class);
 
     TypeAttribute typeAtt = null;
     if (expectedTypes != null) {

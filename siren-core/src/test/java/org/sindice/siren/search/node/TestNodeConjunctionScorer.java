@@ -26,88 +26,86 @@
  */
 package org.sindice.siren.search.node;
 
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
   @Test
-  public void testNextWithTermConjunction()
-  throws Exception {
-    this.deleteAll(writer);
+  public void testNextWithTermConjunction() throws Exception {
     this.addDocumentsWithIterator(writer, new String[] { "<http://renaud.delbru.fr/> . ",
       "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
       "<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
       "<http://sindice.com/test/name> \"Renaud Delbru\" . " });
 
-    final NodeBooleanScorer scorer =
-      this.getConjunctionScorer(new String[] {"renaud", "delbru"});
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("renaud"), must("renaud"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(1, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(2, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(1, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(1,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
-    assertFalse(scorer.nextCandidateDocument());
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
   @Test
   public void testNoNode() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"eee\" . \"ddd\" . ");
 
-    final NodeBooleanScorer scorer =
-      this.getConjunctionScorer(new String[] {"ddd", "eee"});
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("ddd"), must("eee"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
   }
 
   @Test
   public void testNoNextCandidate() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"eee\" . \"ddd\" . ");
     this.addDocument(writer, "\"eee\" . \"fff\" . ");
 
-    final NodeBooleanScorer scorer =
-      this.getConjunctionScorer(new String[] {"ddd", "fff"});
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("ddd"), must("fff"))
+    );
 
-    assertFalse(scorer.nextCandidateDocument());
-    assertFalse(scorer.nextNode());
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
-// TODO
+// TODO: To update when phrase query implemented
 //  @Test
 //  public void testNextWithPhraseConjunction()
 //  throws Exception {
@@ -128,9 +126,7 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 //  }
 
   @Test
-  public void testSkipToCandidate()
-  throws Exception {
-    this.deleteAll(writer);
+  public void testSkipToCandidate() throws Exception {
 
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
@@ -139,37 +135,35 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
     }
     this.addDocumentsWithIterator(writer, docs);
 
-    final NodeBooleanScorer scorer =
-      this.getConjunctionScorer(new String[] {"renaud", "delbru"});
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("renaud"), must("delbru"))
+    );
 
     assertTrue(scorer.skipToCandidate(16));
     assertEquals(16, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.skipToCandidate(41)); // should jump to next candidate doc 42
     assertEquals(42, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
 
     assertTrue(scorer.skipToCandidate(42)); // should stay at the same position
     assertEquals(42, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertFalse(scorer.skipToCandidate(75));
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
-// TODO
+// TODO: To update when score methods implemented
 //  @Test
 //  public void testScoreWithTermConjunction()
 //  throws Exception {

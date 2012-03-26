@@ -43,12 +43,12 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
 
   protected DocsAndPositionsEnum e;
 
-  protected int[] curNode = new int[] { -1 };
+  protected IntsRef curNode = new IntsRef(new int[] { -1 }, 0, 1);
   protected int pos = -1;
 
   // for node and position lookahead
   protected boolean lookahead = false;
-  protected int[] nextNode = new int[] { -1 };
+  protected IntsRef nextNode = new IntsRef(new int[] { -1 }, 0, 1);
   protected int nextPos = -1;
 
   /** index of the next element to be read */
@@ -76,7 +76,7 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return curNode;
   }
 
@@ -122,23 +122,24 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
     return currentDoc != DocIdSetIterator.NO_MORE_DOCS;
   }
 
-  /**
-   * Advance to the node right after the one passed in argument.
-   * Returns true if the current node is still before the one passed in argument.
-   * Returns true if nodes is empty
-   */
-  protected boolean nextNodeEqualOrDescendant(final int[] node)
-  throws IOException {
-    while (++_posPtr < e.freq()) {
-      pos = -1; // reset pos
-      nextPos = e.nextPosition(); // backup position in nextPos
-      curNode = this.decodeNodePath(curNode);
-      if (NodeUtils.isPredecessorOrEqual(node, curNode)) {
-        return true;
-      }
-    }
-    return false;
-  }
+// TODO: Remove if not used
+//  /**
+//   * Advance to the node right after the one passed in argument.
+//   * Returns true if the current node is still before the one passed in argument.
+//   * Returns true if nodes is empty
+//   */
+//  protected boolean nextNodeEqualOrDescendant(final int[] node)
+//  throws IOException {
+//    while (++_posPtr < e.freq()) {
+//      pos = -1; // reset pos
+//      nextPos = e.nextPosition(); // backup position in nextPos
+//      curNode = this.decodeNodePath(curNode);
+//      if (NodeUtils.isPredecessorOrEqual(node, curNode)) {
+//        return true;
+//      }
+//    }
+//    return false;
+//  }
 
   @Override
   public boolean nextNode() throws IOException {
@@ -166,7 +167,7 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
         this.setNodAndPosToSentinel(); // sentinel value
         return false;
       }
-    } while (Arrays.equals(curNode, nextNode));
+    } while (curNode.intsEquals(nextNode));
 
     // just switch the reference (avoid copy)
     this.switchNodeReference();
@@ -175,9 +176,11 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
   }
 
   private final void switchNodeReference() {
-    final int[] tmp = curNode;
+    final IntsRef tmp = curNode;
     curNode = nextNode;
     nextNode = tmp;
+    // update reference backup of curNode
+    backupNode = curNode;
   }
 
   @Override
@@ -198,7 +201,7 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
       nextNode = this.decodeNodePath(nextNode);
 
       // if lookahead node is equal to the current node, then we have a new position
-      if (Arrays.equals(curNode, nextNode)) {
+      if (curNode.intsEquals(nextNode)) {
         pos = nextPos;
         nextPos = -1;
         lookahead = false;
@@ -213,18 +216,21 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
     return false;
   }
 
-  private int[] decodeNodePath(int[] dst) throws IOException {
+  private IntsRef decodeNodePath(IntsRef dst) throws IOException {
     final IntsRef nodePath = this.decodePayload();
 
     // Ensure we have enough space to store the node path
     dst = NodeUtils.grow(dst, nodePath.length);
 
+    // update length of the int array reference
+    dst.length = nodePath.length;
+
     // Delta decoding
     // we assume that there is always at least one node encoded
-    dst[0] = curNode[0] == -1 ? nodePath.ints[nodePath.offset] : curNode[0] + nodePath.ints[nodePath.offset];
+    dst.ints[0] = curNode.ints[0] == -1 ? nodePath.ints[nodePath.offset] : curNode.ints[0] + nodePath.ints[nodePath.offset];
 
     for (int i = nodePath.offset + 1; i < nodePath.length; i++) {
-      dst[i] = (i >= curNode.length || curNode[i] == -1 || nodePath.ints[i-1] != 0) ? nodePath.ints[i] : curNode[i] + nodePath.ints[i];
+      dst.ints[i] = (i >= curNode.length || curNode.ints[i] == -1 || nodePath.ints[i-1] != 0) ? nodePath.ints[i] : curNode.ints[i] + nodePath.ints[i];
     }
 
     return dst;
@@ -255,20 +261,21 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
   /**
    * Reference backup for curNode
    */
-  private int[] backupNode = curNode;
+  private IntsRef backupNode = curNode;
 
   /**
    * Set the current nodes and position to -1.
    * <p>
-   * Restore the reference backup of {@link curNode} in order to
+   * Restore the reference backup of {@link curNode} in order to avoid to
    * <ul>
-   * <li> avoid to erase the content of {@link NO_MORE_NOD}
+   * <li> erase the content of {@link NO_MORE_NOD}
    * <li> lose the reference of the instantiated curNode array
    * <ul>
    */
   private void resetNodAndPos() {
     curNode = backupNode; // restore reference
-    Arrays.fill(curNode, -1);
+    Arrays.fill(curNode.ints, -1);
+    curNode.length = 1;
     pos = -1;
   }
 

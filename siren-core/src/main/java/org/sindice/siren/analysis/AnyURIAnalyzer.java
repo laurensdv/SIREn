@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -38,6 +37,7 @@ import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.miscellaneous.LengthFilter;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.analysis.util.WordlistLoader;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.filter.AssignTokenTypeFilter;
@@ -64,39 +64,37 @@ import org.sindice.siren.analysis.filter.URITrailingSlashFilter;
  */
 public class AnyURIAnalyzer extends Analyzer {
 
-  private final Set<?>            stopSet;
+  private final CharArraySet stopSet;
 
   private final Version matchVersion;
-  
-  /**
-   * An array containing some common English words that are usually not useful
-   * for searching.
-   */
-  public static final Set<?> STOP_WORDS = StopAnalyzer.ENGLISH_STOP_WORDS_SET;
-  
+
+  /** An unmodifiable set containing some common English words that are usually not
+  useful for searching. */
+  public static final CharArraySet STOP_WORDS_SET = StopAnalyzer.ENGLISH_STOP_WORDS_SET;
+
   public enum URINormalisation {NONE, LOCALNAME, FULL};
 
   private URINormalisation normalisationType = URINormalisation.NONE;
 
-  public AnyURIAnalyzer(Version version) {
-    this(version, STOP_WORDS);
+  public AnyURIAnalyzer(final Version version) {
+    this(version, STOP_WORDS_SET);
   }
-  
-  public AnyURIAnalyzer(Version version, final Set<?> stopWords) {
+
+  public AnyURIAnalyzer(final Version version, final CharArraySet stopWords) {
     stopSet = stopWords;
     matchVersion = version;
   }
-  
-  public AnyURIAnalyzer(Version version, final String[] stopWords) {
+
+  public AnyURIAnalyzer(final Version version, final String[] stopWords) {
     matchVersion = version;
     stopSet = StopFilter.makeStopSet(matchVersion, stopWords);
   }
-  
-  public AnyURIAnalyzer(Version version, final File stopwords) throws IOException {
+
+  public AnyURIAnalyzer(final Version version, final File stopwords) throws IOException {
     this(version, new FileReader(stopwords));
   }
-  
-  public AnyURIAnalyzer(Version version, final Reader stopWords) throws IOException {
+
+  public AnyURIAnalyzer(final Version version, final Reader stopWords) throws IOException {
     stopSet = WordlistLoader.getWordSet(stopWords, version);
     matchVersion = version;
   }
@@ -104,9 +102,9 @@ public class AnyURIAnalyzer extends Analyzer {
   public void setUriNormalisation(final URINormalisation n) {
     normalisationType = n;
   }
-  
+
   @Override
-  protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+  protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
     final WhitespaceTokenizer source = new WhitespaceTokenizer(matchVersion, reader);
     TokenStream sink = new URIEncodingFilter(source, "UTF-8");
     sink = this.applyURINormalisation(sink);

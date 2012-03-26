@@ -27,8 +27,8 @@
 package org.sindice.siren.search.node;
 
 import java.io.IOException;
-import java.util.Arrays;
 
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.util.NodeUtils;
 
@@ -145,8 +145,8 @@ public class NodeReqExclScorer extends NodeScorer {
    * node.
    */
   private boolean toNonExcludedNode() throws IOException {
-    int[] reqNode = reqScorer.node(); // may be excluded
-    int[] exclNode = exclScorer.node();
+    IntsRef reqNode = reqScorer.node(); // may be excluded
+    IntsRef exclNode = exclScorer.node();
 
     int comparison;
     while ((comparison = NodeUtils.compare(reqNode, exclNode)) >= 0) {
@@ -173,7 +173,7 @@ public class NodeReqExclScorer extends NodeScorer {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return reqScorer.node();
   }
 
@@ -202,7 +202,7 @@ public class NodeReqExclScorer extends NodeScorer {
   @Override
   public String toString() {
     return "NodeReqExclScorer(" + weight + "," + this.doc() + "," +
-      Arrays.toString(this.node()) + ")";
+      this.node() + ")";
   }
 
 }

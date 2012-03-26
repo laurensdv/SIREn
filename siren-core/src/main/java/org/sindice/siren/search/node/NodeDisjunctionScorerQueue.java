@@ -27,8 +27,8 @@
 package org.sindice.siren.search.node;
 
 import java.io.IOException;
-import java.util.Arrays;
 
+import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ScorerDocQueue;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
@@ -69,7 +69,7 @@ public class NodeDisjunctionScorerQueue {
     NodeScorer scorer;
 
     int doc;
-    int[] node;
+    IntsRef node;
 
     HeapedScorerNode(final NodeScorer s) {
       this.scorer = s;
@@ -83,7 +83,7 @@ public class NodeDisjunctionScorerQueue {
 
     @Override
     public String toString() {
-      return "[" + doc + "," + "[" + Arrays.toString(node) + "]]";
+      return "[" + doc + "," + "[" + node + "]]";
     }
 
   }
@@ -133,7 +133,7 @@ public class NodeDisjunctionScorerQueue {
   /**
    * Return the current node
    */
-  public int[] node() {
+  public IntsRef node() {
     return size == 0 ? DocsAndNodesIterator.NO_MORE_NOD : topHSN.node;
   }
 
@@ -174,7 +174,7 @@ public class NodeDisjunctionScorerQueue {
 
     if (i1 <= size) {
       final HeapedScorerNode child1 = heap[i1];
-      if (topHSN.doc == child1.doc && Arrays.equals(topHSN.node, child1.node)) {
+      if (topHSN.doc == child1.doc && topHSN.node.intsEquals(child1.node)) {
         nrMatchersInNode++;
         scoreInNode += child1.scorer.score();
         this.computeSumRecursive(i1);
@@ -183,7 +183,7 @@ public class NodeDisjunctionScorerQueue {
 
     if (i2 <= size) {
       final HeapedScorerNode child2 = heap[i2];
-      if (topHSN.doc == child2.doc && Arrays.equals(topHSN.node, child2.node)) {
+      if (topHSN.doc == child2.doc && topHSN.node.intsEquals(child2.node)) {
         nrMatchersInNode++;
         scoreInNode += child2.scorer.score();
         this.computeSumRecursive(i2);
@@ -246,7 +246,7 @@ public class NodeDisjunctionScorerQueue {
     // count number of scorers having the same document and node
     // counting the number of scorers and then performing the iterations of
     // all the scorers allows to avoid a node array copy (i.e., current node cache)
-    if (nrMatchersInNode < 0) {
+    if (size > 0 && nrMatchersInNode < 0) {
       this.countAndSumMatchers();
     }
 
@@ -260,7 +260,7 @@ public class NodeDisjunctionScorerQueue {
     nrMatchersInNode = -1;
 
     // if top node has sentinel value, it means that there is no more nodes
-    return topHSN.node != DocsAndNodesIterator.NO_MORE_NOD;
+    return this.node() != DocsAndNodesIterator.NO_MORE_NOD;
   }
 
   /**

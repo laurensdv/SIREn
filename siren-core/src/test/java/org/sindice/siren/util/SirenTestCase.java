@@ -30,6 +30,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.lucene40.Lucene40PostingsFormat;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -37,23 +40,32 @@ import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SlowMultiReaderWrapper;
+import org.apache.lucene.index.SlowCompositeReaderWrapper;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
+import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.util._TestUtil;
+import org.sindice.siren.analysis.MockSirenAnalyzer;
+import org.sindice.siren.analysis.MockSirenDocument;
 
 public abstract class SirenTestCase extends LuceneTestCase {
 
   public static final String DEFAULT_FIELD = "content";
 
-  public FieldType newStoredFieldType() {
+  public FieldType newFieldType() {
     final FieldType ft = new FieldType();
-    ft.setStored(true);
+    ft.setStored(false);
     ft.setOmitNorms(false);
     ft.setIndexed(true);
     ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
     ft.setTokenized(true);
+    return ft;
+  }
+
+  public FieldType newStoredFieldType() {
+    final FieldType ft = this.newFieldType();
+    ft.setStored(true);
     return ft;
   }
 
@@ -65,21 +77,23 @@ public abstract class SirenTestCase extends LuceneTestCase {
 
   public RandomIndexWriter newRandomIndexWriter(final Directory dir, final Analyzer analyzer)
   throws IOException {
+    final Codec cp = _TestUtil.alwaysPostingsFormat(new Lucene40PostingsFormat());
     return new RandomIndexWriter(random, dir,
       newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
+      .setCodec(cp)
       .setMergePolicy(newLogMergePolicy())
-      .setSimilarityProvider(new DefaultSimilarityProvider()));
+      .setSimilarity(new DefaultSimilarity()));
   }
 
   public IndexReader newIndexReader(final RandomIndexWriter writer) throws IOException {
-    return new SlowMultiReaderWrapper(writer.getReader());
+    return SlowCompositeReaderWrapper.wrap(writer.getReader());
   }
 
   public IndexSearcher newIndexSearcher(final RandomIndexWriter writer)
   throws IOException {
-    final IndexReader indexReader = new SlowMultiReaderWrapper(writer.getReader());
+    final IndexReader indexReader = SlowCompositeReaderWrapper.wrap(writer.getReader());
     final IndexSearcher indexSearcher = newSearcher(indexReader);
-    indexSearcher.setSimilarityProvider(new DefaultSimilarityProvider());
+    indexSearcher.setSimilarity(new DefaultSimilarity());
     return indexSearcher;
   }
 
@@ -88,6 +102,24 @@ public abstract class SirenTestCase extends LuceneTestCase {
     final Document doc = new Document();
     doc.add(new Field(DEFAULT_FIELD, data, this.newStoredFieldType()));
     writer.addDocument(doc);
+    writer.commit();
+  }
+
+  public void addDocument(final RandomIndexWriter writer, final TokenStream ts)
+  throws IOException {
+    final Document doc = new Document();
+    doc.add(new Field(DEFAULT_FIELD, ts, this.newFieldType()));
+    writer.addDocument(doc);
+    writer.commit();
+  }
+
+  public void addDocuments(final RandomIndexWriter writer, final MockSirenDocument ... sdocs)
+  throws IOException {
+    for (final MockSirenDocument sdoc : sdocs) {
+      final Document doc = new Document();
+      doc.add(new Field(DEFAULT_FIELD, new MockSirenAnalyzer(sdoc).tokenStream(), this.newFieldType()));
+      writer.addDocument(doc);
+    }
     writer.commit();
   }
 

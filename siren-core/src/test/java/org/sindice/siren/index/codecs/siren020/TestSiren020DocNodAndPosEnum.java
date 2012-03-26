@@ -26,19 +26,37 @@
  */
 package org.sindice.siren.index.codecs.siren020;
 
+import static org.sindice.siren.analysis.MockSirenDocument.doc;
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.analysis.MockSirenToken.token;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sindice.siren.analysis.AnyURIAnalyzer;
+import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.PositionsIterator;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
+
+  @Override
+  protected Analyzer initAnalyzer() {
+    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
+    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
+    return new TupleAnalyzer(TEST_VERSION_CURRENT,
+      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
+  }
 
   @Override
   @Before
@@ -56,7 +74,8 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
 
   protected Siren020DocNodAndPosEnum getEnum(final String term) throws IOException {
     final BytesRef ref = new BytesRef(term);
-    final DocsAndPositionsEnum e = reader.termPositionsEnum(reader.getLiveDocs(), DEFAULT_FIELD, ref);
+    final AtomicReader r = (AtomicReader) reader;
+    final DocsAndPositionsEnum e = r.termPositionsEnum(r.getLiveDocs(), DEFAULT_FIELD, ref, false);
     return new Siren020DocNodAndPosEnum(e);
   }
 
@@ -74,7 +93,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertEquals(0, termEnum.doc());
 
     // node and position should be set to -1
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertEquals(1, termEnum.termFreqInDoc());
@@ -83,8 +102,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertFalse(termEnum.nextPosition());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
 
     // position should be set to -1
     assertEquals(-1, termEnum.pos());
@@ -112,7 +130,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertTrue(termEnum.nextDocument());
     assertEquals(0, termEnum.doc());
 
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertEquals(1, termEnum.termFreqInDoc());
@@ -121,8 +139,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     // in the document, and not within a cell.
     assertTrue(termEnum.nextNode());
     assertTrue(termEnum.nextPosition());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(1, termEnum.node()[1]);
+    assertEquals(node(0,1), termEnum.node());
     assertEquals(2, termEnum.pos());
 
     // end of the list
@@ -149,8 +166,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
 
     assertTrue(termEnum.nextNode());
 
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
 
     assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
@@ -178,8 +194,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
 
     assertTrue(termEnum.nextNode());
 
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
 
     assertFalse(termEnum.nextNode());
 
@@ -200,14 +215,13 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertTrue(termEnum.nextDocument());
     assertEquals(0, termEnum.doc());
 
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertEquals(4, termEnum.termFreqInDoc());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
@@ -215,8 +229,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertEquals(PositionsIterator.NO_MORE_POS, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(1, termEnum.node()[1]);
+    assertEquals(node(0,1), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(2, termEnum.pos());
@@ -224,8 +237,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertEquals(PositionsIterator.NO_MORE_POS, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(1, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(1,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(3, termEnum.pos());
@@ -233,8 +245,7 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertEquals(PositionsIterator.NO_MORE_POS, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(2, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(2,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(5, termEnum.pos());
@@ -264,60 +275,33 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     termEnum.skipTo(16);
     assertEquals(16, termEnum.doc());
     assertEquals(4, termEnum.termFreqInDoc());
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(1, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(1,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     termEnum.skipTo(33);
     assertEquals(33, termEnum.doc());
     assertEquals(2, termEnum.termFreqInDoc());
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(1, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(1,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
-
-// TODO: Clean this if not needed anymore
-//    termEnum.skipTo(33, new int[] { 1 });
-//    assertEquals(33, termEnum.doc());
-//    assertEquals(2, termEnum.termFreqInDoc());
-//
-//    assertEquals(1, termEnum.node()[0]);
-//    assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(2, termEnum.pos());
-//
-//    termEnum.skipTo(96, new int[] { 1, 1 });
-//    assertEquals(96, termEnum.doc());
-//    assertEquals(4, termEnum.termFreqInDoc());
-//
-//    assertEquals(1, termEnum.node()[0]);
-//    assertEquals(1, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(3, termEnum.pos());
   }
 
   /**
@@ -341,33 +325,10 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertTrue(termEnum.skipTo(16));
     assertEquals(17, termEnum.doc());
     assertEquals(3, termEnum.termFreqInDoc());
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertFalse(termEnum.skipTo(75));
-
-// TODO: Clean this if not needed anymore
-//    // Should jump to the third tuples
-//    assertTrue(termEnum.skipTo(17, new int[] { 1 }));
-//    assertEquals(17, termEnum.doc());
-//    assertEquals(3, termEnum.termFreqInDoc());
-//    assertEquals(2, termEnum.node()[0]);
-//    assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(5, termEnum.pos());
-//
-//    // Should jump to the second cell
-//    assertTrue(termEnum.skipTo(17, new int[] { 3, 0 }));
-//    assertEquals(17, termEnum.doc());
-//    assertEquals(3, termEnum.termFreqInDoc());
-//    assertEquals(3, termEnum.node()[0]);
-//    assertEquals(1, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(9, termEnum.pos());
   }
 
   @Test
@@ -384,32 +345,11 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     termEnum.skipTo(16);
     assertEquals(16, termEnum.doc());
     assertEquals(4, termEnum.termFreqInDoc());
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertTrue(termEnum.skipTo(16));
     assertEquals(16, termEnum.doc());
-
-// TODO: Clean this if not needed anymore
-//    termEnum.skipTo(16, new int[] { 1 });
-//    assertEquals(16, termEnum.doc());
-//    assertEquals(4, termEnum.termFreqInDoc());
-//    assertEquals(1, termEnum.node()[0]);
-//    assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(2, termEnum.pos());
-//
-//    termEnum.skipTo(16, new int[] { 1, 1 });
-//    assertEquals(16, termEnum.doc());
-//    assertEquals(4, termEnum.termFreqInDoc());
-//    assertEquals(1, termEnum.node()[0]);
-//    assertEquals(1, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(3, termEnum.pos());
   }
 
   @Test
@@ -426,12 +366,11 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     termEnum.skipTo(16);
     assertEquals(16, termEnum.doc());
     assertEquals(4, termEnum.termFreqInDoc());
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(0, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(0,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(0, termEnum.pos());
@@ -440,16 +379,14 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     assertFalse(termEnum.nextPosition());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(1, termEnum.node()[0]);
-    assertEquals(0, termEnum.node()[1]);
+    assertEquals(node(1,0), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(2, termEnum.pos());
     assertFalse(termEnum.nextPosition());
 
     assertTrue(termEnum.nextNode());
-    assertEquals(1, termEnum.node()[0]);
-    assertEquals(1, termEnum.node()[1]);
+    assertEquals(node(1,1), termEnum.node());
     assertEquals(-1, termEnum.pos());
     assertTrue(termEnum.nextPosition());
     assertEquals(3, termEnum.pos());
@@ -457,29 +394,6 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
 
     assertFalse(termEnum.nextNode());
   }
-
-//TODO: Clean this if not needed anymore
-//  @Test
-//  public void testSkipToNextPosition()
-//  throws Exception {
-//    final ArrayList<String> data = new ArrayList<String>();
-//    for (int i = 0; i < 32; i++) {
-//      data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
-//      data.add("\"aaa bbb\" . \"aaa ccc\" .");
-//    }
-//    this.addDocumentsWithIterator(data);
-//    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
-//
-//    termEnum.skipTo(16, new int[] { 1, 0 });
-//    assertEquals(16, termEnum.doc());
-//    assertEquals(1, termEnum.node()[0]);
-//    assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(2, termEnum.pos());
-//    assertFalse(termEnum.nextPosition());
-//  }
 
   @Test
   public void testSkipToNextDoc()
@@ -495,57 +409,52 @@ public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
     termEnum.nextDocument();
     assertEquals(0, termEnum.doc());
 
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     termEnum.skipTo(16);
     assertEquals(16, termEnum.doc());
 
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
 
     termEnum.nextDocument();
     assertEquals(17, termEnum.doc());
 
-    assertEquals(-1, termEnum.node()[0]);
+    assertEquals(node(-1), termEnum.node());
     assertEquals(-1, termEnum.pos());
   }
 
-//TODO: Clean this if not needed anymore
-//  @Test
-//  public void testSkipToNonExistingDocument()
-//  throws Exception {
-//    final ArrayList<String> data = new ArrayList<String>();
-//    for (int i = 0; i < 16; i++) {
-//      data.add("\"aaa aaa\" . \"aaa\" \"aaa\" .");
-//      data.add("\"aaa bbb\" . \"aaa ccc\" .");
-//    }
-//    this.addDocumentsWithIterator(data);
-//    final Siren020NodAndPosEnum termEnum = this.getEnum("aaa");
-//
-//    // does not exist, should skip to entity 17 and to the first cell
-//    assertTrue(termEnum.skipTo(16, new int[] { 3, 2 }));
-//    assertEquals(17, termEnum.doc());
-//
-//    assertEquals(0, termEnum.node()[0]);
-//    assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(0, termEnum.pos());
-//    assertFalse(termEnum.nextPosition());
-//
-//    // does not exist, should skip to entity 19 and to the first cell
-//    assertTrue(termEnum.skipTo(18, new int[] { 2, 2 }));
-//    assertEquals(19, termEnum.doc());
-//
-//    assertEquals(0, termEnum.node()[0]);
-//    assertEquals(0, termEnum.node()[1]);
-//    assertEquals(-1, termEnum.pos());
-//    assertTrue(termEnum.nextPosition());
-//    assertEquals(0, termEnum.pos());
-//    assertFalse(termEnum.nextPosition());
-//
-//    assertFalse(termEnum.skipTo(31, new int[] { 2, 0 })); // does not exist, reach end of list: should return false
-//  }
+  @Test
+  public void testVariableNodeLength() throws Exception {
+    this.addDocuments(
+      doc(token("aaa", node(1)), token("aaa", node(1,0)), token("aaa", node(2))),
+      doc(token("aaa", node(1,0,1,0)), token("aaa", node(1,0)))
+    );
+
+    final Siren020DocNodAndPosEnum termEnum = this.getEnum("aaa");
+
+    assertTrue(termEnum.nextDocument());
+    assertEquals(0, termEnum.doc());
+    assertEquals(node(-1), termEnum.node());
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextNode());
+    assertEquals(node(1), termEnum.node());
+    assertTrue(termEnum.nextNode());
+    assertEquals(node(1,0), termEnum.node());
+    assertTrue(termEnum.nextNode());
+    assertEquals(node(2), termEnum.node());
+    assertFalse(termEnum.nextNode());
+
+    assertTrue(termEnum.nextDocument());
+    assertEquals(1, termEnum.doc());
+    assertEquals(node(-1), termEnum.node());
+    assertEquals(-1, termEnum.pos());
+    assertTrue(termEnum.nextNode());
+    assertEquals(node(1,0,1,0), termEnum.node());
+    assertTrue(termEnum.nextNode());
+    assertEquals(node(1,0), termEnum.node());
+    assertFalse(termEnum.nextNode());
+  }
 
 }

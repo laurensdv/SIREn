@@ -28,8 +28,10 @@ package org.sindice.siren.search.base;
 
 import java.io.IOException;
 
+import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.IntsRef;
 
 /**
  * The abstract {@link Scorer} class that defines the interface for iterating
@@ -104,7 +106,15 @@ public abstract class NodeScorer extends Scorer {
    * <li>Otherwise it should return the node it is currently on.
    * </ul>
    */
-  public abstract int[] node();
+  public abstract IntsRef node();
+
+  @Override
+  public void score(final Collector collector) throws IOException {
+    collector.setScorer(this);
+    while (this.nextCandidateDocument() && this.nextNode()) {
+      collector.collect(this.doc());
+    }
+  }
 
   @Override
   public int docID() {

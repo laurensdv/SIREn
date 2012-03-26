@@ -26,13 +26,16 @@
  */
 package org.sindice.siren.search.node;
 
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuilder.ntq;
+
 import java.io.IOException;
 
 import org.apache.lucene.index.CorruptIndexException;
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.AbstractTestSirenScorer;
-import org.sindice.siren.search.base.NodePrimitiveScorer;
+import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer {
 
@@ -43,17 +46,16 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
    */
   @Test
   public void testTop() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"term1\" . ");
     this.addDocument(writer, "\"term2\" . ");
     this.addDocument(writer, "\"term3\" .  \"term4\" . ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(5);
 
-    final NodePrimitiveScorer s1 = this.getTermScorer(DEFAULT_FIELD, "term1");
-    final NodePrimitiveScorer s2 = this.getTermScorer(DEFAULT_FIELD, "term2");
-    final NodePrimitiveScorer s3 = this.getTermScorer(DEFAULT_FIELD, "term3");
-    final NodePrimitiveScorer s4 = this.getTermScorer(DEFAULT_FIELD, "term4");
+    final NodeScorer s1 = this.getScorer(ntq("term1"));
+    final NodeScorer s2 = this.getScorer(ntq("term2"));
+    final NodeScorer s3 = this.getScorer(ntq("term3"));
+    final NodeScorer s4 = this.getScorer(ntq("term4"));
 
     q.put(s3);
     assertSame(s3, q.top());
@@ -67,15 +69,14 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNextCandidateDocumentAndAdjustElsePop() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
     this.addDocument(writer, "\"term5\" \"term2\" . \"term3\" .  ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(4);
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term2"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term3"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term4"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term5"));
+    q.put(this.getScorer(ntq("term2")));
+    q.put(this.getScorer(ntq("term3")));
+    q.put(this.getScorer(ntq("term4")));
+    q.put(this.getScorer(ntq("term5")));
 
     assertEquals(0, q.doc());
     assertEquals(4, q.size());
@@ -90,34 +91,33 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNextNodeAndAdjust() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
     this.addDocument(writer, "\"term2\" \"term3\" . \"term5\" .  ");
     this.addDocument(writer, "\"term2\" \"term1\" . \"term5\" .  ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(2);
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term1"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term5"));
+    q.put(this.getScorer(ntq("term1")));
+    q.put(this.getScorer(ntq("term5")));
 
     assertEquals(0, q.doc());
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{0,0}, q.node());
+    assertEquals(node(0,0), q.node());
     assertFalse(q.nextNodeAndAdjust());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, q.node());
 
     assertTrue(q.nextCandidateDocumentAndAdjustElsePop());
     assertEquals(1, q.doc());
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{1,0}, q.node());
+    assertEquals(node(1,0), q.node());
     assertFalse(q.nextNodeAndAdjust());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, q.node());
 
     assertTrue(q.nextCandidateDocumentAndAdjustElsePop());
     assertEquals(2, q.doc());
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{0,1}, q.node());
+    assertEquals(node(0,1), q.node());
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{1,0}, q.node());
+    assertEquals(node(1,0), q.node());
     assertFalse(q.nextNodeAndAdjust());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, q.node());
 
@@ -129,14 +129,13 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNrMatches() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
     this.addDocument(writer, "\"term2\" \"term3\" . \"term5\" .  ");
     this.addDocument(writer, "\"term2\" \"term1 term5\" .  ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(2);
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term1"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term5"));
+    q.put(this.getScorer(ntq("term1")));
+    q.put(this.getScorer(ntq("term5")));
 
     assertEquals(0, q.doc());
     assertTrue(q.nextNodeAndAdjust());
@@ -163,9 +162,9 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
   public void testScoreSum() throws IOException {
     this.addDocument(writer, "\"term1 term2 term3\" .  \"term4\" . ");
 
-    final NodePrimitiveScorer s1 = this.getTermScorer(DEFAULT_FIELD, "term1");
-    final NodePrimitiveScorer s2 = this.getTermScorer(DEFAULT_FIELD, "term2");
-    final NodePrimitiveScorer s3 = this.getTermScorer(DEFAULT_FIELD, "term3");
+    final NodeScorer s1 = this.getScorer(ntq("term1"));
+    final NodeScorer s2 = this.getScorer(ntq("term2"));
+    final NodeScorer s3 = this.getScorer(ntq("term3"));
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(3);
     q.put(s1);
@@ -182,7 +181,6 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testskipToCandidateAndAdjustElsePop() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"term1\" \"term2\" . ");
     this.addDocument(writer, "\"term3\" .  \"term1\" . ");
     this.addDocument(writer, "\"term2\" \"term3\" . ");
@@ -190,18 +188,18 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
     this.addDocument(writer, "\"term3\" .  \"term3\" . ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(3);
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term1"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term2"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term3"));
+    q.put(this.getScorer(ntq("term1")));
+    q.put(this.getScorer(ntq("term2")));
+    q.put(this.getScorer(ntq("term3")));
 
     assertEquals(0, q.doc());
     assertTrue(q.skipToCandidateAndAdjustElsePop(3));
     assertEquals(3, q.doc());
     assertEquals(2, q.size()); // term2 should have been removed
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{0,0}, q.node());
+    assertEquals(node(0,0), q.node());
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{1,0}, q.node());
+    assertEquals(node(1,0), q.node());
     assertFalse(q.nextNodeAndAdjust());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, q.node());
 
@@ -213,9 +211,9 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
     assertEquals(4, q.doc());
     assertEquals(1, q.size()); // term1 should have been removed
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{0,0}, q.node());
+    assertEquals(node(0,0), q.node());
     assertTrue(q.nextNodeAndAdjust());
-    assertArrayEquals(new int[]{1,0}, q.node());
+    assertEquals(node(1,0), q.node());
     assertFalse(q.nextNodeAndAdjust());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, q.node());
 
@@ -226,14 +224,13 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNextNodeHeapTraversal() throws IOException {
-    this.deleteAll(writer);
     this.addDocument(writer, "\"term1 term3\" \"term5 term2\" . \"term1 term3\" .  \"term5 term4 term3\" . ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(4);
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term2"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term3"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term4"));
-    q.put(this.getTermScorer(DEFAULT_FIELD, "term5"));
+    q.put(this.getScorer(ntq("term2")));
+    q.put(this.getScorer(ntq("term3")));
+    q.put(this.getScorer(ntq("term4")));
+    q.put(this.getScorer(ntq("term5")));
 
     // test if the heap traversal is done properly.
     for (int i = 0; i < 4; i++) {

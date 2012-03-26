@@ -28,62 +28,45 @@ package org.sindice.siren.search.twig;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.search.similarities.DefaultSimilarityProvider;
-import org.apache.lucene.search.similarities.SimilarityProvider;
+import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.base.NodeScorer;
-import org.sindice.siren.search.node.NodeBooleanClause.Occur;
-import org.sindice.siren.search.node.NodeConjunctionScorer;
-import org.sindice.siren.search.node.NodeDisjunctionScorer;
-import org.sindice.siren.search.node.NodeReqExclScorer;
-import org.sindice.siren.search.node.NodeReqOptScorer;
-import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.search.node.NodeBooleanScorer;
 import org.sindice.siren.search.twig.TwigQuery.TwigWeight;
 
 /**
- * A Query that matches cells matching boolean combinations of other primitive
- * queries, e.g. {@link NodeTermQuery}s, {@link NodePhraseQuery}s, etc.
- * Implements skipTo(), and has no limitations on the numbers of added scorers.
+ * A scorer that matches a root (ancestor) scorer with a boolean combination of
+ * other (descendant) scorers.
  * <p>
- * Uses {@link NodeConjunctionScorer}, {@link NodeDisjunctionScorer},
- * {@link NodeReqExclScorer} and {@link NodeReqOptScorer}.
- * <p>
- * We consider a {@link TwigScorer} as a primitive scorer in order to
- * support nested (group) boolean query within a cell.
- * <p>
- * Code taken from {@link BooleanScorer2} and adapted for the Siren use case.
+ * The {@link TwigScorer} subclasses the {@link NodeBooleanScorer}. A Twig query
+ * is rewritten into a pure boolean query. To achieve this, we
+ * must perform the following:
+ * <ul>
+ * <li> The descendant scorers are filtered so that they return potential common
+ * ancestors. Such a filtering is performed by {@link AncestorFilterNodeScorer}.
+ * <li> The root scorer is added as a required clause into the boolean query.
+ * </ul>
  */
-public class TwigScorer extends NodeScorer {
+public class TwigScorer extends NodeBooleanScorer {
 
   private final NodeScorer rootScorer;
 
-  private final List<NodeScorer> requiredScorers;
-  private final List<NodeScorer> optionalScorers;
-  private final List<NodeScorer> prohibitedScorers;
-
-  private final Coordinator coordinator;
-
   /**
-   * The scorer to which all scoring will be delegated, except for computing and
-   * using the coordination factor.
-   */
-  private NodeScorer countingSumScorer = null;
-
-  private static SimilarityProvider defaultSimProvider = new DefaultSimilarityProvider();
-
-  /**
-   * Creates a {@link TwigScorer} with the given similarity and lists of
-   * required, prohibited and optional scorers. In no required scorers are added,
-   * at least one of the optional scorers will have to match during the search.
+   * Creates a {@link TwigScorer} with the given root scorer and lists of
+   * required, prohibited and optional scorers.
    *
    * @param weight
    *          The BooleanWeight to be used.
+   * @param disableCoord
+   *          If this parameter is true, coordination level matching
+   *          ({@link Similarity#coord(int, int)}) is not used.
+   * @param root
+   *          The scorer of the twig root.
+   * @param rootLevel
+   *          The level of the twig root.
    * @param required
    *          the list of required scorers.
    * @param prohibited
@@ -92,276 +75,49 @@ public class TwigScorer extends NodeScorer {
    *          the list of optional scorers.
    */
   public TwigScorer(final TwigWeight weight,
-                    final NodeScorer root,
+                    final boolean disableCoord,
+                    final NodeScorer root, final int rootLevel,
                     final List<NodeScorer> required,
                     final List<NodeScorer> prohibited,
                     final List<NodeScorer> optional,
                     final int maxCoord) throws IOException {
-    super(weight);
-    coordinator = new Coordinator();
-    coordinator.maxCoord = maxCoord;
-
+    super(weight, disableCoord,
+      append(addAncestorFilter(required, rootLevel), root),
+      addAncestorFilter(prohibited, rootLevel),
+      addAncestorFilter(optional, rootLevel), maxCoord);
     rootScorer = root;
-    optionalScorers = optional;
-    requiredScorers = required;
-    prohibitedScorers = prohibited;
-
-    coordinator.init();
-    countingSumScorer = this.makeCountingSumScorer();
   }
 
-  private NodeScorer countingDisjunctionSumScorer(final List<NodeScorer> scorers)
-  throws IOException {
-
-    final NodeScorer disjunctionScorer = new NodeDisjunctionScorer(this.getWeight(), scorers) {
-
-      private final int lastScoredDoc = -1;
-
-      // Save the score of lastScoredDoc, so that we don't compute it more than
-      // once in score().
-      private final float lastDocScore = Float.NaN;
-
-      @Override
-      public float score() {
-        // TODO
-        throw new UnsupportedOperationException();
-//        final int doc = this.doc();
-//        if (doc >= lastScoredDoc) {
-//          if (doc > lastScoredDoc) {
-//            lastDocScore = super.score();
-//            lastScoredDoc = doc;
-//          }
-//          coordinator.nrMatchers += super.nrMatchers;
-//        }
-//        return lastDocScore;
-      }
-    };
-
-    return new SingleDescendantScorer(weight, rootScorer, disjunctionScorer);
-  }
-
-  private NodeScorer countingConjunctionSumScorer(final List<NodeScorer> requiredScorers)
-  throws IOException {
-    // each scorer from the list counted as a single matcher
-    final int requiredNrMatchers = requiredScorers.size();
-
-    return new TwigConjunctionScorer(weight,
-      ((TwigWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
-      rootScorer, requiredScorers) {
-
-      private final int lastScoredDoc = -1;
-
-      // Save the score of lastScoredDoc, so that we don't compute it more than
-      // once in score().
-      private final float lastDocScore = Float.NaN;
-
-      @Override
-      public float score() throws IOException {
-        // TODO
-        throw new UnsupportedOperationException();
-//        final int doc = this.doc();
-//        if (doc >= lastScoredDoc) {
-//          if (doc > lastScoredDoc) {
-//            lastDocScore = super.score();
-//            lastScoredDoc = doc;
-//          }
-//          coordinator.nrMatchers += requiredNrMatchers;
-//        }
-//        // All scorers match, so defaultSimilarity super.score() always has 1 as
-//        // the coordination factor.
-//        // Therefore the sum of the scores of the requiredScorers
-//        // is used as score.
-//        return lastDocScore;
-      }
-    };
-  }
-
-  /**
-   * Returns the scorer to be used for match counting and score summing. Uses
-   * requiredScorers, optionalScorers and prohibitedScorers.
-   */
-  private NodeScorer makeCountingSumScorer()
-  throws IOException { // each scorer counted as a single matcher
-    return (requiredScorers.size() == 0) ? this.makeCountingSumScorerNoReq()
-                                         : this.makeCountingSumScorerSomeReq();
-  }
-
-  private NodeScorer makeCountingSumScorerNoReq()
-  throws IOException { // No required scorers
-    NodeScorer requiredCountingSumScorer;
-    if (optionalScorers.size() > 1)
-      requiredCountingSumScorer = this.countingDisjunctionSumScorer(optionalScorers);
-    else if (optionalScorers.size() == 1)
-      requiredCountingSumScorer = new SingleDescendantScorer(weight, rootScorer, optionalScorers.get(0));
-    else {
-      requiredCountingSumScorer = this.countingConjunctionSumScorer(optionalScorers);
+  private static final List<NodeScorer> addAncestorFilter(final List<NodeScorer> scorers,
+                                                          final int ancestorLevel) {
+    final ArrayList<NodeScorer> filteredScorers = new ArrayList<NodeScorer>();
+    for (final NodeScorer scorer : scorers) {
+      filteredScorers.add(new AncestorFilterNodeScorer(scorer, ancestorLevel));
     }
-    return this.addProhibitedScorers(requiredCountingSumScorer);
+    return filteredScorers;
   }
 
-  private NodeScorer makeCountingSumScorerSomeReq()
-  throws IOException { // At least one required scorer.
-    final NodeScorer requiredCountingSumScorer =
-      (requiredScorers.size() == 1) ? new SingleDescendantScorer(weight, rootScorer, requiredScorers.get(0))
-                                    : this.countingConjunctionSumScorer(requiredScorers);
-
-    if (optionalScorers.isEmpty()) {
-      return this.addProhibitedScorers(requiredCountingSumScorer);
-    }
-    else {
-      return new NodeReqOptScorer(
-        this.addProhibitedScorers(requiredCountingSumScorer),
-        optionalScorers.size() == 1
-          ? new SingleDescendantScorer(weight, rootScorer, optionalScorers.get(0))
-          // require 1 in combined, optional scorer.
-          : this.countingDisjunctionSumScorer(optionalScorers));
-    }
-  }
-
-  /**
-   * Returns the scorer to be used for match counting and score summing. Uses
-   * the given required scorer and the prohibitedScorers.
-   *
-   * @param requiredCountingSumScorer
-   *          A required scorer already built.
-   */
-  private NodeScorer addProhibitedScorers(final NodeScorer requiredCountingSumScorer)
-  throws IOException {
-    return (prohibitedScorers.size() == 0)
-      ? requiredCountingSumScorer // no prohibited
-      : new NodeReqExclScorer(requiredCountingSumScorer,
-                               ((prohibitedScorers.size() == 1)
-                               ? new SingleDescendantScorer(weight, rootScorer, prohibitedScorers.get(0))
-                               : new SingleDescendantScorer(weight, rootScorer, new NodeDisjunctionScorer(weight, prohibitedScorers))));
-  }
-
-  /**
-   * Scores and collects all matching documents.
-   *
-   * @param hc
-   *          The collector to which all matching documents are passed through
-   *          {@link HitCollector#collect(int, float)}. <br>
-   *          When this method is used the {@link #explain(int)} method should
-   *          not be used.
-   */
-  @Override
-  public void score(final Collector collector) throws IOException {
-    // TODO
-    throw new UnsupportedOperationException();
-//    collector.setScorer(this);
-//    while (this.nextDocument()) {
-//      collector.collect(this.doc());
-//    }
-  }
-
-  /**
-   * Expert: Collects matching documents in a range. <br>
-   * Note that {@link #nextDocument()} must be called once before this method is called
-   * for the first time.
-   *
-   * @param hc
-   *          The collector to which all matching documents are passed through
-   *          {@link HitCollector#collect(int, float)}.
-   * @param max
-   *          Do not score documents past this.
-   * @return true if more matching documents may remain.
-   */
-  @Override
-  public boolean score(final Collector collector, final int max, final int firstDocID)
-  throws IOException {
-    // TODO
-    throw new UnsupportedOperationException();
-
-//    int doc = firstDocID;
-//    collector.setScorer(this);
-//    while (doc < max) {
-//      collector.collect(doc);
-//      countingSumScorer.nextDocument();
-//      doc = countingSumScorer.doc();
-//    }
-//    return doc != NO_MORE_DOCS;
-  }
-
-  @Override
-  public int doc() {
-    return countingSumScorer.doc();
-  }
-
-  @Override
-  public float freq() {
-    return coordinator.nrMatchers;
-  }
-
-  @Override
-  public int[] node() {
-    return countingSumScorer.node();
-  }
-
-  @Override
-  public boolean nextCandidateDocument() throws IOException {
-    return countingSumScorer.nextCandidateDocument();
-  }
-
-  @Override
-  public boolean nextNode() throws IOException {
-    return countingSumScorer.nextNode();
-  }
-
-  @Override
-  public float score()
-  throws IOException {
-    coordinator.nrMatchers = 0;
-    final float sum = countingSumScorer.score();
-    return sum * coordinator.coordFactors[coordinator.nrMatchers];
-  }
-
-  @Override
-  public boolean skipToCandidate(final int target) throws IOException {
-    return countingSumScorer.skipToCandidate(target);
-  }
-
-  @Override
-  public Collection<ChildScorer> getChildren() {
-    final ArrayList<ChildScorer> children = new ArrayList<ChildScorer>();
-    for (final Scorer s : optionalScorers) {
-      children.add(new ChildScorer(s, Occur.SHOULD.toString()));
-    }
-    for (final Scorer s : prohibitedScorers) {
-      children.add(new ChildScorer(s, Occur.MUST_NOT.toString()));
-    }
-    for (final Scorer s : requiredScorers) {
-      children.add(new ChildScorer(s, Occur.MUST.toString()));
-    }
-    return children;
+  private static final List<NodeScorer> append(final List<NodeScorer> scorers, final NodeScorer scorer) {
+    scorers.add(scorer);
+    return scorers;
   }
 
   @Override
   public String toString() {
-    return "NodeBooleanScorer(" + this.weight + "," + this.doc() + "," +
-      Arrays.toString(this.node()) + ")";
-  }
-
-  private class Coordinator {
-
-    float[] coordFactors = null;
-    int maxCoord = 0; // to be increased for each non prohibited scorer
-    int nrMatchers; // to be increased by score() of match counting scorers.
-
-    void init() { // use after all scorers have been added.
-      coordFactors = new float[optionalScorers.size() + requiredScorers.size() + 1];
-      for (int i = 0; i < coordFactors.length; i++) {
-        coordFactors[i] = ((TwigWeight) weight).coord(i, maxCoord);
-      }
-    }
+    return "TwigScorer(" + this.weight + "," + this.doc() + "," +
+      this.node() + ")";
   }
 
   /**
-   * Single descendant scorer which performs a conjunction between the root and
-   * the descendant node.
+   * Scorer that filters node path and output the ancestor node path.
+   * <p>
+   * The level of the ancestor must be provided and used to modify the
+   * {@link IntsRef#length} of the node path returned by the inner scorer.
    */
-  private class SingleDescendantScorer extends TwigConjunctionScorer {
+  protected static class AncestorFilterNodeScorer extends NodeScorer {
 
-    private final NodeScorer root;
+    private final NodeScorer scorer;
+    private final int ancestorLevel;
 
     private final int   lastScoredDoc = -1;
 
@@ -369,41 +125,57 @@ public class TwigScorer extends NodeScorer {
     // once in score().
     private final float lastDocScore = Float.NaN;
 
-    SingleDescendantScorer(final Weight weight, final NodeScorer root, final NodeScorer descendant)
-    throws IOException {
-      super(weight, ((TwigWeight) weight).coord(2, 2), root, descendant);
-      this.root = root;
+    AncestorFilterNodeScorer(final NodeScorer scorer, final int ancestorLevel) {
+      super(scorer.getWeight());
+      this.scorer = scorer;
+      this.ancestorLevel = ancestorLevel;
+    }
+
+    protected NodeScorer getScorer() {
+      return scorer;
     }
 
     @Override
     public float score() throws IOException {
-      // TODO
-      throw new UnsupportedOperationException();
-//      final int doc = this.doc();
-//      if (doc >= lastScoredDoc) {
-//        if (doc > lastScoredDoc) {
-//          lastDocScore = scorer.score();
-//          lastScoredDoc = doc;
-//        }
-//        coordinator.nrMatchers++;
-//      }
-//      return lastDocScore;
-    }
-
-    @Override
-    public int doc() {
-      return root.doc();
-    }
-
-    @Override
-    public int[] node() {
-      return root.node();
+      return scorer.score();
     }
 
     @Override
     public String toString() {
-      return "SingleDescendantScorer(" + weight + "," + this.doc() + "," +
-        Arrays.toString(this.node()) + ")";
+      return "AncestorFilterScorer(" + weight + "," + this.doc() + "," +
+        this.node() + ")";
+    }
+
+    @Override
+    public boolean nextCandidateDocument() throws IOException {
+      return scorer.nextCandidateDocument();
+    }
+
+    @Override
+    public boolean nextNode() throws IOException {
+      return scorer.nextNode();
+    }
+
+    @Override
+    public boolean skipToCandidate(final int target) throws IOException {
+      return scorer.skipToCandidate(target);
+    }
+
+    @Override
+    public int doc() {
+      return scorer.doc();
+    }
+
+    @Override
+    public IntsRef node() {
+      final IntsRef node = scorer.node();
+      // resize node array only if node is not a sentinel value
+      if (node.length > ancestorLevel &&
+          node.ints[0] != -1 &&
+          node != DocsAndNodesIterator.NO_MORE_NOD) {
+        node.length = ancestorLevel;
+      }
+      return node;
     }
 
   }

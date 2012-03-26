@@ -26,13 +26,13 @@
 package org.sindice.siren.search.twig;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeConjunctionScorer;
-import org.sindice.siren.util.ArrayUtils;
 import org.sindice.siren.util.NodeUtils;
 
 public class TwigConjunctionScorer extends NodeConjunctionScorer {
@@ -51,19 +51,28 @@ public class TwigConjunctionScorer extends NodeConjunctionScorer {
                                final NodeScorer root,
                                final NodeScorer ... scorers)
   throws IOException {
-    super(weight, coord, ((NodeScorer[]) ArrayUtils.add(scorers, root)));
+    super(weight, coord, append(scorers, root));
     this.root = root;
     this.descendants = scorers;
   }
 
-  @Override
-  public int doc() {
-    return root.doc();
+  private static final NodeScorer[] append(final NodeScorer[] array, final NodeScorer element) {
+    final NodeScorer[] newArray = new NodeScorer[array.length + 1];
+    System.arraycopy(array, 0, newArray, 0, array.length);
+    newArray[newArray.length - 1] = element;
+    return newArray;
   }
 
   @Override
-  public int[] node() {
-    return root.node();
+  public int doc() {
+    // return root.doc();
+    return lastDocument;
+  }
+
+  @Override
+  public IntsRef node() {
+    // return root.node();
+    return lastNode;
   }
 
   @Override
@@ -74,24 +83,27 @@ public class TwigConjunctionScorer extends NodeConjunctionScorer {
         int c;
         while ((c = NodeUtils.compareAncestor(root.node(), descendants[i].node())) > 0) {
           if (!descendants[i].nextNode()) {
+            lastNode = DocsAndNodesIterator.NO_MORE_NOD;
             return false;
           }
         }
-        if (c > 0) {
+        if (c < 0) { // root node behind
           // continue to the label statement and move to the next root's node
           continue root;
         }
       }
       // all equals
+      lastNode = root.node();
       return true;
     }
+    lastNode = DocsAndNodesIterator.NO_MORE_NOD;
     return false;
   }
 
   @Override
   public String toString() {
     return "TwigConjunctionScorer(" + weight + "," + this.doc() + "," +
-      Arrays.toString(this.node()) + ")";
+      this.node() + ")";
   }
 
 }

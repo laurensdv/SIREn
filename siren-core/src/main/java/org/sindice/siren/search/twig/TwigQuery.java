@@ -30,19 +30,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReader.AtomicReaderContext;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.search.similarities.SimilarityProvider;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.base.NodeQuery;
@@ -57,39 +56,31 @@ import org.sindice.siren.search.primitive.NodePrimitiveQuery;
  * <p>
  * Code taken from {@link BooleanQuery} and adapted for the Siren use case.
  */
-public class TwigQuery extends NodeQuery {
+public class TwigQuery extends NodeBooleanQuery {
 
-  private static int maxClauseCount = 1024;
-
-  /**
-   * Return the maximum number of clauses permitted, 1024 by default. Attempts
-   * to add more than the permitted number of clauses cause
-   * {@link TooManyClauses} to be thrown.
-   *
-   * @see #setMaxClauseCount(int)
-   */
-  public static int getMaxClauseCount() {
-    return maxClauseCount;
-  }
-
-  /**
-   * Set the maximum number of clauses permitted per BooleanQuery. Default value
-   * is 1024.
-   */
-  public static void setMaxClauseCount(final int maxClauseCount) {
-    if (maxClauseCount < 1)
-      throw new IllegalArgumentException("maxClauseCount must be >= 1");
-    TwigQuery.maxClauseCount = maxClauseCount;
-  }
-
-  private ArrayList<NodeBooleanClause> clauses = new ArrayList<NodeBooleanClause>();
-
-  private final NodeQuery root;
+  private NodeQuery root;
 
   private final int rootLevel;
 
   /** Constructs an empty twig query. */
-  public TwigQuery(final NodeQuery root, final int rootLevel) {
+  public TwigQuery(final int rootLevel, final NodeQuery root) {
+    this.root = root;
+    this.rootLevel = rootLevel;
+    root.setNodeLevelConstraint(rootLevel);
+  }
+
+  /**
+   * Constructs an empty twig query.
+   *
+   * {@link SimilarityProvider#coord(int,int)} may be disabled in scoring, as
+   * appropriate. For example, this score factor does not make sense for most
+   * automatically generated queries, like {@link WildcardQuery} and {@link
+   * FuzzyQuery}.
+   *
+   * @param disableCoord disables {@link SimilarityProvider#coord(int,int)} in scoring.
+   */
+  public TwigQuery(final int rootLevel, final NodeQuery root, final boolean disableCoord) {
+    super(disableCoord);
     this.root = root;
     this.rootLevel = rootLevel;
     root.setNodeLevelConstraint(rootLevel);
@@ -115,7 +106,7 @@ public class TwigQuery extends NodeQuery {
    *           if the new number of clauses exceeds the maximum clause number
    * @see #getMaxClauseCount()
    */
-  public void addDescendant(final NodePrimitiveQuery query, final int nodeLevel, final NodeBooleanClause.Occur occur) {
+  public void addDescendant(final int nodeLevel, final NodePrimitiveQuery query, final NodeBooleanClause.Occur occur) {
     // set the level constraint on the query
     query.setNodeLevelConstraint(nodeLevel);
     this.add(new NodeBooleanClause(query, occur));
@@ -128,7 +119,7 @@ public class TwigQuery extends NodeQuery {
    *           if the new number of clauses exceeds the maximum clause number
    * @see #getMaxClauseCount()
    */
-  public void addDescendant(final NodeBooleanQuery query, final int nodeLevel, final NodeBooleanClause.Occur occur) {
+  public void addDescendant(final int nodeLevel, final NodeBooleanQuery query, final NodeBooleanClause.Occur occur) {
     // set the level constraint on the query
     query.setNodeLevelConstraint(nodeLevel);
     this.add(new NodeBooleanClause(query, occur));
@@ -146,102 +137,47 @@ public class TwigQuery extends NodeQuery {
   }
 
   /**
-   * Adds a clause to a boolean query.
-   *
-   * @throws TooManyClauses
-   *           if the new number of clauses exceeds the maximum clause number
-   * @see #getMaxClauseCount()
-   */
-  protected void add(final NodeBooleanClause clause) {
-    if (clauses.size() >= maxClauseCount) {
-      throw new TooManyClauses();
-    }
-    clauses.add(clause);
-  }
-
-  /** Returns the set of clauses in this query. */
-  public NodeBooleanClause[] getClauses() {
-    return clauses.toArray(new NodeBooleanClause[clauses.size()]);
-  }
-
-  /** Returns the list of clauses in this query. */
-  public List<NodeBooleanClause> clauses() {
-    return clauses;
-  }
-
-  /**
-   * Returns an iterator on the clauses in this query. It implements the
-   * {@link Iterable} interface to make it possible to do:
-   * <pre>for (NodeBooleanClause clause : twigQuery) {}</pre>
-   */
-  public final Iterator<NodeBooleanClause> iterator() {
-    return this.clauses().iterator();
-  }
-
-  /**
    * Expert: the Weight for {@link TwigQuery}, used to
    * normalize, score and explain these queries.
    */
-  protected class TwigWeight extends Weight {
+  protected class TwigWeight extends NodeBooleanWeight {
 
-    protected SimilarityProvider similarityProvider;
     protected Weight rootWeight;
-    protected ArrayList<Weight> descendantWeights;
-    protected int maxCoord;  // num optional + num required
 
-    public TwigWeight(final IndexSearcher searcher) throws IOException {
-      this.similarityProvider = searcher.getSimilarityProvider();
+    public TwigWeight(final IndexSearcher searcher, final boolean disableCoord)
+    throws IOException {
+      super(searcher, disableCoord);
       rootWeight = root.createWeight(searcher);
-      descendantWeights = new ArrayList<Weight>(clauses.size());
+    }
+
+    @Override
+    protected void initWeights(final IndexSearcher searcher) throws IOException {
+      weights = new ArrayList<Weight>(clauses.size());
       for (int i = 0; i < clauses.size(); i++) {
         final NodeBooleanClause c = clauses.get(i);
         final NodeQuery q = c.getQuery();
-        descendantWeights.add(q.createWeight(searcher));
+        // pass to child query the lower and upper bound contraints
+        // the level constraint has been set by #addChild or #addDescendant
+        q.setNodeConstraint(nodeLowerBoundConstraint, nodeUpperBoundConstraint);
+        weights.add(q.createWeight(searcher));
         if (!c.isProhibited()) maxCoord++;
       }
     }
 
     @Override
-    public String toString() {
-      return "weight(" + TwigQuery.this + ")";
-    }
-
-    @Override
-    public Query getQuery() {
-      return TwigQuery.this;
-    }
-
-    @Override
-    public float getValueForNormalization()
-    throws IOException {
-      float sum = 0.0f;
-      for (int i = 0; i < descendantWeights.size(); i++) {
-        // call sumOfSquaredWeights for all clauses in case of side effects
-        final float s = descendantWeights.get(i).getValueForNormalization(); // sum sub weights
-        if (!clauses.get(i).isProhibited()) {
-        // only add to sum for non-prohibited clauses
-          sum += s;
-        }
-      }
-
-      // boost each sub-weight
-      sum *= TwigQuery.this.getBoost() * TwigQuery.this.getBoost();
-
+    public float getValueForNormalization() throws IOException {
+      float sum = super.getValueForNormalization();
+      // incorporate root weight
+      sum += rootWeight.getValueForNormalization() * TwigQuery.this.getBoost() * TwigQuery.this.getBoost();
       return sum;
-    }
-
-    public float coord(final int overlap, final int maxOverlap) {
-      return similarityProvider.coord(overlap, maxOverlap);
     }
 
     @Override
     public void normalize(final float norm, float topLevelBoost) {
-      // incorporate boost
+      super.normalize(norm, topLevelBoost);
+      // Normalise root weight
       topLevelBoost *= TwigQuery.this.getBoost();
-      for (final Weight w : descendantWeights) {
-        // normalize all clauses, (even if prohibited in case of side affects)
-        w.normalize(norm, topLevelBoost);
-      }
+      rootWeight.normalize(norm, topLevelBoost);
     }
 
     // TODO: Add root node in the explanation
@@ -254,9 +190,9 @@ public class TwigQuery extends NodeQuery {
       float sum = 0.0f;
       boolean fail = false;
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
-      for (final Weight w : descendantWeights) {
+      for (final Weight w : weights) {
         final NodeBooleanClause c = cIter.next();
-        if (w.scorer(context, true, true, context.reader.getLiveDocs()) == null) {
+        if (w.scorer(context, true, true, context.reader().getLiveDocs()) == null) {
           if (c.isRequired()) {
             fail = true;
             final Explanation r = new Explanation(0.0f, "no match on required " +
@@ -325,7 +261,7 @@ public class TwigQuery extends NodeQuery {
       final List<NodeScorer> prohibited = new ArrayList<NodeScorer>();
       final List<NodeScorer> optional = new ArrayList<NodeScorer>();
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
-      for (final Weight w  : descendantWeights) {
+      for (final Weight w  : weights) {
         final NodeBooleanClause c =  cIter.next();
         final NodeScorer subScorer = (NodeScorer) w.scorer(context, true, false, acceptDocs);
         if (subScorer == null) {
@@ -341,41 +277,69 @@ public class TwigQuery extends NodeQuery {
         }
       }
 
-      if (required.size() == 0 && optional.size() == 0) {
-        // no required and optional clauses.
-        return null;
-      }
-
-      return new TwigScorer(this, rootScorer, required, prohibited, optional, maxCoord);
+      return new TwigScorer(this, disableCoord, rootScorer, rootLevel, required,
+        prohibited, optional, maxCoord);
     }
 
   }
 
   @Override
   public Weight createWeight(final IndexSearcher searcher) throws IOException {
-    return new TwigWeight(searcher);
+    return new TwigWeight(searcher, disableCoord);
   }
 
   @Override
   public Query rewrite(final IndexReader reader) throws IOException {
-    if (clauses.size() == 1) {                    // optimize 1-clause queries
-      final NodeBooleanClause c = clauses.get(0);
-      if (!c.isProhibited()) {        // just return clause
+    // optimize 0-clause queries
+    if (clauses.size() == 0) {
+      // rewrite root first
+      NodeQuery query = (NodeQuery) root.rewrite(reader);
 
-        Query query = c.getQuery().rewrite(reader);    // rewrite first
+      // incorporate constraint
+      query.setNodeConstraint(this.nodeLowerBoundConstraint,
+        this.nodeUpperBoundConstraint, this.nodeLevelConstraint);
 
-        if (this.getBoost() != 1.0f) {                  // incorporate boost
-          if (query == c.getQuery()) {                  // if rewrite was no-op
-            query = (Query) query.clone();         // then clone before boost
-          }
-          query.setBoost(this.getBoost() * query.getBoost());
+      if (this.getBoost() != 1.0f) {                 // incorporate boost
+        if (query == root) {                         // if rewrite was no-op
+          query = (NodeQuery) query.clone();         // then clone before boost
         }
-
-        return query;
+        query.setBoost(this.getBoost() * query.getBoost());
       }
+
+      return query;
     }
 
-    TwigQuery clone = null;                    // recursively rewrite
+    TwigQuery clone = null;
+
+    // rewrite root
+    clone = this.rewriteRoot(clone, reader);
+
+    // recursively rewrite ancestors and childs
+    clone = this.rewriteClauses(clone, reader);
+
+    // some clauses rewrote
+    if (clone != null) {
+      return clone;
+    }
+    else { // no clauses rewrote
+      return this;
+    }
+  }
+
+  private TwigQuery rewriteRoot(TwigQuery clone, final IndexReader reader)
+  throws IOException {
+    final Query query = root.rewrite(reader);
+    if (query != root) {
+      if (clone == null) {
+        clone = (TwigQuery) this.clone();
+      }
+      clone.root = (NodeQuery) query;
+    }
+    return clone;
+  }
+
+  private TwigQuery rewriteClauses(TwigQuery clone, final IndexReader reader)
+  throws IOException {
     for (int i = 0 ; i < clauses.size(); i++) {
       final NodeBooleanClause c = clauses.get(i);
       final Query query = c.getQuery().rewrite(reader);
@@ -386,29 +350,17 @@ public class TwigQuery extends NodeQuery {
         clone.clauses.set(i, new NodeBooleanClause((NodeQuery) query, c.getOccur()));
       }
     }
-    if (clone != null) {
-      return clone;                               // some clauses rewrote
-    }
-    else {
-      return this;                                // no clauses rewrote
-    }
-  }
-
-  @Override
-  public void extractTerms(final Set<Term> terms) {
-    for (final NodeBooleanClause clause : clauses) {
-      clause.getQuery().extractTerms(terms);
-    }
+    return clone;
   }
 
   @Override @SuppressWarnings("unchecked")
   public Object clone() {
     final TwigQuery clone = (TwigQuery) super.clone();
     clone.clauses = (ArrayList<NodeBooleanClause>) this.clauses.clone();
+    clone.root = (NodeQuery) this.root.clone();
     return clone;
   }
 
-  // TODO: Add root node
   @Override
   public String toString(final String field) {
     final StringBuffer buffer = new StringBuffer();
@@ -417,6 +369,12 @@ public class TwigQuery extends NodeQuery {
       buffer.append("(");
     }
 
+    buffer.append("{");
+    buffer.append(root.toString(field));
+    buffer.append("}");
+    buffer.append(" // ");
+
+    buffer.append("{");
     for (int i = 0; i < clauses.size(); i++) {
       final NodeBooleanClause c = clauses.get(i);
       if (c.isProhibited())
@@ -425,7 +383,8 @@ public class TwigQuery extends NodeQuery {
 
       final Query subQuery = c.getQuery();
       if (subQuery != null) {
-        if (subQuery instanceof TwigQuery) { // wrap sub-bools in parens
+        if (subQuery instanceof TwigQuery ||
+            subQuery instanceof NodeBooleanQuery) { // wrap sub-bools in parens
           buffer.append("(");
           buffer.append(subQuery.toString(field));
           buffer.append(")");
@@ -438,8 +397,9 @@ public class TwigQuery extends NodeQuery {
         buffer.append("null");
       }
 
-      if (i != clauses.size() - 1) buffer.append(" ");
+      if (i != clauses.size() - 1) buffer.append(", ");
     }
+    buffer.append("}");
 
     if (needParens) {
       buffer.append(")");
@@ -461,24 +421,6 @@ public class TwigQuery extends NodeQuery {
            this.clauses.equals(other.clauses) &&
            this.root.equals(other.root) &&
            this.rootLevel == other.rootLevel;
-  }
-
-  /** Returns a hash code value for this object. */
-  @Override
-  public int hashCode() {
-    return Float.floatToIntBits(this.getBoost()) ^ clauses.hashCode();
-  }
-
-  /**
-   * Thrown when an attempt is made to add more than {@link
-   * #getMaxClauseCount()} clauses. This typically happens if
-   * a PrefixQuery, FuzzyQuery, WildcardQuery, or TermRangeQuery
-   * is expanded to many terms during search.
-   */
-  public static class TooManyClauses extends RuntimeException {
-    public TooManyClauses() {
-      super("maxClauseCount is set to " + maxClauseCount);
-    }
   }
 
 }

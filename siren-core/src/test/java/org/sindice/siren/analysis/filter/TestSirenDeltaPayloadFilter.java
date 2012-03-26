@@ -25,6 +25,11 @@
  */
 package org.sindice.siren.analysis.filter;
 
+import static org.sindice.siren.analysis.MockSirenDocument.doc;
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.analysis.MockSirenToken.token;
+
+import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Arrays;
@@ -40,7 +45,8 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.SirenTokenizerMockup;
+import org.sindice.siren.analysis.MockSirenAnalyzer;
+import org.sindice.siren.analysis.MockSirenDocument;
 import org.sindice.siren.analysis.TupleTokenizer;
 import org.sindice.siren.index.codecs.siren020.VIntPayloadCodec;
 
@@ -50,11 +56,11 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
   public void testSimpleTuple() throws Exception {
     final TokenStream stream = this.getTupleTokenStream("<aaa aaa> <aaa> <aaa> <ccc> .");
 
-    this.assertNodePathEquals("aaa", new int[]{0,0}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,0}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,1}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,1}, stream);
-    this.assertNodePathEquals("ccc", new int[]{0,3}, stream);
+    this.assertNodePathEquals("aaa", node(0,0), stream);
+    this.assertNodePathEquals("aaa", node(0,0), stream);
+    this.assertNodePathEquals("aaa", node(0,1), stream);
+    this.assertNodePathEquals("aaa", node(0,1), stream);
+    this.assertNodePathEquals("ccc", node(0,3), stream);
 
   }
 
@@ -62,63 +68,54 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
   public void testComplexTuple() throws Exception {
     final TokenStream stream = this.getTupleTokenStream("<aaa> <aaa> . <aaa aaa> . <bbb> . <aaa> <aaa> .");
 
-    this.assertNodePathEquals("aaa", new int[]{0,0}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,1}, stream);
-    this.assertNodePathEquals("aaa", new int[]{1,0}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,0}, stream);
-    this.assertNodePathEquals("bbb", new int[]{2,0}, stream);
-    this.assertNodePathEquals("aaa", new int[]{2,0}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,1}, stream);
+    this.assertNodePathEquals("aaa", node(0,0), stream);
+    this.assertNodePathEquals("aaa", node(0,1), stream);
+    this.assertNodePathEquals("aaa", node(1,0), stream);
+    this.assertNodePathEquals("aaa", node(0,0), stream);
+    this.assertNodePathEquals("bbb", node(2,0), stream);
+    this.assertNodePathEquals("aaa", node(2,0), stream);
+    this.assertNodePathEquals("aaa", node(0,1), stream);
   }
 
   @Test
   public void testSameNode() throws Exception {
-    final TokenStream stream = this.getSirenTokenStream(
-      "aaa",
-      new int[][] {
-        new int[]{1,3},
-        new int[]{1,3}
-      }
-    );
+    final TokenStream stream = this.getSirenTokenStream(doc(
+      token("aaa", node(1,3)),
+      token("aaa", node(1,3))
+    ));
 
-    this.assertNodePathEquals("aaa", new int[]{1,3}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,0}, stream);
+    this.assertNodePathEquals("aaa", node(1,3), stream);
+    this.assertNodePathEquals("aaa", node(0,0), stream);
   }
 
   @Test
   public void testParentChild() throws Exception {
-    final TokenStream stream = this.getSirenTokenStream(
-      "aaa",
-      new int[][] {
-        new int[]{1},
-        new int[]{1,3},
-        new int[]{1,3,5}
-      }
-    );
+    final TokenStream stream = this.getSirenTokenStream(doc(
+      token("aaa", node(1)),
+      token("aaa", node(1,3)),
+      token("aaa", node(1,3,5))
+    ));
 
-    this.assertNodePathEquals("aaa", new int[]{1}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,3}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,0,5}, stream);
+    this.assertNodePathEquals("aaa", node(1), stream);
+    this.assertNodePathEquals("aaa", node(0,3), stream);
+    this.assertNodePathEquals("aaa", node(0,0,5), stream);
   }
 
   @Test
   public void testAncestorDescendant() throws Exception {
-    final TokenStream stream = this.getSirenTokenStream(
-      "aaa",
-      new int[][] {
-        new int[]{2},
-        new int[]{2,2,1},
-        new int[]{5,2,1},
-        new int[]{5,2,1,3,4},
-        new int[]{7,3,1}
-      }
-    );
+    final TokenStream stream = this.getSirenTokenStream(doc(
+      token("aaa", node(2)),
+      token("aaa", node(2,2,1)),
+      token("aaa", node(5,2,1)),
+      token("aaa", node(5,2,1,3,4)),
+      token("aaa", node(7,3,1))
+    ));
 
-    this.assertNodePathEquals("aaa", new int[]{2}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,2,1}, stream);
-    this.assertNodePathEquals("aaa", new int[]{3,2,1}, stream);
-    this.assertNodePathEquals("aaa", new int[]{0,0,0,3,4}, stream);
-    this.assertNodePathEquals("aaa", new int[]{2,3,1}, stream);
+    this.assertNodePathEquals("aaa", node(2), stream);
+    this.assertNodePathEquals("aaa", node(0,2,1), stream);
+    this.assertNodePathEquals("aaa", node(3,2,1), stream);
+    this.assertNodePathEquals("aaa", node(0,0,0,3,4), stream);
+    this.assertNodePathEquals("aaa", node(2,3,1), stream);
   }
 
   private void assertNodePathEquals(final String termExpected,
@@ -150,22 +147,10 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
     return stream;
   }
 
-  private TokenStream getSirenTokenStream(final String[] termInput, final int[][] pathInput) {
-    final SirenTokenizerMockup tokenizer = new SirenTokenizerMockup();
-    final TokenStream stream = new SirenDeltaPayloadFilter(tokenizer);
-    for (int i = 0; i < termInput.length; i++) {
-      tokenizer.add(termInput[i].toCharArray(), pathInput[i]);
-    }
-    return stream;
-  }
-
-  private TokenStream getSirenTokenStream(final String termInput, final int[][] pathInput) {
-    final SirenTokenizerMockup tokenizer = new SirenTokenizerMockup();
-    final TokenStream stream = new SirenDeltaPayloadFilter(tokenizer);
-    for (final int[] element : pathInput) {
-      tokenizer.add(termInput.toCharArray(), element);
-    }
-    return stream;
+  private TokenStream getSirenTokenStream(final MockSirenDocument doc)
+  throws IOException {
+    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer(doc);
+    return analyzer.tokenStream();
   }
 
 }

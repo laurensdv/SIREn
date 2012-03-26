@@ -27,12 +27,12 @@
 package org.sindice.siren.search.node;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.util.NodeUtils;
@@ -55,9 +55,9 @@ public class NodeConjunctionScorer extends NodeScorer {
 
   private final float         coord;
 
-  private int[]               lastNode = new int[] { -1 };
+  protected IntsRef             lastNode = new IntsRef(new int[] { -1 }, 0, 1);
 
-  private int                 lastDocument = -1;
+  protected int                 lastDocument = -1;
 
   public NodeConjunctionScorer(final Weight weight, final float coord,
                                final Collection<NodeScorer> scorers)
@@ -167,7 +167,7 @@ public class NodeConjunctionScorer extends NodeScorer {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return lastNode;
   }
 
@@ -201,13 +201,13 @@ public class NodeConjunctionScorer extends NodeScorer {
       return false;
     }
 
-    while (NodeUtils.isPredecessor(firstScorer.node(), lastScorer.node())) {
+    while (NodeUtils.compare(firstScorer.node(), lastScorer.node()) < 0) {
       do {
         if (!firstScorer.nextNode()) {  // scan forward in first
           lastNode = DocsAndNodesIterator.NO_MORE_NOD;
           return false;
         }
-      } while (NodeUtils.isPredecessor(firstScorer.node(), lastScorer.node()));
+      } while (NodeUtils.compare(firstScorer.node(), lastScorer.node()) < 0);
       lastScorer = firstScorer;
       first = (first == (scorers.length - 1)) ? 0 : first + 1;
       firstScorer = scorers[first];
@@ -231,7 +231,7 @@ public class NodeConjunctionScorer extends NodeScorer {
   @Override
   public String toString() {
     return "NodeConjunctionScorer(" + weight + "," + lastDocument + "," +
-      Arrays.toString(lastNode) + ")";
+      lastNode + ")";
   }
 
 }

@@ -27,12 +27,12 @@
 package org.sindice.siren.search.node;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.base.NodeScorer;
 
 /**
@@ -69,7 +69,7 @@ public class NodeDisjunctionScorer extends NodeScorer {
   /** The document number of the current match. */
   private int currentDoc = -1;
 
-  private int[] currentNode = new int[] { -1 };
+  private IntsRef currentNode = new IntsRef(new int[] { -1 }, 0, 1);
 
   /** The number of subscorers that provide the current match. */
   protected int nrMatchers     = -1;
@@ -204,14 +204,14 @@ public class NodeDisjunctionScorer extends NodeScorer {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return currentNode;
   }
 
   @Override
   public String toString() {
     return "NodeDisjunctionScorer(" + weight + "," + this.doc() + "," +
-      Arrays.toString(this.node()) + ")";
+      this.node() + ")";
   }
 
 }

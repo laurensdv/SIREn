@@ -26,45 +26,48 @@
  */
 package org.sindice.siren.search.node;
 
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.not;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
+
 import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeReqExclScorer extends AbstractTestSirenScorer {
 
   @Test
-  public void testNextCandidateDocument()
-  throws Exception {
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer,
-      new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
-                                                    "\"aaa\" \"aaa bbb\" . " });
+  public void testNextCandidateDocument() throws Exception {
+    this.addDocumentsWithIterator(
+      "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+      "\"aaa\" \"aaa bbb\" . "
+    );
 
-    final NodeBooleanScorer scorer = this.getReqExclScorer("aaa", "bbb");
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("aaa"), not("bbb"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(1, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
-    assertFalse(scorer.nextCandidateDocument());
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
 //  @Test
@@ -102,92 +105,83 @@ public class TestNodeReqExclScorer extends AbstractTestSirenScorer {
 //  }
 
   @Test
-  public void testNextNodeWithExhaustedProhibitedScorer()
-  throws Exception {
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer,
-      new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
-                                                    "\"aaa\" \"aaa bbb\" . " });
+  public void testNextNodeWithExhaustedProhibitedScorer() throws Exception {
+    this.addDocumentsWithIterator(
+      "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+      "\"aaa\" \"aaa bbb\" . "
+    );
 
-    final NodeBooleanScorer scorer = this.getReqExclScorer("aaa", "ccc");
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("aaa"), not("ccc"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(1, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
 
     // here, the prohibited scorer should be set to null (exhausted), let see
     // if there is a null pointer exception somewhere
     assertTrue(scorer.nextNode());
     assertEquals(1, scorer.doc());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
-    assertFalse(scorer.nextCandidateDocument());
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
   @Test
-  public void testSkipToCandidate()
-  throws Exception {
+  public void testSkipToCandidate() throws Exception {
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
       docs.add("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" \"aaa aaa\". ");
       docs.add("\"aaa bbb aaa\" . \"aaa ccc bbb\" . ");
     }
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer, docs);
+    this.addDocumentsWithIterator(docs);
 
-    final NodeBooleanScorer scorer = this.getReqExclScorer("aaa", "bbb");
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("aaa"), not("bbb"))
+    );
 
     assertTrue(scorer.skipToCandidate(16));
     assertEquals(16, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(1, scorer.node()[0]);
-    assertEquals(2, scorer.node()[1]);
+    assertEquals(node(1,2), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     // Next candidate document should not contain any matching node
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(17, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.skipToCandidate(40));
     assertEquals(40, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(1, scorer.node()[0]);
-    assertEquals(2, scorer.node()[1]);
+    assertEquals(node(1,2), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertFalse(scorer.skipToCandidate(65));
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
 }

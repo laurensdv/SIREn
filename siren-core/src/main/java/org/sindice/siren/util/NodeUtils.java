@@ -25,66 +25,31 @@
  */
 package org.sindice.siren.util;
 
+import org.apache.lucene.util.IntsRef;
+
 /**
  * Reusable methods to manage and compare node paths.
  */
 public class NodeUtils {
 
   /**
-   * Check if a node path is the predecessor of another.
-   */
-  public static final boolean isPredecessor(final int[] anc, final int[] desc) {
-    boolean equal = true;
-
-    for (int i = 0; i < anc.length && i < desc.length; i++) {
-      equal &= anc[i] == desc[i];
-      if (anc[i] > desc[i]) {
-        return false;
-      }
-    }
-
-    // exception, if node path is equal, check node path length
-    if (equal && (anc.length >= desc.length)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Check if a node path is the predecessor of or is equal to another.
-   */
-  public static final boolean isPredecessorOrEqual(final int[] anc, final int[] desc) {
-    boolean equal = true;
-
-    for (int i = 0; i < anc.length && i < desc.length; i++) {
-      equal &= anc[i] == desc[i];
-      if (anc[i] > desc[i]) {
-        return false;
-      }
-    }
-
-    // exception, if node path is equal, check node path length
-    if (equal && (anc.length > desc.length)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
    * Compares the first node with the second node for order.
    * Returns a negative integer, zero, or a positive integer if the first node
    * is less than, equal to, or greater than the second node.
    */
-  public static final int compare(final int[] n1, final int[] n2) {
-    for (int i = 0; i < n1.length && i < n2.length; i++) {
+  public static final int compare(final IntsRef n1, final IntsRef n2) {
+    return compare(n1.ints, n1.length, n2.ints, n2.length);
+  }
+
+  private static final int compare(final int[] n1, final int n1Len,
+                                   final int[] n2, final int n2Len) {
+    for (int i = 0; i < n1Len && i < n2Len; i++) {
       if (n1[i] != n2[i]) {
         return n1[i] - n2[i];
       }
     }
     // exception, if node path is equal, check node path length
-    return n1.length - n2.length;
+    return n1Len - n2Len;
   }
 
   /**
@@ -98,14 +63,19 @@ public class NodeUtils {
    * second node.
    * </ul>
    */
-  public static final int compareAncestor(final int[] n1, final int[] n2) {
-    for (int i = 0; i < n1.length && i < n2.length; i++) {
+  public static final int compareAncestor(final IntsRef n1, final IntsRef n2) {
+    return compareAncestor(n1.ints, n1.length, n2.ints, n2.length);
+  }
+
+  public static final int compareAncestor(final int[] n1, final int n1Len,
+                                          final int[] n2, final int n2Len) {
+    for (int i = 0; i < n1Len && i < n2Len; i++) {
       if (n1[i] != n2[i]) {
         return n1[i] - n2[i];
       }
     }
     // exception, if node path is equal, check node path length
-    return n1.length < n2.length ? 0 : 1;
+    return n1Len < n2Len ? 0 : 1;
   }
 
   /**
@@ -138,10 +108,16 @@ public class NodeUtils {
   }
 
   /**
+   * Increase the size of the array if needed. Do not copy the content of the
+   * original array into the new one.
+   */
+  public static final IntsRef grow(final IntsRef ref, final int minSize) {
+    ref.ints = grow(ref.ints, minSize);
+    return ref;
+  }
+
+  /**
    * Check if a node path is satisfying the constraints.
-   * <p>
-   * If <code>levelConstraint</code> parameter is true, then check is the node
-   * is on the same level than the constraints.
    * <p>
    * <b>NOTE:</b> The node path constraints must be of the same length.
    * <p>
@@ -160,37 +136,67 @@ public class NodeUtils {
    * <p>
    * Example: <br>
    * Given the lower bound constraint [0,1] and upper bound constraint [3,10],
-   * the node paths [0,1], [3,10], [2,5] or [2,3,4] satisfy the constraints.
-   * However, the node paths [0,0], [3,11] or [5] do not satisfy the
-   * constraints.
-   * <p>
-   * The <code>isNodeLevelConstrained</code> parameter allows to force the node
-   * to be on the same level than the constraint boundaries.
-   * <p>
-   * Example: <br>
-   * Given the lower bound constraint [0,1] and upper bound constraint [3,10],
-   * the node paths [0,1], [3,10] or [2,5] satisfy the constraints.
-   * However, the node path [2,3,4] does not satisfy the constraints.
+   * the node paths [0,1], [3,10], [2], [2,5] or [2,3,4] satisfy the
+   * constraints. However, the node paths [0], [0,0], [3,11] or [3] do not
+   * satisfy the constraints.
    */
-  public static final boolean isConstraintSatisfied(final int[] node,
+  public static final boolean isConstraintSatisfied(final IntsRef node,
                                                     final int[] lowerBound,
-                                                    final int[] upperBound,
-                                                    final boolean isNodeLevelConstrained) {
+                                                    final int[] upperBound) {
     // it is assumed that lowerBound.length == upperBound.length
-    if (isNodeLevelConstrained ? node.length != lowerBound.length : node.length < lowerBound.length) {
-      return false;
-    }
+    final int len = node.length > lowerBound.length ? lowerBound.length : node.length;
 
-    for (int i = 0; i < lowerBound.length; i++) {
-      if (node[i] > lowerBound[i] && node[i] < upperBound[i]) {
+    for (int i = 0; i < len; i++) {
+      if (node.ints[i] > lowerBound[i] && node.ints[i] < upperBound[i]) {
         return true;
       }
-      if (node[i] < lowerBound[i] || node[i] > upperBound[i]) {
+      if (node.ints[i] < lowerBound[i] || node.ints[i] > upperBound[i]) {
         return false;
       }
     }
 
-    return true;
+    // if path equal until now, check if the node path is equal or descendant
+    return node.length >= lowerBound.length ? true : false;
+  }
+
+  /**
+   * Check if a node path is satisfying the constraints.
+   * <p>
+   * If <code>lowerBound</code> and <code>upperBound</code> are null, then
+   * these constraints are ignored and only the level constraint is checked.
+   * <p>
+   * The <code>nodeLevel</code> parameter allows to force the node
+   * to be on a certain level.
+   * <br>
+   * Given that the root of the tree (level 0) is the document id, the node
+   * level constraint ranges from 1 to <code>Integer.MAX_VALUE</code>. A node
+   * level constraint of 0 will always return false.
+   * <br>
+   * The sentinel value to ignore the node level constraint is -1.
+   * <p>
+   * Example: <br>
+   * Given the lower bound constraint [0,1], upper bound constraint [3,10] and
+   * the level constraint 1, then the node paths [0,1], [3,10] or [2,5] satisfy
+   * the constraints. However, the node path [2,3,4] does not satisfy the
+   * constraints.
+   *
+   * @see NodeUtils#isConstraintSatisfied(int[], int[], int[])
+   */
+  public static final boolean isConstraintSatisfied(final IntsRef node,
+                                                    final int[] lowerBound,
+                                                    final int[] upperBound,
+                                                    final int nodeLevel) {
+    // check level
+    if (nodeLevel != -1 && node.length != nodeLevel) {
+      return false;
+    }
+
+    // if bound set to sentinel value, ignore
+    if (lowerBound == null || upperBound == null) {
+      return true;
+    }
+
+    return isConstraintSatisfied(node, lowerBound, upperBound);
   }
 
 }

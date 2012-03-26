@@ -87,8 +87,7 @@ extends Tokenizer {
    * one triple.
    */
   public TupleTokenizer(final Reader input, final int maxLength) {
-    super();
-    this.input = input;
+    super(input);
     this._scanner = new TupleTokenizerImpl(input);
     this._maxLength = maxLength;
     this.initAttributes();

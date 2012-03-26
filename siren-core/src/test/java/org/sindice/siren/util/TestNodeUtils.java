@@ -27,84 +27,67 @@ package org.sindice.siren.util;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.sindice.siren.analysis.MockSirenToken.node;
 
+import org.apache.lucene.util.IntsRef;
 import org.junit.Test;
 
 public class TestNodeUtils {
 
   @Test
   public void testIsPredecessor() {
-    int[] anc = new int[] { 0, 0, 0 };
-    int[] desc = new int[] { 1, 0, 0 };
+    IntsRef anc = node(0, 0, 0);
+    IntsRef desc = node(1, 0, 0);
     assertTrue(NodeUtils.isPredecessor(anc, desc));
 
-    anc = new int[] { 1, 1, 0 };
-    desc = new int[] { 1, 0, 0 };
+    anc = node(1, 1, 0);
+    desc = node(1, 0, 0);
     assertFalse(NodeUtils.isPredecessor(anc, desc));
 
-    anc = new int[] { 1, 1, 0 };
-    desc = new int[] { 1, 1, 0 };
+    anc = node(1, 1, 0);
+    desc = node(1, 1, 0);
     assertFalse(NodeUtils.isPredecessor(anc, desc));
 
-    anc = new int[] { 1, 1 };
-    desc = new int[] { 1, 1, 0 };
+    anc = node(1, 1);
+    desc = node(1, 1, 0);
     assertTrue(NodeUtils.isPredecessor(anc, desc));
-  }
-
-  @Test
-  public void testIsPredecessorOrEqual() {
-    int[] anc = new int[] { 0, 0, 0 };
-    int[] desc = new int[] { 1, 0, 0 };
-    assertTrue(NodeUtils.isPredecessorOrEqual(anc, desc));
-
-    anc = new int[] { 1, 1, 0 };
-    desc = new int[] { 1, 0, 0 };
-    assertFalse(NodeUtils.isPredecessorOrEqual(anc, desc));
-
-    anc = new int[] { 1, 1, 0 };
-    desc = new int[] { 1, 1, 0 };
-    assertTrue(NodeUtils.isPredecessorOrEqual(anc, desc));
-
-    anc = new int[] { 1, 1 };
-    desc = new int[] { 1, 1, 0 };
-    assertTrue(NodeUtils.isPredecessorOrEqual(anc, desc));
   }
 
   @Test
   public void testCompare() {
-    int[] n1 = new int[] { 0, 0, 0 };
-    int[] n2 = new int[] { 1, 0, 0 };
+    IntsRef n1 = node(0, 0, 0);
+    IntsRef n2 = node(1, 0, 0);
     assertTrue(NodeUtils.compare(n1, n2) < 0);
 
-    n1 = new int[] { 1, 1, 0 };
-    n2 = new int[] { 1, 0, 0 };
+    n1 = node(1, 1, 0);
+    n2 = node(1, 0, 0);
     assertTrue(NodeUtils.compare(n1, n2) > 0);
 
-    n1 = new int[] { 1, 1, 0 };
-    n2 = new int[] { 1, 1, 0 };
+    n1 = node(1, 1, 0);
+    n2 = node(1, 1, 0);
     assertTrue(NodeUtils.compare(n1, n2) == 0);
 
-    n1 = new int[] { 1, 1 };
-    n2 = new int[] { 1, 1, 0 };
+    n1 = node(1, 1);
+    n2 = node(1, 1, 0);
     assertTrue(NodeUtils.compare(n1, n2) < 0);
   }
 
   @Test
   public void testCompareAncestor() {
-    int[] n1 = new int[] { 0, 0, 0 };
-    int[] n2 = new int[] { 1, 0, 0 };
+    IntsRef n1 = node(0, 0, 0);
+    IntsRef n2 = node(1, 0, 0);
     assertTrue(NodeUtils.compareAncestor(n1, n2) < 0);
 
-    n1 = new int[] { 1, 1, 0 };
-    n2 = new int[] { 1, 0, 0 };
+    n1 = node(1, 1, 0);
+    n2 = node(1, 0, 0);
     assertTrue(NodeUtils.compareAncestor(n1, n2) > 0);
 
-    n1 = new int[] { 1, 1, 0 };
-    n2 = new int[] { 1, 1, 0 };
+    n1 = node(1, 1, 0);
+    n2 = node(1, 1, 0);
     assertTrue(NodeUtils.compareAncestor(n1, n2) > 0);
 
-    n1 = new int[] { 1, 1 };
-    n2 = new int[] { 1, 1, 0 };
+    n1 = node(1, 1);
+    n2 = node(1, 1, 0);
     assertTrue(NodeUtils.compareAncestor(n1, n2) == 0);
   }
 
@@ -114,32 +97,38 @@ public class TestNodeUtils {
     final int[] lb = new int[] {1,1,0};
     final int[] ub = new int[] {1,10,0};
 
-    int[] node = new int[] {1,5,1};
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    IntsRef node = node(1,5,1);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,1,0};
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,1,0);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,10,0};
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,10,0);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,1,0,0};
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,1,0,0);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,10,0,0};
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,10,0,0);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,0,1};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,2);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,10,1};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,10};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,0,1);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
 
-    node = new int[] {1,1};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, false));
+    node = node(1,10,1);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
+
+    node = node(1,10);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
+
+    node = node(1,1);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
   }
 
   @Test
@@ -148,20 +137,23 @@ public class TestNodeUtils {
     final int[] lb = new int[] {1,1,0};
     final int[] ub = new int[] {1,10,0};
 
-    int[] node = new int[] {1,5,1};
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, true));
+    IntsRef node = node(1,5,1);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
 
-    node = new int[] {1,1,0,0};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, true));
+    node = node(1,5,1);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 2));
 
-    node = new int[] {1,10,0,0};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, true));
+    node = node(1,1,0,0);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
 
-    node = new int[] {1,10};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, true));
+    node = node(1,10,0,0);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
 
-    node = new int[] {1,1};
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, true));
+    node = node(1,10);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
+
+    node = node(1,1);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
   }
 
 }

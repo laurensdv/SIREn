@@ -27,10 +27,10 @@
 package org.sindice.siren.search.primitive;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 import org.sindice.siren.search.base.NodePositionScorer;
 import org.sindice.siren.search.base.NodeScorer;
@@ -43,7 +43,7 @@ public class NodeTermScorer extends NodePositionScorer {
 
   private final DocsNodesAndPositionsEnum docsEnum;
 
-  private final Similarity.ExactDocScorer docScorer;
+  private final Similarity.ExactSimScorer docScorer;
 
   /**
    * Construct a <code>NodeTermScorer</code>.
@@ -62,7 +62,7 @@ public class NodeTermScorer extends NodePositionScorer {
    */
   protected NodeTermScorer(final Weight weight,
                            final DocsNodesAndPositionsEnum docsEnum,
-                           final Similarity.ExactDocScorer docScorer)
+                           final Similarity.ExactSimScorer docScorer)
   throws IOException {
     super(weight);
     this.docScorer = docScorer;
@@ -85,7 +85,7 @@ public class NodeTermScorer extends NodePositionScorer {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return docsEnum.node();
   }
 
@@ -117,8 +117,7 @@ public class NodeTermScorer extends NodePositionScorer {
 
   @Override
   public String toString() {
-    return "NodeTermScorer(" + weight + "," + this.doc() + "," +
-      Arrays.toString(this.node()) + ")";
+    return "NodeTermScorer(" + weight + "," + this.doc() + "," + this.node() + ")";
   }
 
 }

@@ -27,8 +27,8 @@
 package org.sindice.siren.search.node;
 
 import java.io.IOException;
-import java.util.Arrays;
 
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.base.NodeScorer;
 
 /**
@@ -87,7 +87,7 @@ public class NodeReqOptScorer extends NodeScorer {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return reqScorer.node();
   }
 
@@ -123,7 +123,7 @@ public class NodeReqOptScorer extends NodeScorer {
   @Override
   public String toString() {
     return "NodeReqOptScorer(" + weight + "," +
-      this.doc() + "," + Arrays.toString(this.node()) + ")";
+      this.doc() + "," + this.node() + ")";
   }
 
 }

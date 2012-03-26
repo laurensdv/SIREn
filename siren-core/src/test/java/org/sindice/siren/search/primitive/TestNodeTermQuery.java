@@ -26,38 +26,32 @@
  */
 package org.sindice.siren.search.primitive;
 
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuilder.ntq;
+
 import java.io.IOException;
 
-import org.apache.lucene.index.IndexReader.AtomicReaderContext;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.sindice.siren.search.primitive.NodeTermQuery;
+import org.sindice.siren.analysis.AnyURIAnalyzer;
+import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public class TestNodeTermQuery extends BasicSirenTestCase {
 
   @Override
-  @Before
-  public void setUp()
-  throws Exception {
-    super.setUp();
-  }
-
-  @Override
-  @After
-  public void tearDown()
-  throws Exception {
-    this.deleteAll();
-    super.tearDown();
-  }
-
-  protected NodeTermQuery getTermQuery(final String term) throws IOException {
-    return new NodeTermQuery(new Term(DEFAULT_FIELD, term));
+  protected Analyzer initAnalyzer() {
+    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
+    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
+    return new TupleAnalyzer(TEST_VERSION_CURRENT,
+      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
   }
 
   /**
@@ -68,31 +62,27 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     this.addDocument("\"Renaud Delbru\" . ");
     this.addDocument("\"Renaud\" . ");
 
-    NodeTermQuery query = this.getTermQuery("renaud");
+    Query query = ntq("renaud").getQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(2, hits.totalHits);
 
-    query = this.getTermQuery("delbru");
+    query = ntq("delbru").getQuery();
     hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
   }
 
-  /**
-   * Ensures simple term queries match all the documents
-   */
   @Test
   public void testSimpleMatchWithConstraint() throws Exception {
-// TODO: Add unit tests for node constraints
-//    this.addDocument("\"Renaud Delbru\" . ");
-//    this.addDocument("\"Renaud\" . ");
-//
-//    NodeTermQuery query = this.getTermQuery("renaud");
-//    TopDocs hits = searcher.search(query, 100);
-//    assertEquals(2, hits.totalHits);
-//
-//    query = this.getTermQuery("delbru");
-//    hits = searcher.search(query, 100);
-//    assertEquals(1, hits.totalHits);
+    this.addDocument("\"Renaud Delbru\" . ");
+    this.addDocument("\"Delbru\" . \"Renaud\" . ");
+
+    Query query = ntq("renaud").level(1).getQuery();
+    TopDocs hits = searcher.search(query, 100);
+    assertEquals(0, hits.totalHits);
+
+    query = ntq("renaud").bound(node(0,0), node(0,0)).getQuery();
+    hits = searcher.search(query, 100);
+    assertEquals(1, hits.totalHits);
   }
 
   /**
@@ -105,11 +95,11 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     this.addDocumentNoNorms("\"Renaud Delbru\" . ");
     this.addDocumentNoNorms("\"Renaud\" . ");
 
-    NodeTermQuery query = this.getTermQuery("renaud");
+    Query query = ntq("renaud").getQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(2, hits.totalHits);
 
-    query = this.getTermQuery("delbru");
+    query = ntq("delbru").getQuery();
     hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
   }
@@ -121,7 +111,7 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
   public void testSimpleDontMatch() throws Exception {
     this.addDocument("\"Renaud Delbru\" . ");
 
-    final NodeTermQuery query = this.getTermQuery("nomatch");
+    final Query query = ntq("nomatch").getQuery();
     final TopDocs hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);
   }
@@ -130,12 +120,13 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
   public void testExplain() throws IOException {
     this.addDocumentNoNorms("<http://renaud.delbru.fr/rdf/foaf#me> <http://xmlns.com/foaf/0.1/name> \"Renaud Delbru\" . ");
 
-    final NodeTermQuery query = this.getTermQuery("renaud");
+    final Query query = ntq("renaud").getQuery();
     final Weight w = searcher.createNormalizedWeight(query);
-    final AtomicReaderContext atom = (AtomicReaderContext) searcher.getTopReaderContext();
+    assertTrue(searcher.getTopReaderContext() instanceof AtomicReaderContext);
+    final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();
 
     // Explain entity 0
-    Explanation explanation = w.explain(atom, 0);
+    Explanation explanation = w.explain(context, 0);
     assertNotNull("explanation is null and it shouldn't be", explanation);
 
     // All this Explain does is return the term frequency
@@ -143,7 +134,7 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     assertEquals("term frq is not 2", 2f, termFreq, 0f);
 
     // Explain non existing entity
-    explanation = w.explain(atom, 1);
+    explanation = w.explain(context, 1);
     assertNotNull("explanation is null and it shouldn't be", explanation);
     //System.out.println("Explanation: " + explanation.toString());
     //All this Explain does is return the term frequency

@@ -111,8 +111,8 @@
     
   </build>
 
-  <!-- Temporary repository for Lucene/Solr trunk builds -->
   <repositories>
+    <!-- Temporary repository for Lucene/Solr trunk builds
     <repository>
       <id>lucene-solr-jenkins-trunk</id>
       <name>Lucene/Solr Jenkins trunk</name>
@@ -122,6 +122,17 @@
         <enabled>true</enabled>
       </snapshots>
     </repository>
+     -->
+
+    <repository>
+      <id>apache.snapshots</id>
+      <name>Apache Snapshot Repository</name>
+      <url>http://repository.apache.org/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+
   </repositories>
 
   <dependencies>
@@ -129,7 +140,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.7</version>
+      <version>4.10</version>
       <scope>test</scope>
     </dependency>
 

@@ -26,52 +26,52 @@
  */
 package org.sindice.siren.search.node;
 
+import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.should;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeReqOptScorer extends AbstractTestSirenScorer {
 
   @Test
   public void testNextPositionWithOptionalTerm() throws Exception {
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer,
-      new String[] { "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
-                                                    "\"aaa\" \"aaa bbb\" . " });
+    this.addDocumentsWithIterator(
+      "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
+      "\"aaa\" \"aaa bbb\" . "
+    );
 
-    final NodeBooleanScorer scorer = this.getReqOptScorer("aaa", "bbb");
+    final NodeScorer scorer = this.getScorer(
+      nbq(must("aaa"), should("bbb"))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(1, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(1,0), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(1, scorer.doc());
-    assertEquals(-1, scorer.node()[0]);
+    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(0, scorer.node()[1]);
+    assertEquals(node(0,0), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(0, scorer.node()[0]);
-    assertEquals(1, scorer.node()[1]);
+    assertEquals(node(0,1), scorer.node());
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
-    assertFalse(scorer.nextCandidateDocument());
-    assertEquals(DocsAndNodesIterator.NO_MORE_DOC, scorer.doc());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEndOfStream(scorer);
   }
 
 }

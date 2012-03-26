@@ -27,6 +27,7 @@ package org.sindice.siren.index;
 
 import java.io.IOException;
 
+import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.util.NodeUtils;
 
 /**
@@ -42,11 +43,19 @@ public class ConstrainedNodesEnum extends DocsNodesAndPositionsEnum {
 
   private final int[] lowerBound;
   private final int[] upperBound;
-  private final boolean levelConstraint;
+  private final int levelConstraint;
+
+  public ConstrainedNodesEnum(final DocsNodesAndPositionsEnum docsEnum,
+                              final int[] lowerBound, final int[] upperBound) {
+    this.docsEnum = docsEnum;
+    this.lowerBound = lowerBound;
+    this.upperBound = upperBound;
+    this.levelConstraint = -1; // set to sentinel value
+  }
 
   public ConstrainedNodesEnum(final DocsNodesAndPositionsEnum docsEnum,
                               final int[] lowerBound, final int[] upperBound,
-                              final boolean levelConstraint) {
+                              final int levelConstraint) {
     this.docsEnum = docsEnum;
     this.lowerBound = lowerBound;
     this.upperBound = upperBound;
@@ -79,7 +88,7 @@ public class ConstrainedNodesEnum extends DocsNodesAndPositionsEnum {
   }
 
   @Override
-  public int[] node() {
+  public IntsRef node() {
     return docsEnum.node();
   }
 
