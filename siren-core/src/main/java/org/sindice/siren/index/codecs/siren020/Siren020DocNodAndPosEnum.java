@@ -31,8 +31,9 @@ import java.util.Arrays;
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.util.NodeUtils;
+import org.sindice.siren.util.ArrayUtils;
 
 /**
  * SIREn 0.2.x implementation of {@link DocsNodesAndPositionsEnum} based on a
@@ -220,7 +221,7 @@ public class Siren020DocNodAndPosEnum extends DocsNodesAndPositionsEnum {
     final IntsRef nodePath = this.decodePayload();
 
     // Ensure we have enough space to store the node path
-    dst = NodeUtils.grow(dst, nodePath.length);
+    dst = ArrayUtils.grow(dst, nodePath.length);
 
     // update length of the int array reference
     dst.length = nodePath.length;

@@ -30,17 +30,12 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuil
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.base.NodeQuery;
 import org.sindice.siren.search.base.NodeScorer;
@@ -52,14 +47,6 @@ import org.sindice.siren.search.twig.TwigQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
-
-  @Override
-  protected Analyzer initAnalyzer() {
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
-    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    return new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-  }
 
 //  protected SirenExactPhraseScorer getExactScorer(final String field,
 //                                                  final String[] phraseTerms)

@@ -38,13 +38,11 @@ import org.apache.lucene.index.Payload;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
-import org.sindice.siren.index.codecs.siren020.VIntPayloadCodec;
 
 /**
  * Filter that encode the structural information of each token into its payload.
  */
-public class SirenDeltaPayloadFilter
-extends TokenFilter {
+public class SirenDeltaPayloadFilter extends TokenFilter {
 
   private final NodeAttribute nodeAtt;
   private final PayloadAttribute payloadAtt;

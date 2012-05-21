@@ -354,7 +354,7 @@ public class TwigQuery extends NodeBooleanQuery {
   }
 
   @Override @SuppressWarnings("unchecked")
-  public Object clone() {
+  public Query clone() {
     final TwigQuery clone = (TwigQuery) super.clone();
     clone.clauses = (ArrayList<NodeBooleanClause>) this.clauses.clone();
     clone.root = (NodeQuery) this.root.clone();

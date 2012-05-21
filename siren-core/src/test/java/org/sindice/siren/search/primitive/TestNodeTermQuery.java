@@ -31,28 +31,15 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuil
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
 import org.junit.Test;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public class TestNodeTermQuery extends BasicSirenTestCase {
-
-  @Override
-  protected Analyzer initAnalyzer() {
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
-    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    return new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-  }
 
   /**
    * Ensures simple term queries match all the documents

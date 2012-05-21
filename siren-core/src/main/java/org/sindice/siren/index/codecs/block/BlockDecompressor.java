@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009-2011 Sindice Limited. All Rights Reserved.
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
  *
  * Project and contact information: http://www.siren.sindice.com/
  *
@@ -19,31 +19,17 @@
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @project siren
- * @author Renaud Delbru [ 4 Feb 2009 ]
+ * @project siren-core
+ * @author Renaud Delbru [ 27 Mar 2012 ]
  * @link http://renaud.delbru.fr/
- * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
-package org.sindice.siren.index.codecs.siren020;
+package org.sindice.siren.index.codecs.block;
 
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 
-/**
- * Abstract class implementation of the SIREn payload coder/decoder
- */
-public abstract class PayloadCodec {
+public abstract class BlockDecompressor {
 
-  public PayloadCodec() {}
-
-  /**
-   * Encode the information into a byte array
-   */
-  public abstract BytesRef encode(IntsRef data);
-
-  /**
-   * Decode the byte array into a node path
-   */
-  public abstract IntsRef decode(BytesRef data);
+  public abstract void decompress(BytesRef input, IntsRef output);
 
 }

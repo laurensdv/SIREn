@@ -31,7 +31,7 @@ import java.nio.IntBuffer;
 
 import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.util.NodeUtils;
+import org.sindice.siren.util.ArrayUtils;
 
 /**
  * The node path of a token.
@@ -53,7 +53,7 @@ public class NodeAttributeImpl extends AttributeImpl implements NodeAttribute, C
       isFlipped = true;
     }
 
-    ref.ints = NodeUtils.grow(ref.ints, node.limit());
+    ref.ints = ArrayUtils.grow(ref.ints, node.limit());
     System.arraycopy(node.array(), node.position(), ref.ints, 0, node.limit());
     ref.offset = node.position();
     ref.length = node.limit();

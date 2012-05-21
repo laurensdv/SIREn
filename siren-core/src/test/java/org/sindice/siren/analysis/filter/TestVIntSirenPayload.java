@@ -24,7 +24,7 @@
  * @link http://renaud.delbru.fr/
  * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
-package org.sindice.siren.index.codecs.siren020;
+package org.sindice.siren.analysis.filter;
 
 
 import static org.junit.Assert.assertEquals;
@@ -36,6 +36,7 @@ import org.apache.lucene.util.IntsRef;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 
 public class TestVIntSirenPayload {
 

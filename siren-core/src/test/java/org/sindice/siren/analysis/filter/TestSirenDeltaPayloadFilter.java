@@ -48,7 +48,6 @@ import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.MockSirenAnalyzer;
 import org.sindice.siren.analysis.MockSirenDocument;
 import org.sindice.siren.analysis.TupleTokenizer;
-import org.sindice.siren.index.codecs.siren020.VIntPayloadCodec;
 
 public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
 

@@ -396,7 +396,7 @@ public class NodeBooleanQuery extends NodeQuery {
   }
 
   @Override @SuppressWarnings("unchecked")
-  public Object clone() {
+  public Query clone() {
     final NodeBooleanQuery clone = (NodeBooleanQuery) super.clone();
     clone.clauses = (ArrayList<NodeBooleanClause>) this.clauses.clone();
     return clone;

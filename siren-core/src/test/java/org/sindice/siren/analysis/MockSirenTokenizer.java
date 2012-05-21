@@ -67,7 +67,7 @@ public class MockSirenTokenizer extends Tokenizer {
   Iterator<MockSirenToken> it = null;
 
   @Override
-  public boolean incrementToken() throws IOException {
+  public final boolean incrementToken() throws IOException {
     this.clearAttributes();
 
     MockSirenToken tk;

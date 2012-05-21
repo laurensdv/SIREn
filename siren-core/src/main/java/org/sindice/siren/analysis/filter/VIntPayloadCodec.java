@@ -24,7 +24,7 @@
  * @link http://renaud.delbru.fr/
  * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
-package org.sindice.siren.index.codecs.siren020;
+package org.sindice.siren.analysis.filter;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -61,7 +61,8 @@ public class VIntPayloadCodec extends PayloadCodec {
 
     this.setBytesRef(data.bytes, data.offset, data.length);
 
-    while (bytes.offset < bytes.length) {
+    final int limit = bytes.offset + bytes.length;
+    while (bytes.offset < limit) {
       ib.put(CodecUtils.byteArrayToVInt(bytes));
     }
 
@@ -81,7 +82,7 @@ public class VIntPayloadCodec extends PayloadCodec {
 
     this.setIntsRef(data.ints, data.offset, data.length);
 
-    for (int i = ints.offset; i < ints.length; i++) {
+    for (int i = ints.offset; i < ints.offset + ints.length; i++) {
       CodecUtils.vIntToByteArray(ints.ints[i], bb);
     }
 

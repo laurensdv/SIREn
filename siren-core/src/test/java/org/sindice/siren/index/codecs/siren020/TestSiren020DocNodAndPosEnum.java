@@ -33,44 +33,15 @@ import static org.sindice.siren.analysis.MockSirenToken.token;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.util.BytesRef;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.PositionsIterator;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public class TestSiren020DocNodAndPosEnum extends BasicSirenTestCase {
-
-  @Override
-  protected Analyzer initAnalyzer() {
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
-    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    return new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-  }
-
-  @Override
-  @Before
-  public void setUp()
-  throws Exception {
-    super.setUp();
-  }
-
-  @Override
-  @After
-  public void tearDown()
-  throws Exception {
-    super.tearDown();
-  }
 
   protected Siren020DocNodAndPosEnum getEnum(final String term) throws IOException {
     final BytesRef ref = new BytesRef(term);

@@ -94,6 +94,20 @@ public class CodecUtils {
   }
 
   /**
+   * Writes an integer in a variable-length format. Writes between one and
+   * five bytes. Smaller values take fewer bytes. Negative numbers are not
+   * supported.
+   * @see IndexInput#readVInt()
+   */
+  public static void appendVInt(int i, final BytesRef ref) {
+    while ((i & ~0x7F) != 0) {
+      ref.bytes[ref.offset++] = (byte) ((i & 0x7f) | 0x80);
+      i >>>= 7;
+    }
+    ref.bytes[ref.offset++] = (byte) i;
+  }
+
+  /**
    * Write the content, i.e. bits, of a byte into the string buffer.
    * </br>
    * Code taken from Lucene-1410.

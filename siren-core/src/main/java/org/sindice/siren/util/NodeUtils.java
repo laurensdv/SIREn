@@ -94,29 +94,6 @@ public class NodeUtils {
   }
 
   /**
-   * Increase the size of the array if needed. Do not copy the content of the
-   * original array into the new one.
-   */
-  public static final int[] grow(final int[] array, final int minSize) {
-    assert minSize >= 0: "size must be positive (got " + minSize + "): likely integer overflow?";
-    if (array.length < minSize) {
-      final int[] newArray = new int[minSize];
-      return newArray;
-    } else {
-      return array;
-    }
-  }
-
-  /**
-   * Increase the size of the array if needed. Do not copy the content of the
-   * original array into the new one.
-   */
-  public static final IntsRef grow(final IntsRef ref, final int minSize) {
-    ref.ints = grow(ref.ints, minSize);
-    return ref;
-  }
-
-  /**
    * Check if a node path is satisfying the constraints.
    * <p>
    * <b>NOTE:</b> The node path constraints must be of the same length.

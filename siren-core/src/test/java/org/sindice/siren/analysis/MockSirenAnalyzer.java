@@ -32,19 +32,28 @@ import java.io.StringReader;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.sindice.siren.analysis.filter.SirenDeltaPayloadFilter;
+import org.sindice.siren.analysis.filter.SirenPayloadFilter;
 
 public class MockSirenAnalyzer extends Analyzer {
 
   private final MockSirenTokenizer tokenizer;
+  private final boolean delta;
 
-  public MockSirenAnalyzer(final MockSirenDocument doc) {
+  public MockSirenAnalyzer(final MockSirenDocument doc, final boolean delta) {
     this.tokenizer = new MockSirenTokenizer(doc);
+    this.delta = delta;
   }
 
   @Override
   protected TokenStreamComponents createComponents(final String fieldName,
                                                    final Reader reader) {
-    final TokenStream sink = new SirenDeltaPayloadFilter(tokenizer);
+    TokenStream sink;
+    if (delta) {
+      sink = new SirenDeltaPayloadFilter(tokenizer);
+    }
+    else {
+      sink = new SirenPayloadFilter(tokenizer);
+    }
     return new TokenStreamComponents(tokenizer, sink);
   }
 

@@ -25,6 +25,8 @@
  */
 package org.sindice.siren.index;
 
+import java.io.IOException;
+
 import org.apache.lucene.util.AttributeSource;
 
 /**
@@ -49,15 +51,16 @@ public abstract class DocsNodesAndPositionsEnum implements DocsAndNodesIterator,
    * nor after {@link #nextDoc} returns false or
    * {@link #doc()} returns NO_MORE_DOC.
    **/
-  public abstract int termFreqInDoc();
+  public abstract int termFreqInDoc() throws IOException;
 
   /**
    * Returns term frequency in the current node.  Do
    * not call this before {@link #nextNode} is first called,
    * nor after {@link #nextNode} returns false or
    * {@link #node()} returns NO_MORE_NOD.
+   * @throws IOException
    **/
-  public abstract int termFreqInNode();
+  public abstract int termFreqInNode() throws IOException;
 
   /**
    * Returns node frequency in the current document.  Do
@@ -65,6 +68,6 @@ public abstract class DocsNodesAndPositionsEnum implements DocsAndNodesIterator,
    * nor after {@link #nextDoc} returns false or
    * {@link #doc()} returns NO_MORE_DOC.
    **/
-  public abstract int nodeFreqInDoc();
+  public abstract int nodeFreqInDoc() throws IOException;
 
 }

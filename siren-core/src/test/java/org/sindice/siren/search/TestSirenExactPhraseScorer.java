@@ -373,7 +373,7 @@ extends AbstractTestSirenScorer {
                           final String[] phraseTerms,
                           final int[][] deweyPath)
   throws Exception {
-    _helper.reset();
+    _helper.initBlock();
     _helper.addDocuments(input);
     final IndexReader reader = _helper.getIndexReader();
     final HashSet<Integer> docs = new HashSet<Integer>();

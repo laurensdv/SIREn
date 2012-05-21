@@ -32,7 +32,6 @@ import java.util.Collection;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.lucene40.Lucene40PostingsFormat;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -45,11 +44,14 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
-import org.apache.lucene.util._TestUtil;
 import org.sindice.siren.analysis.MockSirenAnalyzer;
 import org.sindice.siren.analysis.MockSirenDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SirenTestCase extends LuceneTestCase {
+
+  protected static final Logger logger = LoggerFactory.getLogger(SirenTestCase.class);
 
   public static final String DEFAULT_FIELD = "content";
 
@@ -75,12 +77,13 @@ public abstract class SirenTestCase extends LuceneTestCase {
     return ft;
   }
 
-  public RandomIndexWriter newRandomIndexWriter(final Directory dir, final Analyzer analyzer)
+  public RandomIndexWriter newRandomIndexWriter(final Directory dir,
+                                                final Analyzer analyzer,
+                                                final Codec codec)
   throws IOException {
-    final Codec cp = _TestUtil.alwaysPostingsFormat(new Lucene40PostingsFormat());
-    return new RandomIndexWriter(random, dir,
+    return new RandomIndexWriter(random(), dir,
       newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
-      .setCodec(cp)
+      .setCodec(codec)
       .setMergePolicy(newLogMergePolicy())
       .setSimilarity(new DefaultSimilarity()));
   }
@@ -113,11 +116,11 @@ public abstract class SirenTestCase extends LuceneTestCase {
     writer.commit();
   }
 
-  public void addDocuments(final RandomIndexWriter writer, final MockSirenDocument ... sdocs)
+  public void addDocuments(final RandomIndexWriter writer, final boolean delta, final MockSirenDocument ... sdocs)
   throws IOException {
     for (final MockSirenDocument sdoc : sdocs) {
       final Document doc = new Document();
-      doc.add(new Field(DEFAULT_FIELD, new MockSirenAnalyzer(sdoc).tokenStream(), this.newFieldType()));
+      doc.add(new Field(DEFAULT_FIELD, new MockSirenAnalyzer(sdoc, delta).tokenStream(), this.newFieldType()));
       writer.addDocument(doc);
     }
     writer.commit();
@@ -168,23 +171,34 @@ public abstract class SirenTestCase extends LuceneTestCase {
     writer.commit();
   }
 
-  /**
-   * Lucene 4.0 index documents by blocks, therefore the order with which they were
-   * added may not be the same as the order they were written to the index.
-   * For tests which depends on this order, this method keeps the original order
-   * because all documents are added to the same block.
-   * <br>
-   * See also {@link IndexWriter#addDocuments(Iterable)}
-   */
   public void addDocumentsWithIterator(final RandomIndexWriter writer,
                                        final Collection<String> data)
   throws IOException {
     this.addDocumentsWithIterator(writer, data.toArray(new String[data.size()]));
   }
 
-  public void deleteAll(final RandomIndexWriter writer) throws IOException {
+  public void addDocumentsWithIterator(final RandomIndexWriter writer,
+                                       final boolean delta,
+                                       final MockSirenDocument ... sdocs)
+  throws IOException {
+    final ArrayList<Document> docs = new ArrayList<Document>(sdocs.length);
+    for (final MockSirenDocument sdoc : sdocs) {
+      final Document doc = new Document();
+      doc.add(new Field(DEFAULT_FIELD, new MockSirenAnalyzer(sdoc, delta).tokenStream(), this.newFieldType()));
+      docs.add(doc);
+    }
+    writer.addDocuments(docs);
+    writer.commit();
+  }
+
+  protected void deleteAll(final RandomIndexWriter writer) throws IOException {
     writer.deleteAll();
     writer.commit();
+  }
+
+  protected void forceMerge(final RandomIndexWriter writer) throws IOException {
+    logger.debug("Force merge");
+    writer.forceMerge(1);
   }
 
 }
