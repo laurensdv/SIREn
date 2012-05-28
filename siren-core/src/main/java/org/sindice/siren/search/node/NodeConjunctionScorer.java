@@ -196,7 +196,7 @@ public class NodeConjunctionScorer extends NodeScorer {
     NodeScorer firstScorer = scorers[first];
 
     // scan forward in last
-    if (!lastScorer.nextNode()) {
+    if (lastNode == DocsAndNodesIterator.NO_MORE_NOD || !lastScorer.nextNode()) {
       lastNode = DocsAndNodesIterator.NO_MORE_NOD;
       return false;
     }

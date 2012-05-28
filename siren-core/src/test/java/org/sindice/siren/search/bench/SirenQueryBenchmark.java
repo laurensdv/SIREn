@@ -25,14 +25,13 @@ import java.io.IOException;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.bench.SirenBenchmark;
-import org.sindice.siren.search.QueryTestingHelper;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
@@ -43,8 +42,8 @@ import com.google.caliper.Runner;
 
 public class SirenQueryBenchmark extends SirenBenchmark {
 
-  private final Version testVersion = Version.LUCENE_35;
-  
+  private final Version testVersion = Version.LUCENE_CURRENT;
+
   protected QueryTestingHelper _helper = null;
   @Param({"100", "1000", "10000"}) private int size;
 

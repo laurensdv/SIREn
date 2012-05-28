@@ -27,93 +27,90 @@
 package org.sindice.siren.analysis.filter;
 
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.Random;
 
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.lucene.util.LuceneTestCase;
 import org.junit.Test;
-import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 
-public class TestVIntSirenPayload {
+public class TestVIntSirenPayload extends LuceneTestCase {
 
   VIntPayloadCodec codec = new VIntPayloadCodec();
-
-  /**
-   * @throws java.lang.Exception
-   */
-  @Before
-  public void setUp()
-  throws Exception {}
-
-  /**
-   * @throws java.lang.Exception
-   */
-  @After
-  public void tearDown()
-  throws Exception {}
 
   @Test
   public void testSimpleVInt()
   throws Exception {
     IntsRef ints = new IntsRef(new int[] { 12,43 }, 0, 2);
-    BytesRef bytes = codec.encode(ints);
-    IntsRef result = codec.decode(bytes);
+    int pos = 256;
+    BytesRef bytes = codec.encode(ints, pos);
+    codec.decode(bytes);
 
-    assertEquals(ints.ints[0], result.ints[0]);
-    assertEquals(ints.ints[1], result.ints[1]);
+    IntsRef node = codec.getNode();
+    assertEquals(ints.ints[0], node.ints[node.offset]);
+    assertEquals(ints.ints[1], node.ints[node.offset + 1]);
+    assertEquals(pos, codec.getPosition());
 
     ints = new IntsRef(new int[] { 3, 2 }, 0, 2);
-    bytes = codec.encode(ints);
-    result = codec.decode(bytes);
+    pos = 2;
+    bytes = codec.encode(ints, pos);
+    codec.decode(bytes);
 
-    assertEquals(ints.ints[0], result.ints[0]);
-    assertEquals(ints.ints[1], result.ints[1]);
+    node = codec.getNode();
+    assertEquals(ints.ints[0], node.ints[node.offset]);
+    assertEquals(ints.ints[1], node.ints[node.offset + 1]);
+    assertEquals(pos, codec.getPosition());
 
     ints = new IntsRef(new int[] { 0, 1 }, 0, 2);
-    bytes = codec.encode(ints);
-    result = codec.decode(bytes);
+    pos = 0;
+    bytes = codec.encode(ints, pos);
+    codec.decode(bytes);
 
-    assertEquals(ints.ints[0], result.ints[0]);
-    assertEquals(ints.ints[1], result.ints[1]);
+    node = codec.getNode();
+    assertEquals(ints.ints[0], node.ints[node.offset]);
+    assertEquals(ints.ints[1], node.ints[node.offset + 1]);
+    assertEquals(pos, codec.getPosition());
   }
 
   @Test
   public void testRandomVInt2()
   throws Exception {
-    final Random r = new Random(42);
+    final Random r = LuceneTestCase.random();
     for (int i = 0; i < 10000; i++) {
       final int value1 = r.nextInt(Integer.MAX_VALUE);
       final int value2 = r.nextInt(Integer.MAX_VALUE);
 
       final IntsRef ints = new IntsRef(new int[] { value1,value2 }, 0, 2);
-      final BytesRef bytes = codec.encode(ints);
-      final IntsRef result = codec.decode(bytes);
+      final int pos = r.nextInt(Integer.MAX_VALUE);
+      final BytesRef bytes = codec.encode(ints, pos);
+      codec.decode(bytes);
 
-      assertEquals(ints.ints[0], result.ints[0]);
-      assertEquals(ints.ints[1], result.ints[1]);
+      final IntsRef node = codec.getNode();
+      assertEquals(ints.ints[0], node.ints[node.offset]);
+      assertEquals(ints.ints[1], node.ints[node.offset + 1]);
+      assertEquals(pos, codec.getPosition());
     }
   }
 
   @Test
   public void testRandomVInt3()
   throws Exception {
-    final Random r = new Random(42);
+    final Random r = LuceneTestCase.random();
     for (int i = 0; i < 10000; i++) {
       final int value1 = r.nextInt(Integer.MAX_VALUE);
       final int value2 = r.nextInt(Integer.MAX_VALUE);
       final int value3 = r.nextInt(Integer.MAX_VALUE);
 
       final IntsRef ints = new IntsRef(new int[] { value1,value2,value3 }, 0, 3);
-      final BytesRef bytes = codec.encode(ints);
-      final IntsRef result = codec.decode(bytes);
+      final int pos = r.nextInt(Integer.MAX_VALUE);
+      final BytesRef bytes = codec.encode(ints, pos);
+      codec.decode(bytes);
 
-      assertEquals(ints.ints[0], result.ints[0]);
-      assertEquals(ints.ints[1], result.ints[1]);
-      assertEquals(ints.ints[2], result.ints[2]);
+      final IntsRef node = codec.getNode();
+      assertEquals(ints.ints[0], node.ints[node.offset]);
+      assertEquals(ints.ints[1], node.ints[node.offset + 1]);
+      assertEquals(ints.ints[2], node.ints[node.offset + 2]);
+      assertEquals(pos, codec.getPosition());
     }
   }
 

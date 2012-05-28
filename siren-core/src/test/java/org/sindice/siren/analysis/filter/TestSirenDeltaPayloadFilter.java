@@ -32,7 +32,6 @@ import static org.sindice.siren.analysis.MockSirenToken.token;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.Arrays;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
@@ -47,6 +46,7 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.MockSirenAnalyzer;
 import org.sindice.siren.analysis.MockSirenDocument;
+import org.sindice.siren.analysis.MockSirenReader;
 import org.sindice.siren.analysis.TupleTokenizer;
 
 public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
@@ -118,7 +118,7 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
   }
 
   private void assertNodePathEquals(final String termExpected,
-                                    final int[] pathExpected,
+                                    final IntsRef pathExpected,
                                     final TokenStream stream)
   throws Exception {
     final CharTermAttribute termAtt = stream.getAttribute(CharTermAttribute.class);
@@ -130,9 +130,10 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
     final VIntPayloadCodec codec = new VIntPayloadCodec();
     final Payload payload = payloadAtt.getPayload();
     final BytesRef bytes = new BytesRef(payload.getData(), payload.getOffset(), payload.length());
-    final IntsRef ints = codec.decode(bytes);
+    codec.decode(bytes);
+    final IntsRef ints = codec.getNode();
 
-    Assert.assertArrayEquals(pathExpected, Arrays.copyOfRange(ints.ints, ints.offset, ints.length));
+    Assert.assertEquals(pathExpected, ints);
   }
 
   private TokenStream getTupleTokenStream(final String input) {
@@ -148,8 +149,8 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
 
   private TokenStream getSirenTokenStream(final MockSirenDocument doc)
   throws IOException {
-    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer(doc);
-    return analyzer.tokenStream();
+    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer(true);
+    return analyzer.tokenStream("", new MockSirenReader(doc));
   }
 
 }

@@ -89,7 +89,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
 
   @Test
   public void testUnaryClause() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"aaa ccc\" .",
+    _helper.addDocuments(new String[] { "\"aaa ccc\" .",
                                                     "\"bbb\" . \"ddd eee\" . ",
                                                     "\"ccc ccc\" . \"ccc ccc\" . " });
 
@@ -112,7 +112,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
   @Test
   public void testUnaryClauseWithIndexConstraint()
   throws Exception {
-    _helper.addDocumentsWithIterator(new String[] { "\"aaa\" \"bbb\" \"ccc\" .",
+    _helper.addDocuments(new String[] { "\"aaa\" \"bbb\" \"ccc\" .",
                                                     "\"ccc\" \"bbb\" \"aaa\" ." });
 
     final SirenCellQuery q = this.toUnaryClause(aaa);
@@ -132,7 +132,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testFlat() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"aaa ccc\" .",
+    _helper.addDocuments(new String[] { "\"aaa ccc\" .",
                                                     "\"bbb\" . \"ddd eee\" . ",
                                                     "\"ccc ccc\" . \"ccc ccc\" . " });
 
@@ -207,7 +207,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testMust() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+    _helper.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
                                                     "\"bbb\" . \"ddd eee\" . " });
 
     final NodeBooleanQuery bq = new NodeBooleanQuery();
@@ -223,7 +223,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testMust2() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"eee\" \"ddd\" . ",
+    _helper.addDocuments(new String[] { "\"eee\" \"ddd\" . ",
                                                     "\"bbb\" \"ddd eee\" . " });
 
     final NodeBooleanQuery bq = new NodeBooleanQuery();
@@ -239,7 +239,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testMustShould() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+    _helper.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
                                                     "\"bbb\" . \"ddd eee\" . " });
 
     final NodeBooleanQuery bq = new NodeBooleanQuery();
@@ -255,7 +255,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testMustMustNot() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd aaa\" . ",
+    _helper.addDocuments(new String[] { "\"eee\" . \"ddd aaa\" . ",
                                                     "\"bbb\" . \"ddd eee\" . " });
 
     final NodeBooleanQuery bq = new NodeBooleanQuery();
@@ -271,7 +271,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testShould() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+    _helper.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
                                                     "\"bbb\" . \"ddd eee\" . " });
 
     final NodeBooleanQuery bq = new NodeBooleanQuery();
@@ -287,7 +287,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testShouldMustNot() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"eee\" . \"ddd\" . ",
+    _helper.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
                                                     "\"bbb\" . \"ddd eee\" . " });
     
     final NodeBooleanQuery bq = new NodeBooleanQuery();
@@ -304,7 +304,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testReqNestedCellQuery() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+    _helper.addDocuments(new String[] { "\"ccc\" . \"aaa ddd\" . ",
                                                     "\"bbb\" . \"ddd ccc\" . " });
 
     final NodeBooleanQuery bq1 = new NodeBooleanQuery();
@@ -330,7 +330,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testReqExclNestedCellQuery() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+    _helper.addDocuments(new String[] { "\"ccc\" . \"aaa ddd\" . ",
                                                     "\"bbb\" . \"ddd ccc\" . " });
 
     final NodeBooleanQuery bq1 = new NodeBooleanQuery();
@@ -356,7 +356,7 @@ public class TestSirenCellQuery extends LuceneTestCase {
    */
   @Test
   public void testReqOptNestedCellQuery() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+    _helper.addDocuments(new String[] { "\"ccc\" . \"aaa ddd\" . ",
                                                     "\"bbb\" . \"ddd ccc\" . " });
 
     final NodeBooleanQuery bq1 = new NodeBooleanQuery();

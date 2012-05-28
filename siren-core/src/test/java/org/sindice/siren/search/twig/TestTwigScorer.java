@@ -35,17 +35,25 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.TwigChildBuilder.
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigDescendantBuilder.desc;
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.twq;
 
+import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.lucene.search.Scorer.ChildScorer;
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.primitive.NodeTermScorer;
 import org.sindice.siren.search.twig.TwigScorer.AncestorFilterNodeScorer;
 
 public class TestTwigScorer extends AbstractTestSirenScorer {
+
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.MOCK);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
 
   @Test
   public void testSingleChild() throws Exception {

@@ -31,18 +31,26 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClause
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.not;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeReqExclScorer extends AbstractTestSirenScorer {
 
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
+
   @Test
   public void testNextCandidateDocument() throws Exception {
-    this.addDocumentsWithIterator(
+    this.addDocuments(
       "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
       "\"aaa\" \"aaa bbb\" . "
     );
@@ -106,7 +114,7 @@ public class TestNodeReqExclScorer extends AbstractTestSirenScorer {
 
   @Test
   public void testNextNodeWithExhaustedProhibitedScorer() throws Exception {
-    this.addDocumentsWithIterator(
+    this.addDocuments(
       "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
       "\"aaa\" \"aaa bbb\" . "
     );
@@ -147,7 +155,7 @@ public class TestNodeReqExclScorer extends AbstractTestSirenScorer {
       docs.add("\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" \"aaa aaa\". ");
       docs.add("\"aaa bbb aaa\" . \"aaa ccc bbb\" . ");
     }
-    this.addDocumentsWithIterator(docs);
+    this.addDocuments(docs);
 
     final NodeScorer scorer = this.getScorer(
       nbq(must("aaa"), not("bbb"))

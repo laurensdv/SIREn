@@ -26,24 +26,22 @@
 package org.sindice.siren.util;
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.util.Collection;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.lucene40.Lucene40PostingsFormat;
+import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util._TestUtil;
 import org.junit.After;
 import org.junit.Before;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.analysis.MockSirenAnalyzer;
 import org.sindice.siren.analysis.MockSirenDocument;
-import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.index.codecs.MockSirenCodec;
+import org.sindice.siren.index.codecs.RandomSirenCodec;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
+import org.sindice.siren.index.codecs.siren02.Siren02PostingsFormat;
 
 public abstract class BasicSirenTestCase extends SirenTestCase {
 
@@ -52,29 +50,34 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected IndexReader reader;
   protected IndexSearcher searcher;
   protected Analyzer analyzer;
+  protected RandomSirenCodec codec;
 
-  protected Analyzer initAnalyzer() {
-    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
-    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
-    return new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
+  private AnalyzerType analyzerType;
+
+  public enum AnalyzerType {
+    MOCK, TUPLE
   }
 
-  protected Codec initCodec() {
-    return _TestUtil.alwaysPostingsFormat(new Lucene40PostingsFormat());
-  }
+  /**
+   * Default configuration for the tests.
+   * <p>
+   * Overrides must call {@link #setAnalyzer(AnalyzerType)} and
+   * {@link #setPostingsFormat(PostingsFormatType)} or
+   * {@link #setPostingsFormat(PostingsFormat)}
+   */
+  protected abstract void configure() throws IOException;
 
   @Override
   @Before
   public void setUp() throws Exception {
     super.setUp();
+    this.configure();
+  }
 
-    analyzer = this.initAnalyzer();
-
+  private void init() throws IOException {
     directory = newDirectory();
-
-    writer = this.newRandomIndexWriter(directory, analyzer, this.initCodec());
-    super.deleteAll(writer);
+    writer = this.newRandomIndexWriter(directory, analyzer, codec);
+    this.deleteAll(writer);
     reader = this.newIndexReader(writer);
     searcher = newSearcher(reader);
   }
@@ -82,19 +85,62 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   @Override
   @After
   public void tearDown() throws Exception {
-    reader.close();
-    writer.close();
-    directory.close();
+    this.close();
     super.tearDown();
   }
 
-  protected void changeCodec(final Codec codec) throws IOException {
-    reader.close();
-    writer.close();
-    writer = this.newRandomIndexWriter(directory, analyzer, codec);
-    super.deleteAll(writer);
-    reader = this.newIndexReader(writer);
-    searcher = newSearcher(reader);
+  private void close() throws IOException {
+    if (reader != null) {
+      reader.close();
+      reader = null;
+    }
+    if (writer != null) {
+      writer.close();
+      writer = null;
+    }
+    if (directory != null) {
+      directory.close();
+      directory = null;
+    }
+  }
+
+  /**
+   * Set a new postings format for a single test
+   */
+  protected void setPostingsFormat(final PostingsFormatType format)
+  throws IOException {
+    codec = new RandomSirenCodec(random(), format);
+    if (analyzerType != null) {
+      analyzer = this.initAnalyzer(analyzerType, codec);
+      this.close();
+      this.init();
+    }
+  }
+
+  /**
+   * Set a new postings format for a single test
+   * @throws IOException
+   */
+  protected void setPostingsFormat(final PostingsFormat format)
+  throws IOException {
+    codec = new RandomSirenCodec(random(), format);
+    if (analyzerType != null) {
+      analyzer = this.initAnalyzer(analyzerType, codec);
+      this.close();
+      this.init();
+    }
+  }
+
+  /**
+   * Set a new analyzer for a single test
+   */
+  protected void setAnalyzer(final AnalyzerType analyzerType) throws IOException {
+    this.analyzerType = analyzerType;
+    if (codec != null) {
+      analyzer = this.initAnalyzer(analyzerType, codec);
+      this.close();
+      this.init();
+    }
   }
 
   protected void refreshReaderAndSearcher() throws IOException {
@@ -105,52 +151,62 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
 
   protected void addDocument(final String data)
   throws IOException {
-    super.addDocument(writer, data);
+    this.addDocument(writer, data);
     this.refreshReaderAndSearcher();
   }
 
   protected void addDocumentNoNorms(final String data)
   throws IOException {
-    super.addDocumentNoNorms(writer, data);
+    this.addDocumentNoNorms(writer, data);
     this.refreshReaderAndSearcher();
   }
 
-  protected void addDocumentsWithIterator(final Collection<String> data)
+  protected void addDocuments(final Collection<String> docs)
   throws IOException {
-    super.addDocumentsWithIterator(writer, data);
+    this.addDocuments(writer, docs.toArray(new String[docs.size()]));
     this.refreshReaderAndSearcher();
   }
 
-  protected void addDocumentsWithIterator(final String ... docs)
+  protected void addDocuments(final String ... docs)
   throws IOException {
-    super.addDocumentsWithIterator(writer, docs);
+    this.addDocuments(writer, docs);
     this.refreshReaderAndSearcher();
   }
 
-  protected void addDocumentsWithIterator(final MockSirenDocument ... sdocs)
+  protected void addDocuments(final MockSirenDocument ... sdocs)
   throws IOException {
-    // siren delta payload filter only needed for siren 0.2x tests
-    final boolean delta = !(this.initCodec() instanceof MockSirenCodec);
-    super.addDocumentsWithIterator(writer, delta, sdocs);
-    this.refreshReaderAndSearcher();
-  }
-
-  public void addDocuments(final MockSirenDocument ... sdocs)
-  throws IOException {
-    // siren delta payload filter only needed for siren 0.2x tests
-    final boolean delta = !(this.initCodec() instanceof MockSirenCodec);
-    super.addDocuments(writer, delta, sdocs);
+    this.addDocuments(writer, sdocs);
     this.refreshReaderAndSearcher();
   }
 
   protected void deleteAll() throws IOException {
-    super.deleteAll(writer);
+    this.deleteAll(writer);
     this.refreshReaderAndSearcher();
   }
 
   public void forceMerge() throws IOException {
-    super.forceMerge(writer);
+    this.forceMerge(writer);
     this.refreshReaderAndSearcher();
+  }
+
+  private Analyzer initAnalyzer(final AnalyzerType analyzerType, final RandomSirenCodec codec) {
+    final PostingsFormat format = codec.getPostingsFormatForField(SirenTestCase.DEFAULT_TEST_FIELD);
+    switch (analyzerType) {
+      case MOCK:
+        if (format instanceof Siren02PostingsFormat) {
+          return new MockSirenAnalyzer(true);
+        }
+        return new MockSirenAnalyzer(false);
+
+      case TUPLE:
+        if (format instanceof Siren02PostingsFormat) {
+          return SirenTestCase.newTupleAnalyzer(true);
+        }
+        return SirenTestCase.newTupleAnalyzer(false);
+
+      default:
+        throw new InvalidParameterException();
+    }
   }
 
 }

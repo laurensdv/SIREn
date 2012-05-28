@@ -32,7 +32,6 @@ import static org.sindice.siren.analysis.MockSirenToken.token;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.SlowCompositeReaderWrapper;
@@ -40,7 +39,7 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 import org.sindice.siren.analysis.MockSirenDocument;
 import org.sindice.siren.index.DocsAndNodesIterator;
-import org.sindice.siren.index.codecs.MockSirenCodec;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.index.codecs.siren10.Siren10PostingsReader.Siren10DocsEnum;
 import org.sindice.siren.index.codecs.siren10.Siren10PostingsReader.Siren10DocsNodesAndPositionsEnum;
 import org.sindice.siren.util.BasicSirenTestCase;
@@ -48,8 +47,9 @@ import org.sindice.siren.util.BasicSirenTestCase;
 public class TestSiren10PostingsFormat extends BasicSirenTestCase {
 
   @Override
-  protected Codec initCodec() {
-    return new MockSirenCodec(512);
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.MOCK);
+    this.setPostingsFormat(PostingsFormatType.SIREN_10);
   }
 
   @Test
@@ -61,9 +61,9 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     );
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
     assertEquals(0, e.termFreqInDoc());
     assertTrue(e.nextDocument());
@@ -89,12 +89,12 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
       docs[i + 2] = doc(token("aaa", node(5,3,6,3)), token("bbb", node(5,3,6,3,7)));
       docs[i + 3] = doc(token("bbb", node(2,0)), token("aaa", node(5,3,6)));
     }
-    this.addDocumentsWithIterator(docs);
+    this.addDocuments(docs);
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
 
     // first skip in skiplist is at 512
     assertTrue(e.skipTo(502));
@@ -124,9 +124,9 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     );
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
     assertEquals(0, e.termFreqInDoc());
     assertEquals(node(-1), e.node());
@@ -170,9 +170,9 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     );
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
     assertEquals(0, e.termFreqInDoc());
 
@@ -196,12 +196,12 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
       docs[i + 2] = doc(token("aaa", node(5,3,6,3)), token("bbb", node(5,3,6,3,7)));
       docs[i + 3] = doc(token("bbb", node(2,0)), token("aaa", node(5,3,6)));
     }
-    this.addDocumentsWithIterator(docs);
+    this.addDocuments(docs);
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
 
     // first skip in skiplist is at 512
     assertTrue(e.skipTo(502));
@@ -248,13 +248,13 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     this.addDocuments(
       doc(token("aaa", node(1)), token("bbb", node(1,0)), token("aaa", node(2))),
       doc(token("bbb", node(1,0)), token("bbb", node(1,0,1,0))),
-      doc(token("bbb", node(5,3,6,3,7)), token("aaa", node(5,3,6,3)))
+      doc(token("bbb", node(5,3,6)), token("aaa", node(5,3,6,3)), token("aaa", node(5,3,6,3)))
     );
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
     assertEquals(0, e.termFreqInDoc());
     assertEquals(node(-1), e.node());
@@ -278,20 +278,22 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertEquals(1, e.termFreqInNode());
 
     assertTrue(e.nextPosition());
-    assertEquals(2, e.pos());
+    assertEquals(0, e.pos());
     assertFalse(e.nextPosition());
 
     assertFalse(e.nextNode());
 
     assertTrue(e.nextDocument());
     assertEquals(2, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(2, e.termFreqInDoc());
     assertEquals(1, e.nodeFreqInDoc());
 
     assertTrue(e.nextNode());
     assertEquals(node(5,3,6,3), e.node());
-    assertEquals(1, e.termFreqInNode());
+    assertEquals(2, e.termFreqInNode());
 
+    assertTrue(e.nextPosition());
+    assertEquals(0, e.pos());
     assertTrue(e.nextPosition());
     assertEquals(1, e.pos());
     assertFalse(e.nextPosition());
@@ -309,9 +311,9 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     );
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
 
     // freqs should be set to 0 at the beginning
@@ -373,9 +375,9 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     this.forceMerge();
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
 
     assertTrue(e.nextDocument());
     assertEquals(0, e.doc());
@@ -388,7 +390,7 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(e.nextNode());
     assertEquals(1, e.termFreqInNode());
     assertTrue(e.nextPosition());
-    assertEquals(2, e.pos());
+    assertEquals(0, e.pos());
 
     assertTrue(e.nextDocument());
     assertEquals(1, e.doc());
@@ -401,13 +403,13 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(e.nextNode());
     assertEquals(1, e.termFreqInNode());
     assertTrue(e.nextPosition());
-    assertEquals(2, e.pos());
+    assertEquals(0, e.pos());
   }
 
   @Test
   public void testMergeBlockSize() throws IOException {
     // reduce block size
-    this.changeCodec(new MockSirenCodec(2));
+    this.setPostingsFormat(new Siren10PostingsFormat(2));
 
     this.addDocuments(
       doc(token("aaa", node(1)), token("bbb", node(1,0))),
@@ -442,9 +444,9 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     }
 
     final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
-    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_FIELD, new BytesRef("aaa"), true);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
     assertTrue(docsEnum instanceof Siren10DocsEnum);
-    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocNodesEnum();
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
 
     for (int i = 0; i < 1000; i++) {
       assertTrue(e.nextDocument());
@@ -452,6 +454,25 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
       assertEquals(2, e.termFreqInDoc());
       assertEquals(2, e.nodeFreqInDoc());
     }
+  }
+
+  @Test
+  public void testSkipDataCheckIndex() throws IOException {
+    // The Lucene CheckIndex was catching a problem with how skip data level
+    // were computed on this configuration.
+    this.setPostingsFormat(new Siren10PostingsFormat(256));
+
+    final MockSirenDocument[] docs = new MockSirenDocument[1000];
+
+    for (int i = 0; i < 1000; i++) {
+     docs[i] = doc(token("aaa", node(1)), token("bbb", node(1,0)), token("aaa", node(2)));
+    }
+    this.addDocuments(docs);
+
+    final AtomicReader aReader = SlowCompositeReaderWrapper.wrap(reader);
+    final DocsEnum docsEnum = aReader.termDocsEnum(null, DEFAULT_TEST_FIELD, new BytesRef("aaa"), true);
+    assertTrue(docsEnum instanceof Siren10DocsEnum);
+    final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
   }
 
 }

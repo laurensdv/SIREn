@@ -38,6 +38,7 @@ import org.apache.lucene.index.Payload;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
+import org.sindice.siren.analysis.attributes.PositionAttribute;
 
 /**
  * Filter that encode the structural information of each token into its payload.
@@ -45,6 +46,7 @@ import org.sindice.siren.analysis.attributes.NodeAttribute;
 public class SirenDeltaPayloadFilter extends TokenFilter {
 
   private final NodeAttribute nodeAtt;
+  private final PositionAttribute posAtt;
   private final PayloadAttribute payloadAtt;
   private final CharTermAttribute termAtt;
 
@@ -58,6 +60,7 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
     termAtt = this.addAttribute(CharTermAttribute.class);
     payloadAtt = this.addAttribute(PayloadAttribute.class);
     nodeAtt = this.addAttribute(NodeAttribute.class);
+    posAtt = this.addAttribute(PositionAttribute.class);
   }
 
   @Override
@@ -87,8 +90,8 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
       if (!previousPaths.containsKey(hash)) {
         // object creation and copy
         previousPaths.put(hash, IntsRef.deepCopyOf(nodeAtt.node()));
-        // encode node path
-        bytes = codec.encode(nodeAtt.node());
+        // encode node path and position
+        bytes = codec.encode(nodeAtt.node(), posAtt.position());
         payload.setData(bytes.bytes, bytes.offset, bytes.length);
         payloadAtt.setPayload(payload);
       }
@@ -131,8 +134,8 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
           previous.ints[j] = current.ints[i];
         }
 
-        // encode node path
-        bytes = codec.encode(current);
+        // encode node path and position
+        bytes = codec.encode(current, posAtt.position());
         payload.setData(bytes.bytes, bytes.offset, bytes.length);
         payloadAtt.setPayload(payload);
       }

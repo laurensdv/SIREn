@@ -34,7 +34,9 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.util.CharArrayMap;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.filter.DatatypeAnalyzerFilter;
+import org.sindice.siren.analysis.filter.PositionAttributeFilter;
 import org.sindice.siren.analysis.filter.SirenDeltaPayloadFilter;
+import org.sindice.siren.analysis.filter.SirenPayloadFilter;
 import org.sindice.siren.analysis.filter.TokenTypeFilter;
 
 /**
@@ -45,25 +47,27 @@ public class TupleAnalyzer extends Analyzer {
 
   private Analyzer stringAnalyzer;
   private Analyzer anyURIAnalyzer;
-  
+
+  private boolean deltaPayload = true;
+
   private final Version matchVersion;
-  
+
   private final CharArrayMap<Analyzer> regLitAnalyzers;
-  
+
   /**
    * Create a {@link TupleAnalyzer} with the default {@link Analyzer} for Literals and URIs.
    * @param version
    * @param stringAnalyzer default Literal {@link Analyzer}
    * @param anyURIAnalyzer default URI {@link Analyzer}
    */
-  public TupleAnalyzer(Version version, final Analyzer stringAnalyzer, final Analyzer anyURIAnalyzer) {
+  public TupleAnalyzer(final Version version, final Analyzer stringAnalyzer, final Analyzer anyURIAnalyzer) {
     matchVersion = version;
     this.stringAnalyzer = stringAnalyzer;
     this.anyURIAnalyzer = anyURIAnalyzer;
     regLitAnalyzers = new CharArrayMap<Analyzer>(version, 64, false);
-    
+
   }
-  
+
   public void setLiteralAnalyzer(final Analyzer analyzer) {
     stringAnalyzer = analyzer;
   }
@@ -72,18 +76,22 @@ public class TupleAnalyzer extends Analyzer {
     anyURIAnalyzer = analyzer;
   }
 
+  public void setDeltaPayload(final boolean deltaPayload) {
+    this.deltaPayload = deltaPayload;
+  }
+
   /**
    * Assign an {@link Analyzer} to be used with that key. That analyzer is used
    * to process tokens outputed from the {@link TupleTokenizer}.
    * @param datatype
    * @param a
    */
-  public void registerLiteralAnalyzer(char[] datatype, Analyzer a) {
+  public void registerLiteralAnalyzer(final char[] datatype, final Analyzer a) {
     if (!regLitAnalyzers.containsKey(datatype)) {
       regLitAnalyzers.put(datatype, a);
     }
   }
-  
+
   /**
    * Remove all registered {@link Analyzer}s.
    */
@@ -92,16 +100,17 @@ public class TupleAnalyzer extends Analyzer {
   }
 
   @Override
-  protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+  protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
     final TupleTokenizer source = new TupleTokenizer(reader, Integer.MAX_VALUE);
-    
+
     TokenStream sink = new TokenTypeFilter(source, new int[] {TupleTokenizer.BNODE,
                                                               TupleTokenizer.DOT});
     final DatatypeAnalyzerFilter tt = new DatatypeAnalyzerFilter(matchVersion, sink, stringAnalyzer, anyURIAnalyzer);
-    for (Entry<Object, Analyzer> e : regLitAnalyzers.entrySet()) {
+    for (final Entry<Object, Analyzer> e : regLitAnalyzers.entrySet()) {
       tt.register((char[]) e.getKey(), e.getValue());
     }
-    sink = new SirenDeltaPayloadFilter(tt);
+    sink = new PositionAttributeFilter(tt);
+    sink = deltaPayload ? new SirenDeltaPayloadFilter(sink) : new SirenPayloadFilter(sink);
     return new TokenStreamComponents(source, sink);
   }
 

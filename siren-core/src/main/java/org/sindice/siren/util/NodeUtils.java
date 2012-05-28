@@ -38,14 +38,17 @@ public class NodeUtils {
    * is less than, equal to, or greater than the second node.
    */
   public static final int compare(final IntsRef n1, final IntsRef n2) {
-    return compare(n1.ints, n1.length, n2.ints, n2.length);
+    return compare(n1.ints, n1.offset, n1.length, n2.ints, n2.offset, n2.length);
   }
 
-  private static final int compare(final int[] n1, final int n1Len,
-                                   final int[] n2, final int n2Len) {
-    for (int i = 0; i < n1Len && i < n2Len; i++) {
-      if (n1[i] != n2[i]) {
-        return n1[i] - n2[i];
+  private static final int compare(final int[] n1, final int n1Offset, final int n1Len,
+                                   final int[] n2, final int n2Offset, final int n2Len) {
+    final int n1Limit = n1Len + n1Offset;
+    final int n2Limit = n2Len + n2Offset;
+
+    for (int i = n1Offset, j = n2Offset; i < n1Limit && j < n2Limit; i++, j++) {
+      if (n1[i] != n2[j]) {
+        return n1[i] - n2[j];
       }
     }
     // exception, if node path is equal, check node path length
@@ -123,11 +126,11 @@ public class NodeUtils {
     // it is assumed that lowerBound.length == upperBound.length
     final int len = node.length > lowerBound.length ? lowerBound.length : node.length;
 
-    for (int i = 0; i < len; i++) {
-      if (node.ints[i] > lowerBound[i] && node.ints[i] < upperBound[i]) {
+    for (int i = 0, j = node.offset; i < len; i++, j++) {
+      if (node.ints[j] > lowerBound[i] && node.ints[j] < upperBound[i]) {
         return true;
       }
-      if (node.ints[i] < lowerBound[i] || node.ints[i] > upperBound[i]) {
+      if (node.ints[j] < lowerBound[i] || node.ints[j] > upperBound[i]) {
         return false;
       }
     }

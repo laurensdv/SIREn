@@ -51,8 +51,13 @@ public class Siren10PostingsFormat extends PostingsFormat {
     this(DEFAULT_POSTINGS_BLOCK_SIZE);
   }
 
+  /**
+   * Create a SIREn 1.0 posting format.
+   * <p>
+   * The block size parameter is used only during indexing.
+   */
   public Siren10PostingsFormat(final int blockSize) {
-    super("siren10");
+    super("Siren10");
     this.blockSize = blockSize;
   }
 

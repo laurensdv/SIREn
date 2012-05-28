@@ -27,10 +27,9 @@ package org.sindice.siren.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -44,8 +43,12 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
+import org.sindice.siren.analysis.AnyURIAnalyzer;
+import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
 import org.sindice.siren.analysis.MockSirenAnalyzer;
 import org.sindice.siren.analysis.MockSirenDocument;
+import org.sindice.siren.analysis.MockSirenReader;
+import org.sindice.siren.analysis.TupleAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,9 +56,22 @@ public abstract class SirenTestCase extends LuceneTestCase {
 
   protected static final Logger logger = LoggerFactory.getLogger(SirenTestCase.class);
 
-  public static final String DEFAULT_FIELD = "content";
+  public static final String DEFAULT_TEST_FIELD = "content";
 
-  public FieldType newFieldType() {
+  public static Analyzer newTupleAnalyzer(final boolean delta) {
+    final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
+    uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
+    final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT,
+      new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
+    analyzer.setDeltaPayload(delta);
+    return analyzer;
+  }
+
+  public static Analyzer newMockAnalyzer(final boolean delta) {
+    return new MockSirenAnalyzer(delta);
+  }
+
+  private FieldType newFieldType() {
     final FieldType ft = new FieldType();
     ft.setStored(false);
     ft.setOmitNorms(false);
@@ -65,34 +81,37 @@ public abstract class SirenTestCase extends LuceneTestCase {
     return ft;
   }
 
-  public FieldType newStoredFieldType() {
+  private FieldType newStoredFieldType() {
     final FieldType ft = this.newFieldType();
     ft.setStored(true);
     return ft;
   }
 
-  public FieldType newStoredNoNormFieldType() {
+  private FieldType newStoredNoNormFieldType() {
     final FieldType ft = this.newStoredFieldType();
     ft.setOmitNorms(true);
     return ft;
   }
 
-  public RandomIndexWriter newRandomIndexWriter(final Directory dir,
-                                                final Analyzer analyzer,
-                                                final Codec codec)
+  protected RandomIndexWriter newRandomIndexWriter(final Directory dir,
+                                                   final Analyzer analyzer,
+                                                   final Codec codec)
   throws IOException {
-    return new RandomIndexWriter(random(), dir,
+    final RandomIndexWriter writer = new RandomIndexWriter(random(), dir,
       newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
       .setCodec(codec)
       .setMergePolicy(newLogMergePolicy())
       .setSimilarity(new DefaultSimilarity()));
+    writer.setDoRandomForceMergeAssert(true);
+    return writer;
   }
 
-  public IndexReader newIndexReader(final RandomIndexWriter writer) throws IOException {
+  protected IndexReader newIndexReader(final RandomIndexWriter writer)
+  throws IOException {
     return SlowCompositeReaderWrapper.wrap(writer.getReader());
   }
 
-  public IndexSearcher newIndexSearcher(final RandomIndexWriter writer)
+  protected IndexSearcher newIndexSearcher(final RandomIndexWriter writer)
   throws IOException {
     final IndexReader indexReader = SlowCompositeReaderWrapper.wrap(writer.getReader());
     final IndexSearcher indexSearcher = newSearcher(indexReader);
@@ -100,91 +119,49 @@ public abstract class SirenTestCase extends LuceneTestCase {
     return indexSearcher;
   }
 
-  public void addDocument(final RandomIndexWriter writer, final String data)
+  protected void addDocument(final RandomIndexWriter writer, final String data)
   throws IOException {
     final Document doc = new Document();
-    doc.add(new Field(DEFAULT_FIELD, data, this.newStoredFieldType()));
+    doc.add(new Field(DEFAULT_TEST_FIELD, data, this.newStoredFieldType()));
     writer.addDocument(doc);
     writer.commit();
   }
 
-  public void addDocument(final RandomIndexWriter writer, final TokenStream ts)
+  protected void addDocumentNoNorms(final RandomIndexWriter writer, final String data)
   throws IOException {
     final Document doc = new Document();
-    doc.add(new Field(DEFAULT_FIELD, ts, this.newFieldType()));
+    doc.add(new Field(DEFAULT_TEST_FIELD, data, this.newStoredNoNormFieldType()));
     writer.addDocument(doc);
     writer.commit();
-  }
-
-  public void addDocuments(final RandomIndexWriter writer, final boolean delta, final MockSirenDocument ... sdocs)
-  throws IOException {
-    for (final MockSirenDocument sdoc : sdocs) {
-      final Document doc = new Document();
-      doc.add(new Field(DEFAULT_FIELD, new MockSirenAnalyzer(sdoc, delta).tokenStream(), this.newFieldType()));
-      writer.addDocument(doc);
-    }
-    writer.commit();
-  }
-
-  public void addDocumentNoNorms(final RandomIndexWriter writer, final String data)
-  throws IOException {
-    final Document doc = new Document();
-    doc.add(new Field(DEFAULT_FIELD, data, this.newStoredNoNormFieldType()));
-    writer.addDocument(doc);
-    writer.commit();
-  }
-
-  public void addDocuments(final RandomIndexWriter writer, final String[] data)
-  throws IOException {
-    for (final String entry : data) {
-      final Document doc = new Document();
-      doc.add(new Field(DEFAULT_FIELD, entry, this.newStoredFieldType()));
-      writer.addDocument(doc);
-    }
-    writer.commit();
-  }
-
-  public void addDocuments(final RandomIndexWriter writer, final Collection<String> data)
-  throws IOException {
-    this.addDocuments(writer, data.toArray(new String[data.size()]));
   }
 
   /**
-   * Lucene 4.0 index documents by blocks, therefore the order with which they were
-   * added may not be the same as the order they were written to the index.
-   * For tests which depends on this order, this method keeps the original order
-   * because all documents are added to the same block.
+   * Atomically adds a block of documents with sequentially
+   * assigned document IDs.
    * <br>
    * See also {@link IndexWriter#addDocuments(Iterable)}
    */
-  public void addDocumentsWithIterator(final RandomIndexWriter writer,
-                                       final String[] data)
+  protected void addDocuments(final RandomIndexWriter writer,
+                              final String[] data)
   throws IOException {
     final ArrayList<Document> docs = new ArrayList<Document>();
 
     for (final String entry : data) {
       final Document doc = new Document();
-      doc.add(new Field(DEFAULT_FIELD, entry, this.newStoredFieldType()));
+      doc.add(new Field(DEFAULT_TEST_FIELD, entry, this.newStoredFieldType()));
       docs.add(doc);
     }
     writer.addDocuments(docs);
     writer.commit();
   }
 
-  public void addDocumentsWithIterator(final RandomIndexWriter writer,
-                                       final Collection<String> data)
-  throws IOException {
-    this.addDocumentsWithIterator(writer, data.toArray(new String[data.size()]));
-  }
-
-  public void addDocumentsWithIterator(final RandomIndexWriter writer,
-                                       final boolean delta,
-                                       final MockSirenDocument ... sdocs)
+  protected void addDocuments(final RandomIndexWriter writer,
+                              final MockSirenDocument ... sdocs)
   throws IOException {
     final ArrayList<Document> docs = new ArrayList<Document>(sdocs.length);
     for (final MockSirenDocument sdoc : sdocs) {
       final Document doc = new Document();
-      doc.add(new Field(DEFAULT_FIELD, new MockSirenAnalyzer(sdoc, delta).tokenStream(), this.newFieldType()));
+      doc.add(new Field(DEFAULT_TEST_FIELD, new MockSirenReader(sdoc), this.newFieldType()));
       docs.add(doc);
     }
     writer.addDocuments(docs);

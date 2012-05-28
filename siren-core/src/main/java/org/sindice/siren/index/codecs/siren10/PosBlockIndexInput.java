@@ -36,20 +36,17 @@ import org.sindice.siren.util.ArrayUtils;
 
 public class PosBlockIndexInput extends BlockIndexInput {
 
-  final PosBlockReader reader;
-
   protected BlockDecompressor posDecompressor;
 
   public PosBlockIndexInput(final IndexInput in, final BlockDecompressor posDecompressor)
   throws IOException {
     super(in);
     this.posDecompressor = posDecompressor;
-    reader = new PosBlockReader();
   }
 
   @Override
   public PosBlockReader getBlockReader() {
-    return reader;
+    return new PosBlockReader((IndexInput) in.clone());
   }
 
   protected class PosBlockReader extends BlockReader {
@@ -62,6 +59,10 @@ public class PosBlockIndexInput extends BlockIndexInput {
     BytesRef posCompressedBuffer = new BytesRef();
 
     private int currentPos = 0;
+
+    private PosBlockReader(final IndexInput in) {
+      super(in);
+    }
 
     @Override
     protected void readHeader() throws IOException {
@@ -114,6 +115,10 @@ public class PosBlockIndexInput extends BlockIndexInput {
     protected void initBlock() {
       posBuffer.offset = posBuffer.length = 0;
       this.resetCurrentPosition();
+
+      posReadPending = true;
+
+      posCompressedBufferLength = 0;
     }
 
     public void resetCurrentPosition() {

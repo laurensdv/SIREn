@@ -34,10 +34,17 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeTermScorer extends AbstractTestSirenScorer {
+
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
 
   public void testNextPositionFail() throws Exception {
     this.addDocument(writer, "<http://renaud.delbru.fr/> . ");
@@ -70,7 +77,7 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
     assertEquals(node(0,1), scorer.node());
     assertEquals(-1, scorer.pos());
     assertTrue(scorer.nextPosition());
-    assertEquals(2, scorer.pos());
+    assertEquals(0, scorer.pos());
 
     assertEndOfStream(scorer);
 
@@ -92,7 +99,7 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
     assertEquals(node(0,2), scorer.node());
     assertEquals(-1, scorer.pos());
     assertTrue(scorer.nextPosition());
-    assertEquals(4, scorer.pos());
+    assertEquals(0, scorer.pos());
 
     assertEndOfStream(scorer);
   }
@@ -103,7 +110,7 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
     for (int i = 0; i < 32; i++) {
       docs.add("<http://renaud.delbru.fr/> . \"renaud delbru\" \"renaud delbru\" . ");
     }
-    this.addDocumentsWithIterator(writer, docs);
+    this.addDocuments(docs);
 
     final NodeTermScorer scorer = (NodeTermScorer) this.getScorer(ntq("renaud"));
     assertTrue(scorer.skipToCandidate(16));
@@ -119,8 +126,8 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
       docs.add("<http://renaud.delbru.fr/> . \"renaud delbru\" \"renaud delbru\" . ");
       docs.add("<aaa> . \"aaa\" \"aaa bbb\" . ");
     }
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer, docs);
+    this.deleteAll();
+    this.addDocuments(docs);
 
     final NodeTermScorer scorer = (NodeTermScorer) this.getScorer(ntq("renaud"));
     // does not exist, should skip to entity 18
@@ -144,8 +151,8 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
       docs.add("<http://renaud.delbru.fr/> . \"renaud delbru\" \"renaud delbru\" . ");
       docs.add("<aaa> . \"aaa\" \"aaa bbb\" . ");
     }
-    this.deleteAll(writer);
-    this.addDocumentsWithIterator(writer, docs);
+    this.deleteAll();
+    this.addDocuments(docs);
 
     NodeScorer scorer = this.getScorer(
       ntq("renaud").bound(node(1,0), node(1,1))
@@ -189,7 +196,7 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
 
   @Test(expected=Exception.class)
   public void testInvalidScoreCall() throws IOException {
-    this.addDocument(writer, "\"Renaud\" . ");
+    this.addDocument("\"Renaud\" . ");
     final NodeScorer scorer = this.getScorer(ntq("renaud"));
 
     // Invalid call
@@ -198,7 +205,7 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
 
   @Test
   public void testScore() throws IOException {
-    this.addDocument(writer, "\"Renaud renaud\" \"renaud\" . ");
+    this.addDocument("\"Renaud renaud\" \"renaud\" . ");
     final NodeScorer scorer = this.getScorer(ntq("renaud"));
 
     assertTrue(scorer.nextCandidateDocument());

@@ -31,16 +31,25 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClause
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.should;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
 
+import java.io.IOException;
+
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeReqOptScorer extends AbstractTestSirenScorer {
 
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
+
   @Test
   public void testNextPositionWithOptionalTerm() throws Exception {
-    this.addDocumentsWithIterator(
+    this.addDocuments(
       "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
       "\"aaa\" \"aaa bbb\" . "
     );

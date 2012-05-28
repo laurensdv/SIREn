@@ -37,9 +37,16 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
 import org.junit.Test;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public class TestNodeTermQuery extends BasicSirenTestCase {
+
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
 
   /**
    * Ensures simple term queries match all the documents

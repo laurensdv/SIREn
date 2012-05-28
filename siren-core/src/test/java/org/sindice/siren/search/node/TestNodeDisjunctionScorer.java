@@ -30,18 +30,26 @@ import static org.sindice.siren.analysis.MockSirenToken.node;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.should;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeDisjunctionScorer extends AbstractTestSirenScorer {
 
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
+
   @Test
   public void testNextCandidateNextNode() throws Exception {
-    this.addDocumentsWithIterator(
+    this.addDocuments(
       "<http://renaud.delbru.fr/> . ",
       "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
       "<http://sindice.com/test/type> <http://sindice.com/test/Person> . ",
@@ -86,7 +94,7 @@ public class TestNodeDisjunctionScorer extends AbstractTestSirenScorer {
       docs.add("\"aaa bbb\" \"aaa ccc\" . \"ccc\" \"bbb ccc\" .");
       docs.add("\"aaa ccc bbb\" . \"aaa aaa ccc bbb bbb\" . ");
     }
-    this.addDocumentsWithIterator(docs);
+    this.addDocuments(docs);
 
     final NodeScorer scorer = this.getScorer(
       nbq(should("aaa"), should("bbb"))

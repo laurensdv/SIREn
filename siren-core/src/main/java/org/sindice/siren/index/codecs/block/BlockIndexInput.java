@@ -96,6 +96,15 @@ public abstract class BlockIndexInput implements Closeable {
     private long lastBlockFP = -1;
 
     /**
+     * Each block reader should have their own clone of the {@link IndexInput}
+     */
+    protected final IndexInput in;
+
+    protected BlockReader(final IndexInput in) {
+      this.in = in;
+    }
+
+    /**
      * Init reader
      */
     public void init() {

@@ -52,54 +52,74 @@ public class VIntPayloadCodec extends PayloadCodec {
    */
   IntsRef ints = new IntsRef();
 
+  int pos;
+
   @Override
-  public IntsRef decode(final BytesRef data) {
+  public IntsRef getNode() {
+    return ints;
+  }
+
+  @Override
+  public int getPosition() {
+    return pos;
+  }
+
+  @Override
+  public void decode(final BytesRef data) {
     // max case : 1 byte = 1 int
     this.ensureIntBufferSize(data.length);
 
     ib.clear();
 
-    this.setBytesRef(data.bytes, data.offset, data.length);
+    this.setData(data.bytes, data.offset, data.length);
 
-    final int limit = bytes.offset + bytes.length;
+    // decode position and node
+    final int limit = bytes.length - bytes.offset;
     while (bytes.offset < limit) {
       ib.put(CodecUtils.byteArrayToVInt(bytes));
     }
 
     ib.flip();
 
-    this.setIntsRef(ib.array(), ib.position(), ib.limit());
+    // set position
+    pos = ib.get();
 
-    return ints;
+    // set node
+    this.setNode(ib.array(), ib.position(), ib.limit() - ib.position());
   }
 
   @Override
-  public BytesRef encode(final IntsRef data) {
+  public BytesRef encode(final IntsRef node, final int pos) {
     // max case : 1 int = 5 bytes
-    this.ensureByteBufferSize(data.length * 5);
+    this.ensureByteBufferSize((node.length + 1) * 5);
 
     bb.clear();
 
-    this.setIntsRef(data.ints, data.offset, data.length);
+    // encode position
+    CodecUtils.vIntToByteArray(pos, bb);
 
-    for (int i = ints.offset; i < ints.offset + ints.length; i++) {
+    // encode node
+    this.setNode(node.ints, node.offset, node.length);
+
+    final int limit = ints.length - ints.offset;
+    for (int i = ints.offset; i < limit; i++) {
       CodecUtils.vIntToByteArray(ints.ints[i], bb);
     }
 
     bb.flip();
 
-    this.setBytesRef(bb.array(), bb.position(), bb.limit());
+    this.setData(bb.array(), bb.position(), bb.limit());
 
     return bytes;
   }
 
-  private void setBytesRef(final byte[] data, final int offset, final int length) {
+  private void setData(final byte[] data, final int offset, final int length) {
     bytes.bytes = data;
     bytes.length = length;
     bytes.offset = offset;
   }
 
-  private void setIntsRef(final int[] data, final int offset, final int length) {
+  private void setNode(final int[] data, final int offset, final int length) {
     ints.ints = data;
     ints.length = length;
     ints.offset = offset;

@@ -35,14 +35,21 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
+
   @Test
   public void testNextWithTermConjunction() throws Exception {
-    this.addDocumentsWithIterator(writer, new String[] { "<http://renaud.delbru.fr/> . ",
+    this.addDocuments(new String[] { "<http://renaud.delbru.fr/> . ",
       "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
       "<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
       "<http://sindice.com/test/name> \"Renaud Delbru\" . " });
@@ -80,7 +87,7 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
   @Test
   public void testNoNode() throws IOException {
-    this.addDocument(writer, "\"eee\" . \"ddd\" . ");
+    this.addDocument("\"eee\" . \"ddd\" . ");
 
     final NodeScorer scorer = this.getScorer(
       nbq(must("ddd"), must("eee"))
@@ -95,8 +102,8 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
   @Test
   public void testNoNextCandidate() throws IOException {
-    this.addDocument(writer, "\"eee\" . \"ddd\" . ");
-    this.addDocument(writer, "\"eee\" . \"fff\" . ");
+    this.addDocument("\"eee\" . \"ddd\" . ");
+    this.addDocument("\"eee\" . \"fff\" . ");
 
     final NodeScorer scorer = this.getScorer(
       nbq(must("ddd"), must("fff"))
@@ -133,7 +140,7 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
       docs.add("<http://sindice.com/test/name> \"Renaud Delbru\" . ");
       docs.add("<http://sindice.com/test/type> <http://sindice.com/test/Person> . ");
     }
-    this.addDocumentsWithIterator(writer, docs);
+    this.addDocuments(docs);
 
     final NodeScorer scorer = this.getScorer(
       nbq(must("renaud"), must("delbru"))

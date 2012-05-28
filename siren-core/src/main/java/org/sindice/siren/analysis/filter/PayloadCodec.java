@@ -36,14 +36,18 @@ public abstract class PayloadCodec {
 
   public PayloadCodec() {}
 
+  public abstract IntsRef getNode();
+
+  public abstract int getPosition();
+
   /**
    * Encode the information into a byte array
    */
-  public abstract BytesRef encode(IntsRef data);
+  public abstract BytesRef encode(IntsRef node, int pos);
 
   /**
-   * Decode the byte array into a node path
+   * Decode the node and position from the byte array
    */
-  public abstract IntsRef decode(BytesRef data);
+  public abstract void decode(BytesRef data);
 
 }

@@ -30,50 +30,36 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.analysis.util.FilteringTokenFilter;
 import org.sindice.siren.analysis.TupleTokenizer;
 
 /**
  * Filter out tokens with a given type.
  */
-public class TokenTypeFilter
-extends TokenFilter {
+public class TokenTypeFilter extends FilteringTokenFilter {
 
-  protected Set<String> _tokenTypes;
+  protected Set<String> stopTokenTypes;
 
-  private final TypeAttribute typeAtt;
+  private final TypeAttribute typeAtt = this.addAttribute(TypeAttribute.class);
 
-  public TokenTypeFilter(final TokenStream input, final int[] tokenTypes) {
-    super(input);
-    _tokenTypes = new HashSet<String>(tokenTypes.length);
-    for (final int type : tokenTypes) {
-      _tokenTypes.add(TupleTokenizer.getTokenTypes()[type]);
+  public TokenTypeFilter(final TokenStream input, final int[] stopTokenTypes) {
+    super(true, input);
+    this.stopTokenTypes = new HashSet<String>(stopTokenTypes.length);
+    for (final int type : stopTokenTypes) {
+      this.stopTokenTypes.add(TupleTokenizer.getTokenTypes()[type]);
     }
-    typeAtt = this.addAttribute(TypeAttribute.class);
   }
 
-  /**
-   * Returns the next input Token whose type is not in the list.
-   */
   @Override
-  public final boolean incrementToken()
-  throws IOException {
-    while (input.incrementToken()) {
-      if (!this.hasToBeFiltered(typeAtt.type())) {
-        return true;
-      }
+  protected boolean accept() throws IOException {
+    if (stopTokenTypes.contains(typeAtt.type())) {
+      return false;
     }
-    // reached EOS -- return false
-    return false;
+    return true;
   }
 
-  private boolean hasToBeFiltered(final String tokenType) {
-    if (_tokenTypes.contains(tokenType)) {
-      return true;
-    }
-    return false;
-  }
+
 
 }

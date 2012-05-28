@@ -75,7 +75,7 @@ public class NodeTermScorer extends NodePositionScorer {
   }
 
   @Override
-  public float freq() {
+  public float freq() throws IOException {
     return docsEnum.termFreqInDoc();
   }
 

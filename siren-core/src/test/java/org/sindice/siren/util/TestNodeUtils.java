@@ -35,25 +35,6 @@ import org.junit.Test;
 public class TestNodeUtils {
 
   @Test
-  public void testIsPredecessor() {
-    IntsRef anc = node(0, 0, 0);
-    IntsRef desc = node(1, 0, 0);
-    assertTrue(NodeUtils.isPredecessor(anc, desc));
-
-    anc = node(1, 1, 0);
-    desc = node(1, 0, 0);
-    assertFalse(NodeUtils.isPredecessor(anc, desc));
-
-    anc = node(1, 1, 0);
-    desc = node(1, 1, 0);
-    assertFalse(NodeUtils.isPredecessor(anc, desc));
-
-    anc = node(1, 1);
-    desc = node(1, 1, 0);
-    assertTrue(NodeUtils.isPredecessor(anc, desc));
-  }
-
-  @Test
   public void testCompare() {
     IntsRef n1 = node(0, 0, 0);
     IntsRef n2 = node(1, 0, 0);

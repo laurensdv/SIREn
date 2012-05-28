@@ -73,7 +73,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
    */
   @Test
   public void testExact1() throws Exception {
-    _helper.addDocumentsWithIterator(new String[] { "\"Renaud Delbru\" . ",
+    _helper.addDocuments(new String[] { "\"Renaud Delbru\" . ",
                                                     "\"Renaud\" . " });
 
     SirenPhraseQuery query = new SirenPhraseQuery();
@@ -96,7 +96,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
    */
   @Test
   public void testExact2() throws Exception {
-    _helper.addDocumentsWithIterator(new String[] { "\"word1 word2 Renaud Delbru word3 \" . ",
+    _helper.addDocuments(new String[] { "\"word1 word2 Renaud Delbru word3 \" . ",
                                                     "\"Renaud word1 Delbru\" . "                            
     });
 
@@ -120,7 +120,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
    */
   @Test
   public void testExact3() throws Exception {
-    _helper.addDocumentsWithIterator(new String[] { "\"word1 word2\" \"Renaud Delbru word3 \" . ",
+    _helper.addDocuments(new String[] { "\"word1 word2\" \"Renaud Delbru word3 \" . ",
                                                     "\"Renaud\" \"Delbru\" . ",
                                                     "\"Renaud\" . \"Delbru\" . " });
 
@@ -140,7 +140,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
    */
   @Test
   public void testExact3WithNoNorms() throws Exception {
-    _helper.addDocumentsWithIterator(new String[] { "\"word1 word2\" \"Renaud Delbru word3 \" . ",
+    _helper.addDocuments(new String[] { "\"word1 word2\" \"Renaud Delbru word3 \" . ",
                                                     "\"Renaud\" \"Delbru\" . ",
                                                     "\"Renaud\" . \"Delbru\" . " });
 
@@ -184,7 +184,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
   
   @Test
   public void testExplain() throws IOException {
-    _helper.addDocumentsWithIterator(new String[] { "\"Renaud Delbru\" . ",
+    _helper.addDocuments(new String[] { "\"Renaud Delbru\" . ",
                                                     "\"Renaud Delbru\" . \"Renaud Delbru\" . "});
 
     final Term t1 = new Term(QueryTestingHelper.DEFAULT_FIELD, "renaud");

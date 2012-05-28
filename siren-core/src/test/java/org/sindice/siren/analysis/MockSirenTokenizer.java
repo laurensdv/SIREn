@@ -26,7 +26,8 @@
 package org.sindice.siren.analysis;
 
 import java.io.IOException;
-import java.io.StringReader;
+import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.lucene.analysis.Tokenizer;
@@ -36,24 +37,12 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MockSirenTokenizer extends Tokenizer {
 
   MockSirenDocument doc;
-
-  public MockSirenTokenizer(final MockSirenDocument doc) {
-    super(new StringReader(""));
-
-    this.doc = doc;
-    it = doc.iterator();
-
-    termAtt = this.addAttribute(CharTermAttribute.class);
-    offsetAtt = this.addAttribute(OffsetAttribute.class);
-    posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
-    typeAtt = this.addAttribute(TypeAttribute.class);
-    dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    nodeAtt = this.addAttribute(NodeAttribute.class);
-  }
 
   // the TupleTokenizer generates 6 attributes:
   // term, offset, positionIncrement, type, datatype, node
@@ -64,22 +53,43 @@ public class MockSirenTokenizer extends Tokenizer {
   private final DatatypeAttribute dtypeAtt;
   private final NodeAttribute nodeAtt;
 
-  Iterator<MockSirenToken> it = null;
+  Iterator<ArrayList<MockSirenToken>> nodeIt = null;
+  Iterator<MockSirenToken> tokenIt = null;
+
+  protected static final Logger logger = LoggerFactory.getLogger(MockSirenTokenizer.class);
+
+  public MockSirenTokenizer(final MockSirenReader reader) {
+    super(reader);
+
+    this.doc = reader.getDocument();
+    nodeIt = doc.iterator();
+
+    termAtt = this.addAttribute(CharTermAttribute.class);
+    offsetAtt = this.addAttribute(OffsetAttribute.class);
+    posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
+    typeAtt = this.addAttribute(TypeAttribute.class);
+    dtypeAtt = this.addAttribute(DatatypeAttribute.class);
+    nodeAtt = this.addAttribute(NodeAttribute.class);
+  }
 
   @Override
   public final boolean incrementToken() throws IOException {
     this.clearAttributes();
 
-    MockSirenToken tk;
-    while (it.hasNext()) {
-      tk = it.next();
-      termAtt.copyBuffer(tk.term, 0, tk.term.length);
-      posIncrAtt.setPositionIncrement(tk.posInc);
-      offsetAtt.setOffset(tk.startOffset, tk.endOffset);
-      typeAtt.setType(TupleTokenizer.getTokenTypes()[tk.tokenType]);
-      dtypeAtt.setDatatypeURI(tk.datatype);
-      for (int i = 0; i < tk.nodePath.length; i++) {
-        nodeAtt.append(tk.nodePath.ints[i]);
+    final MockSirenToken token;
+    while (nodeIt.hasNext() || (tokenIt != null && tokenIt.hasNext())) {
+      if (tokenIt == null || !tokenIt.hasNext()) { // new node
+        tokenIt = nodeIt.next().iterator(); // move to next node
+      }
+
+      token = tokenIt.next();
+      termAtt.copyBuffer(token.term, 0, token.term.length);
+      offsetAtt.setOffset(token.startOffset, token.endOffset);
+      typeAtt.setType(TupleTokenizer.getTokenTypes()[token.tokenType]);
+      posIncrAtt.setPositionIncrement(token.posInc);
+      dtypeAtt.setDatatypeURI(token.datatype);
+      for (int i = 0; i < token.nodePath.length; i++) {
+        nodeAtt.append(token.nodePath.ints[i]);
       }
       return true;
     }
@@ -89,13 +99,17 @@ public class MockSirenTokenizer extends Tokenizer {
 
   @Override
   public void reset() {
-    it = doc.iterator();
+    nodeIt = doc.iterator();
     this.clearAttributes();
   }
 
-  public void reset(final MockSirenDocument doc) {
-    this.doc = doc;
-    this.reset();
+  @Override
+  public void reset(final Reader input) throws IOException {
+    assert input != null: "input must not be null";
+    final MockSirenReader reader = (MockSirenReader) input;
+    this.input = input;
+    this.doc = reader.getDocument();
+    nodeIt = doc.iterator();
   }
 
 }

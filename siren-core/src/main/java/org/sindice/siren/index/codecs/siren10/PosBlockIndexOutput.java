@@ -35,21 +35,20 @@ import org.sindice.siren.index.codecs.block.BlockIndexOutput;
 
 public class PosBlockIndexOutput extends BlockIndexOutput {
 
-  private final PosBlockWriter writer;
-
+  private final int maxBlockSize;
   private final BlockCompressor posCompressor;
 
-  public PosBlockIndexOutput(final IndexOutput out, final int blockSize,
+  public PosBlockIndexOutput(final IndexOutput out, final int maxBlockSize,
                              final BlockCompressor posCompressor)
   throws IOException {
     super(out);
     this.posCompressor = posCompressor;
-    writer = new PosBlockWriter(blockSize);
+    this.maxBlockSize = maxBlockSize;
   }
 
   @Override
   public PosBlockWriter getBlockWriter() {
-    return writer;
+    return new PosBlockWriter();
   }
 
   protected class PosBlockWriter extends BlockWriter {
@@ -60,8 +59,8 @@ public class PosBlockIndexOutput extends BlockIndexOutput {
 
     private int currentPos = 0;
 
-    public PosBlockWriter(final int blockSize) {
-      posBuffer = new IntsRef(blockSize);
+    public PosBlockWriter() {
+      posBuffer = new IntsRef(maxBlockSize);
     }
 
     @Override
@@ -96,7 +95,8 @@ public class PosBlockIndexOutput extends BlockIndexOutput {
 
     public void write(final int pos) {
       if (posBuffer.offset >= posBuffer.ints.length) {
-        posBuffer.grow(posBuffer.ints.length * 3/2);
+        // Take the max to ensure that buffer will be large enough
+        posBuffer.grow(Math.max(posBuffer.offset + 1, posBuffer.ints.length * 3/2));
       }
 
       posBuffer.ints[posBuffer.offset++] = pos - currentPos;

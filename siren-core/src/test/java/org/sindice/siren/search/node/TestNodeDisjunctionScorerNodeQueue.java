@@ -34,10 +34,17 @@ import java.io.IOException;
 import org.apache.lucene.index.CorruptIndexException;
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.base.NodeScorer;
 
 public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer {
+
+  @Override
+  protected void configure() throws IOException {
+    this.setAnalyzer(AnalyzerType.TUPLE);
+    this.setPostingsFormat(PostingsFormatType.RANDOM);
+  }
 
   /**
    * Test method for {@link org.sindice.siren.search.node.NodeDisjunctionScorerQueue#top()}.

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.codecs.MappingMultiDocsAndPositionsEnum;
 import org.apache.lucene.codecs.PostingsWriterBase;
 import org.apache.lucene.codecs.TermStats;
 import org.apache.lucene.index.CorruptIndexException;
@@ -36,14 +37,17 @@ import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.index.IndexFileNames;
+import org.apache.lucene.index.MergeState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMOutputStream;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CodecUtil;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.filter.VIntPayloadCodec;
+import org.sindice.siren.index.codecs.MappingMultiDocsNodesAndPositionsEnum;
 import org.sindice.siren.index.codecs.block.BlockIndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,8 +171,10 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
 
       totalNumDocs = state.numDocs;
 
-      skipWriter = new Siren10SkipListWriter(blockSkipInterval,
-          maxSkipLevels, docWriter.getMaxBlockSize(), state.numDocs, docOut);
+      // EStimate number of blocks that will be written
+      final int numBlocks = (int) Math.ceil(state.numDocs / (double) docWriter.getMaxBlockSize());
+      skipWriter = new Siren10SkipListWriter(blockSkipInterval, maxSkipLevels,
+        numBlocks, docOut);
       docWriter.setNodeBlockIndex(nodIndex);
       docWriter.setPosBlockIndex(posIndex);
 
@@ -235,17 +241,26 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
 
     docWriter.write(docID, termDocFreq);
 
-    // reset current node and position for delta computation
+    // reset current node for delta computation
     nodWriter.resetCurrentNode();
-    posWriter.resetCurrentPosition();
+
     // reset payload hash to sentinel value
-    lastPayloadHash = Long.MAX_VALUE;
+    lastNodeHash = Long.MAX_VALUE;
   }
 
-  // Sentinel value used to indicate that this is the first payload received for
-  // the document.
-  // Use long to avoid collision between sentinel value and payload hashcode.
-  private long lastPayloadHash = Long.MAX_VALUE;
+  /**
+   * Sentinel value {@link Long.MAX_VALUE} is necessary in order to avoid
+   * equality with nodes composed of '0' values.
+   * <p>
+   * Use long to avoid collision between sentinel value and payload hashcode.
+   * <p>
+   * Using payload hashcode seems to be the fastest way for testing node
+   * equality. See micro-benchmark {@link NodeEqualityBenchmark}.
+   */
+  private long lastNodeHash = Long.MAX_VALUE;
+
+  private final VIntPayloadCodec sirenPayload = new VIntPayloadCodec();
+
   private int nodeFreqInDoc = 0;
   private int termFreqInNode = 0;
 
@@ -257,32 +272,36 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
     // we always receive node ids in the payload
     assert payload != null;
 
+    // decode payload
+    sirenPayload.decode(payload);
+    final IntsRef node = sirenPayload.getNode();
+
     // check if we received the same node
-    final int payloadHash = payload.hashCode();
-    if (lastPayloadHash != payloadHash) { // if different node
+    // TODO: we pay the cost of decoding the node before testing the equality
+    // we could instead directly compute the node hash based on the byte array
+    final int nodeHash = node.hashCode();
+    if (lastNodeHash != nodeHash) { // if different node
       // add term freq for previous node if not first payload.
-      if (lastPayloadHash != Long.MAX_VALUE) {
+      if (lastNodeHash != Long.MAX_VALUE) {
         this.addTermFreqInNode();
       }
       // add new node
-      this.addNode(payload);
+      this.addNode(node);
     }
-    lastPayloadHash = payloadHash;
+    lastNodeHash = nodeHash;
 
     // add position
-    this.addPosition(position, startOffset, endOffset);
+    this.addPosition(sirenPayload.getPosition());
   }
 
-  private final VIntPayloadCodec sirenPayload = new VIntPayloadCodec();
-
-  private void addNode(final BytesRef payload) {
-    // decode payload
-    final IntsRef node = sirenPayload.decode(payload);
+  private void addNode(final IntsRef node) {
     nodWriter.write(node);
     nodeFreqInDoc++;
+    // reset current position for delta computation
+    posWriter.resetCurrentPosition();
   }
 
-  private void addPosition(final int position, final int startOffset, final int endOffset) {
+  private void addPosition(final int position) {
     posWriter.write(position);
     termFreqInNode++;
   }
@@ -412,6 +431,61 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
   @Override
   public void close() throws IOException {
     IOUtils.close(docOut, skipOut, nodOut, posOut);
+  }
+
+  private final MappingMultiDocsNodesAndPositionsEnum postingsEnum = new MappingMultiDocsNodesAndPositionsEnum();
+
+  /**
+   * Default merge impl: append documents, nodes and positions, mapping around
+   * deletes.
+   * <p>
+   * Bypass the {@link Siren10PostingsWriter} methods and work directly with
+   * the BlockWriters for maximum efficiency.
+   * <p>
+   * TODO - Optimisation: If document blocks match the block size, and no
+   * document deleted, then it would be possible to copy block directly as byte
+   * array, avoiding decoding and encoding.
+   **/
+  @Override
+  public TermStats merge(final MergeState mergeState, final DocsEnum postings,
+                         final FixedBitSet visitedDocs)
+  throws IOException {
+    int df = 0;
+    long totTF = 0;
+
+    postingsEnum.setMergeState(mergeState);
+    postingsEnum.reset((MappingMultiDocsAndPositionsEnum) postings);
+
+    while (postingsEnum.nextDocument()) {
+      final int doc = postingsEnum.doc();
+      visitedDocs.set(doc);
+
+      final int freq = postingsEnum.termFreqInDoc();
+      this.startDoc(doc, freq);
+      totTF += freq;
+
+      final int nodeFreq = postingsEnum.nodeFreqInDoc();
+      docWriter.writeNodeFreq(nodeFreq);
+
+      while (postingsEnum.nextNode()) {
+        final IntsRef node = postingsEnum.node();
+        nodWriter.write(node);
+
+        final int termFreqInNode = postingsEnum.termFreqInNode();
+        nodWriter.writeTermFreq(termFreqInNode);
+
+        // reset current position for delta computation
+        posWriter.resetCurrentPosition();
+
+        while (postingsEnum.nextPosition()) {
+          final int position = postingsEnum.pos();
+          posWriter.write(position);
+        }
+      }
+      df++;
+    }
+
+    return new TermStats(df, totTF);
   }
 
 }

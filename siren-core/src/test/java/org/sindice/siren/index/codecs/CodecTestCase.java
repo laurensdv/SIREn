@@ -25,8 +25,8 @@
  */
 package org.sindice.siren.index.codecs;
 
-import org.apache.commons.math.random.RandomDataImpl;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.util._TestUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.sindice.siren.util.SirenTestCase;
@@ -62,18 +62,36 @@ public abstract class CodecTestCase extends SirenTestCase {
 
   protected static final Logger logger = LoggerFactory.getLogger(CodecTestCase.class);
 
+  /**
+   * Generate a random long value uniformly distributed between
+   * <code>lower</code> and <code>upper</code>, inclusive.
+   *
+   * @param lower
+   *            the lower bound.
+   * @param upper
+   *            the upper bound.
+   * @return the random integer.
+   * @throws IllegalArgumentException if {@code lower >= upper}.
+   */
+  private long nextLong(final long lower, final long upper) {
+      if (lower >= upper) {
+        throw new IllegalArgumentException();
+      }
+      final double r = random().nextDouble();
+      return (long) ((r * upper) + ((1.0 - r) * lower) + r);
+  }
+
   public void doTestIntegerRange(final int minBits, final int maxBits, final int[] blockSizes) throws Exception {
     for (int i = minBits; i <= maxBits; i++) {
-      final RandomDataImpl r = new RandomDataImpl();
       // different length for each run
-      final int[] input = new int[r.nextInt(MIN_LIST_SIZE, MIN_LIST_SIZE * 2)];
-      r.reSeed(42);
+      final int length = _TestUtil.nextInt(random(), MIN_LIST_SIZE, MIN_LIST_SIZE * 2);
+      final int[] input = new int[length];
 
       final long min = i == 1 ? 0 : (1L << (i - 1));
       final long max = ((1L << i) - 1);
 
       for (int j = 0; j < input.length; j++) {
-        input[j] = (int) r.nextLong(min, max);
+        input[j] = (int) this.nextLong(min, max);
       }
 
       for (final int blockSize : blockSizes) {

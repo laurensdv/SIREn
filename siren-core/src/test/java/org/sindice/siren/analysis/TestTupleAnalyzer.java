@@ -36,11 +36,14 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.analysis.attributes.NodeAttribute;
+import org.sindice.siren.analysis.attributes.PositionAttribute;
 import org.sindice.siren.analysis.filter.URILocalnameFilter;
 import org.sindice.siren.analysis.filter.URINormalisationFilter;
 
@@ -92,8 +95,8 @@ public class TestTupleAnalyzer extends LuceneTestCase {
                                 final String[] expectedImages,
                                 final String[] expectedTypes,
                                 final int[] expectedPosIncrs,
-                                final int[] expectedTupleID,
-                                final int[] expectedCellID)
+                                final IntsRef[] expectedNode,
+                                final int[] expectedPos)
   throws Exception {
     final TokenStream t = a.tokenStream("", new StringReader(input));
 
@@ -112,23 +115,23 @@ public class TestTupleAnalyzer extends LuceneTestCase {
       posIncrAtt = t.getAttribute(PositionIncrementAttribute.class);
     }
 
-    TupleAttribute tupleAtt = null;
-    if (expectedTupleID != null) {
-      assertTrue("has TupleAttribute", t.hasAttribute(TupleAttribute.class));
-      tupleAtt = t.getAttribute(TupleAttribute.class);
+    NodeAttribute nodeAtt = null;
+    if (expectedNode != null) {
+      assertTrue("has NodeAttribute", t.hasAttribute(NodeAttribute.class));
+      nodeAtt = t.getAttribute(NodeAttribute.class);
     }
 
-    CellAttribute cellAtt = null;
-    if (expectedCellID != null) {
-      assertTrue("has CellAttribute", t.hasAttribute(CellAttribute.class));
-      cellAtt = t.getAttribute(CellAttribute.class);
+    PositionAttribute posAtt = null;
+    if (expectedPos != null) {
+      assertTrue("has PositionAttribute", t.hasAttribute(PositionAttribute.class));
+      posAtt = t.getAttribute(PositionAttribute.class);
     }
 
     for (int i = 0; i < expectedImages.length; i++) {
 
       assertTrue("token "+i+" exists", t.incrementToken());
 
-      assertEquals(expectedImages[i], termAtt.term());
+      assertEquals(expectedImages[i], termAtt.toString());
 
       if (expectedTypes != null) {
         assertEquals(expectedTypes[i], typeAtt.type());
@@ -138,16 +141,16 @@ public class TestTupleAnalyzer extends LuceneTestCase {
         assertEquals(expectedPosIncrs[i], posIncrAtt.getPositionIncrement());
       }
 
-      if (expectedTupleID != null) {
-        assertEquals(expectedTupleID[i], tupleAtt.tuple());
+      if (expectedNode != null) {
+        assertEquals(expectedNode[i], nodeAtt.node());
       }
 
-      if (expectedCellID != null) {
-        assertEquals(expectedCellID[i], cellAtt.cell());
+      if (expectedPos != null) {
+        assertEquals(expectedPos[i], posAtt.position());
       }
     }
 
-    assertFalse("end of stream, received token " + termAtt.term(), t.incrementToken());
+    assertFalse("end of stream, received token " + termAtt.toString(), t.incrementToken());
     t.end();
     t.close();
   }

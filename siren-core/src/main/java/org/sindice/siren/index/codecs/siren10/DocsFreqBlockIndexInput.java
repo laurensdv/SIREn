@@ -36,8 +36,6 @@ import org.sindice.siren.util.ArrayUtils;
 
 public class DocsFreqBlockIndexInput extends BlockIndexInput {
 
-  final DocsFreqBlockReader reader;
-
   protected BlockDecompressor docDecompressor;
   protected BlockDecompressor freqDecompressor;
 
@@ -48,12 +46,11 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
     super(in);
     this.docDecompressor = docDecompressor;
     this.freqDecompressor = freqDecompressor;
-    reader = new DocsFreqBlockReader();
   }
 
   @Override
   public DocsFreqBlockReader getBlockReader() {
-    return reader;
+    return new DocsFreqBlockReader((IndexInput) in.clone());
   }
 
   public class DocsFreqBlockReader extends BlockReader {
@@ -78,10 +75,14 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
 
     int firstDocId, lastDocId;
 
-    long dataBlockOffset;
+    long dataBlockOffset = -1;
 
     NodBlockIndexInput.Index nodeBlockIndex;
     PosBlockIndexInput.Index posBlockIndex;
+
+    private DocsFreqBlockReader(final IndexInput in) {
+      super(in);
+    }
 
     public void setNodeBlockIndex(final NodBlockIndexInput.Index index) throws IOException {
       this.nodeBlockIndex = index;
@@ -215,6 +216,16 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
       docBuffer.offset = docBuffer.length = 0;
       freqBuffer.offset = freqBuffer.length = 0;
       nodFreqBuffer.offset = nodFreqBuffer.length = 0;
+
+      docsReadPending = true;
+      freqsReadPending = true;
+      nodFreqsReadPending = true;
+
+      docCompressedBufferLength = 0;
+      freqCompressedBufferLength = 0;
+      nodFreqCompressedBufferLength = 0;
+
+      dataBlockOffset = -1;
     }
 
   }

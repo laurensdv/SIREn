@@ -52,7 +52,7 @@ import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.index.ConstrainedNodesEnum;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.index.codecs.siren020.Siren020DocNodAndPosEnum;
+import org.sindice.siren.index.SirenDocsEnum;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleQuery;
@@ -118,18 +118,21 @@ public class NodeTermQuery extends NodePrimitiveQuery {
         return null;
       }
 
-      final DocsAndPositionsEnum docs = termsEnum.docsAndPositions(acceptDocs, null, false);
-      final DocsNodesAndPositionsEnum dnpe = new Siren020DocNodAndPosEnum(docs);
+      final DocsAndPositionsEnum docsEnum = termsEnum.docsAndPositions(acceptDocs, null, false);
+      final DocsNodesAndPositionsEnum sirenDocsEnum = SirenDocsEnum.map(docsEnum);
 
       // if node constraints are defined, wraps the enum
       if (NodeTermQuery.this.isConstrained()) {
         return new NodeTermScorer(this,
-          new ConstrainedNodesEnum(dnpe, nodeLowerBoundConstraint,
-            nodeUpperBoundConstraint, nodeLevelConstraint),
+          new ConstrainedNodesEnum(sirenDocsEnum,
+            nodeLowerBoundConstraint, nodeUpperBoundConstraint,
+            nodeLevelConstraint),
           this.createDocScorer(context));
       }
       else {
-        return new NodeTermScorer(this, dnpe, this.createDocScorer(context));
+        return new NodeTermScorer(this,
+          sirenDocsEnum,
+          this.createDocScorer(context));
       }
     }
 

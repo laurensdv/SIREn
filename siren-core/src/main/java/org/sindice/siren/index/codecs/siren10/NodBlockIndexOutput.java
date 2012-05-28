@@ -36,21 +36,20 @@ import org.sindice.siren.util.ArrayUtils;
 
 public class NodBlockIndexOutput extends BlockIndexOutput {
 
-  private final NodBlockWriter writer;
-
+  private final int maxBlockSize;
   private final BlockCompressor nodCompressor;
 
-  public NodBlockIndexOutput(final IndexOutput out, final int blockSize,
+  public NodBlockIndexOutput(final IndexOutput out, final int maxBlockSize,
                              final BlockCompressor nodCompressor)
   throws IOException {
     super(out);
     this.nodCompressor = nodCompressor;
-    writer = new NodBlockWriter(blockSize);
+    this.maxBlockSize = maxBlockSize;
   }
 
   @Override
   public NodBlockWriter getBlockWriter() {
-    return writer;
+    return new NodBlockWriter();
   }
 
   /**
@@ -73,11 +72,11 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
     private int currentNodeOffset = 0;
     private int currentNodeLength = 0;
 
-    public NodBlockWriter(final int blockSize) {
+    public NodBlockWriter() {
       // blockSize is just use as a minimum initial capacity for the buffers
-      nodLenBuffer = new IntsRef(blockSize);
-      nodBuffer = new IntsRef(blockSize);
-      termFreqBuffer = new IntsRef(blockSize);
+      nodLenBuffer = new IntsRef(maxBlockSize);
+      nodBuffer = new IntsRef(maxBlockSize);
+      termFreqBuffer = new IntsRef(maxBlockSize);
 
       // init of the compressed buffers
       nodLenCompressedBuffer = new BytesRef();
@@ -98,7 +97,8 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
 
       // increase buffers if needed
       if (nodBufferOffset + nodeLength >= nodBuffer.ints.length) {
-        nodBuffer.grow(nodBuffer.ints.length * 3/2);
+        // Take the max to ensure that buffer will be large enough
+        nodBuffer.grow(Math.max(nodBufferOffset + nodeLength, nodBuffer.ints.length * 3/2));
       }
 
       // compute delta
@@ -114,7 +114,8 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
 
       // increase node length buffer if needed
       if (nodLenBuffer.offset >= nodLenBuffer.ints.length) {
-        nodLenBuffer.grow(nodLenBuffer.ints.length * 3/2);
+        // Take the max to ensure that buffer will be large enough
+        nodLenBuffer.grow(Math.max(nodLenBuffer.offset + 1, nodLenBuffer.ints.length * 3/2));
       }
 
       currentNodeLength = nodeLength;
@@ -146,7 +147,8 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
     public void writeTermFreq(final int termFreq) {
       // check size of the buffer and increase it if needed
       if (termFreqBuffer.offset >= termFreqBuffer.ints.length) {
-        termFreqBuffer.grow(termFreqBuffer.ints.length * 3/2);
+        // Take the max to ensure that buffer will be large enough
+        termFreqBuffer.grow(Math.max(termFreqBuffer.offset + 1, termFreqBuffer.ints.length * 3/2));
       }
       // decrement freq by one
       termFreqBuffer.ints[termFreqBuffer.offset++] = termFreq - 1;
@@ -211,9 +213,12 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
 
     @Override
     protected void writeData() throws IOException {
-      logger.debug("Write Nod data: {}", this.hashCode());
+      logger.debug("Write Node data: {}", this.hashCode());
+      logger.debug("Write Node Length at {}", out.getFilePointer());
       out.writeBytes(nodLenCompressedBuffer.bytes, nodLenCompressedBuffer.length);
+      logger.debug("Write Node at {}", out.getFilePointer());
       out.writeBytes(nodCompressedBuffer.bytes, nodCompressedBuffer.length);
+      logger.debug("Write Term Freq in Node at {}", out.getFilePointer());
       out.writeBytes(termFreqCompressedBuffer.bytes, termFreqCompressedBuffer.length);
     }
 

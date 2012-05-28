@@ -35,29 +35,27 @@ import org.sindice.siren.index.codecs.block.BlockIndexOutput;
 
 public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
 
-  private final DocsFreqBlockWriter writer;
+  private final int maxBlockSize;
 
   private final BlockCompressor docCompressor;
   private final BlockCompressor freqCompressor;
 
-  public DocsFreqBlockIndexOutput(final IndexOutput out, final int blockSize,
+  public DocsFreqBlockIndexOutput(final IndexOutput out, final int maxBlockSize,
                                   final BlockCompressor docCompressor,
                                   final BlockCompressor freqCompressor)
   throws IOException {
     super(out);
     this.docCompressor = docCompressor;
     this.freqCompressor = freqCompressor;
-    writer = new DocsFreqBlockWriter(blockSize);
+    this.maxBlockSize = maxBlockSize;
   }
 
   @Override
   public DocsFreqBlockWriter getBlockWriter() {
-    return writer;
+    return new DocsFreqBlockWriter();
   }
 
   public class DocsFreqBlockWriter extends BlockWriter {
-
-    private final int maxBlockSize;
 
     final IntsRef docBuffer;
     final IntsRef freqBuffer;
@@ -71,8 +69,7 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
     BytesRef freqCompressedBuffer;
     BytesRef nodFreqCompressedBuffer;
 
-    public DocsFreqBlockWriter(final int maxBlockSize) {
-      this.maxBlockSize = maxBlockSize;
+    public DocsFreqBlockWriter() {
       docBuffer = new IntsRef(maxBlockSize);
       freqBuffer = new IntsRef(maxBlockSize);
       nodFreqBuffer = new IntsRef(maxBlockSize);

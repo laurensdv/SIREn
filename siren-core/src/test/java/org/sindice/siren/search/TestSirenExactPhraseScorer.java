@@ -131,7 +131,7 @@ extends AbstractTestSirenScorer {
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 32; i++)
       docs.add("<http://renaud.delbru.fr/> . ");
-    _helper.addDocumentsWithIterator(docs);
+    _helper.addDocuments(docs);
     final NodeScorer scorer = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, new String[] {"renaud", "delbru"});
     assertFalse(scorer.skipTo(16) == DocIdSetIterator.NO_MORE_DOCS);
     assertEquals(16, scorer.doc());
@@ -148,7 +148,7 @@ extends AbstractTestSirenScorer {
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 32; i++)
       docs.add("<http://renaud.delbru.fr/> . ");
-    _helper.addDocumentsWithIterator(docs);
+    _helper.addDocuments(docs);
     final NodeScorer scorer = this.getExactScorer(QueryTestingHelper.DEFAULT_FIELD, new String[] {"renaud", "delbru"});
     assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
     assertFalse(scorer.skipTo(16) == DocIdSetIterator.NO_MORE_DOCS);

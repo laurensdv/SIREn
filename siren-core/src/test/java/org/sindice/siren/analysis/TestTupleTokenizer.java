@@ -29,6 +29,7 @@ package org.sindice.siren.analysis;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.sindice.siren.analysis.MockSirenToken.node;
 
 import java.io.StringReader;
 
@@ -36,10 +37,10 @@ import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.util.IntsRef;
 import org.junit.Test;
-import org.sindice.siren.analysis.attributes.CellAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
-import org.sindice.siren.analysis.attributes.TupleAttribute;
+import org.sindice.siren.analysis.attributes.NodeAttribute;
 import org.sindice.siren.util.XSDDatatype;
 
 public class TestTupleTokenizer {
@@ -154,24 +155,25 @@ public class TestTupleTokenizer {
   throws Exception {
     this.assertTokenizesTo(_t, "<http://renaud.delbru.fr/>",
       new String[] { "http://renaud.delbru.fr/" }, new String[] { "<URI>" },
-      new int[] { 1 }, new int[] { 0 }, new int[] { 0 });
+      new int[] { 1 }, new IntsRef[] { node(0,0) });
     this.assertTokenizesTo(_t,
       "<http://renaud.delbru.fr/> <http://renaud.delbru.fr/>",
       new String[] { "http://renaud.delbru.fr/", "http://renaud.delbru.fr/" },
       new String[] { "<URI>", "<URI>" }, new int[] { 1, 1 },
-      new int[] { 0, 0 }, new int[] { 0, 1 });
+      new IntsRef[] { node(0,0), node(0,1) });
     this.assertTokenizesTo(_t, "_:a1 _:a2 . _:a3 _:a4 . _:a5 _:a6 ",
       new String[] { "a1", "a2", ".", "a3", "a4", ".", "a5", "a6" },
       new String[] { "<BNODE>", "<BNODE>", "<DOT>", "<BNODE>", "<BNODE>",
           "<DOT>", "<BNODE>", "<BNODE>" },
       new int[] { 1, 1, 1, 1, 1, 1, 1, 1 },
-      new int[] { 0, 0, 0, 1, 1, 1, 2, 2 },
-      new int[] { 0, 1, 2, 0, 1, 2, 0, 1 });
+      new IntsRef[] { node(0,0), node(0,1), node(0,2),
+                      node(1,0), node(1,1), node(1,2),
+                      node(2,0), node(2,1) });
     this.assertTokenizesTo(_t, "<http://te.st> . \"ren . aud\" . ",
-      new String[] { "http://te.st", ".", "ren . aud", "." }, new String[] {
-          "<URI>", "<DOT>", "<LITERAL>", "<DOT>" }, new int[] {
-          1, 1, 1, 1 }, new int[] { 0, 0, 1, 1 }, new int[] { 0,
-          1, 0, 1 });
+      new String[] { "http://te.st", ".", "ren . aud", "." },
+      new String[] { "<URI>", "<DOT>", "<LITERAL>", "<DOT>" },
+      new int[] { 1, 1, 1, 1 },
+      new IntsRef[] { node(0,0), node(0,1), node(1,0), node(1,1) });
   }
 
   private final Tokenizer _t = new TupleTokenizer(new StringReader(""), Integer.MAX_VALUE);
@@ -180,7 +182,7 @@ public class TestTupleTokenizer {
                                 final String[] expectedImages,
                                 final String[] expectedTypes)
   throws Exception {
-    this.assertTokenizesTo(t, input, expectedImages, expectedTypes, null, null, null, null);
+    this.assertTokenizesTo(t, input, expectedImages, expectedTypes, null, null, null);
   }
 
   public void assertTokenizesTo(final Tokenizer t, final String input,
@@ -188,18 +190,17 @@ public class TestTupleTokenizer {
                                 final String[] expectedTypes,
                                 final String[] expectedDatatypes)
   throws Exception {
-    this.assertTokenizesTo(t, input, expectedImages, expectedTypes, expectedDatatypes, null, null, null);
+    this.assertTokenizesTo(t, input, expectedImages, expectedTypes, expectedDatatypes, null, null);
   }
 
   public void assertTokenizesTo(final Tokenizer t, final String input,
                                 final String[] expectedImages,
                                 final String[] expectedTypes,
                                 final int[] expectedPosIncrs,
-                                final int[] expectedTupleID,
-                                final int[] expectedCellID)
+                                final IntsRef[] expectedNode)
   throws Exception {
     this.assertTokenizesTo(t, input, expectedImages, expectedTypes, null,
-      expectedPosIncrs, expectedTupleID, expectedCellID);
+      expectedPosIncrs, expectedNode);
   }
 
   public void assertTokenizesTo(final Tokenizer t, final String input,
@@ -207,8 +208,7 @@ public class TestTupleTokenizer {
                                 final String[] expectedTypes,
                                 final String[] expectedDatatypes,
                                 final int[] expectedPosIncrs,
-                                final int[] expectedTupleID,
-                                final int[] expectedCellID)
+                                final IntsRef[] expectedNode)
   throws Exception {
 
     assertTrue("has TermAttribute", t.hasAttribute(CharTermAttribute.class));
@@ -232,16 +232,10 @@ public class TestTupleTokenizer {
       posIncrAtt = t.getAttribute(PositionIncrementAttribute.class);
     }
 
-    TupleAttribute tupleAtt = null;
-    if (expectedTupleID != null) {
-      assertTrue("has TupleAttribute", t.hasAttribute(TupleAttribute.class));
-      tupleAtt = t.getAttribute(TupleAttribute.class);
-    }
-
-    CellAttribute cellAtt = null;
-    if (expectedCellID != null) {
-      assertTrue("has CellAttribute", t.hasAttribute(CellAttribute.class));
-      cellAtt = t.getAttribute(CellAttribute.class);
+    NodeAttribute nodeAtt = null;
+    if (expectedNode != null) {
+      assertTrue("has NodeAttribute", t.hasAttribute(NodeAttribute.class));
+      nodeAtt = t.getAttribute(NodeAttribute.class);
     }
 
     t.reset(new StringReader(input));
@@ -264,13 +258,10 @@ public class TestTupleTokenizer {
         assertEquals(expectedPosIncrs[i], posIncrAtt.getPositionIncrement());
       }
 
-      if (expectedTupleID != null) {
-        assertEquals(expectedTupleID[i], tupleAtt.tuple());
+      if (expectedNode != null) {
+        assertEquals(expectedNode[i], nodeAtt.node());
       }
 
-      if (expectedCellID != null) {
-        assertEquals(expectedCellID[i], cellAtt.cell());
-      }
     }
 
     assertFalse("end of stream", t.incrementToken());

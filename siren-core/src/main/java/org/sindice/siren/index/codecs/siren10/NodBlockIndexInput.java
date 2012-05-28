@@ -36,20 +36,17 @@ import org.sindice.siren.util.ArrayUtils;
 
 public class NodBlockIndexInput extends BlockIndexInput {
 
-  final NodBlockReader reader;
-
   protected BlockDecompressor nodDecompressor;
 
   public NodBlockIndexInput(final IndexInput in, final BlockDecompressor nodDecompressor)
   throws IOException {
     super(in);
     this.nodDecompressor = nodDecompressor;
-    reader = new NodBlockReader();
   }
 
   @Override
   public NodBlockReader getBlockReader() {
-    return reader;
+    return new NodBlockReader((IndexInput) in.clone());
   }
 
   protected class NodBlockReader extends BlockReader {
@@ -74,6 +71,10 @@ public class NodBlockIndexInput extends BlockIndexInput {
     BytesRef nodCompressedBuffer = new BytesRef();
     int termFreqCompressedBufferLength;
     BytesRef termFreqCompressedBuffer = new BytesRef();
+
+    private NodBlockReader(final IndexInput in) {
+      super(in);
+    }
 
     @Override
     protected void readHeader() throws IOException {
@@ -127,7 +128,8 @@ public class NodBlockIndexInput extends BlockIndexInput {
     }
 
     private void decodeNodeLengths() throws IOException {
-      logger.debug("Decode Nodes length: {}", this.hashCode());
+      logger.debug("Decode Nodes Length: {}", this.hashCode());
+      logger.debug("Decode Nodes Length at {}", in.getFilePointer());
       in.readBytes(nodLenCompressedBuffer.bytes, 0, nodLenCompressedBufferLength);
       nodLenCompressedBuffer.offset = 0;
       nodLenCompressedBuffer.length = nodLenCompressedBufferLength;
@@ -137,6 +139,7 @@ public class NodBlockIndexInput extends BlockIndexInput {
 
     private void decodeNodes() throws IOException {
       logger.debug("Decode Nodes: {}", this.hashCode());
+      logger.debug("Decode Nodes at {}", in.getFilePointer());
       in.readBytes(nodCompressedBuffer.bytes, 0, nodCompressedBufferLength);
       nodCompressedBuffer.offset = 0;
       nodCompressedBuffer.length = nodCompressedBufferLength;
@@ -146,6 +149,7 @@ public class NodBlockIndexInput extends BlockIndexInput {
 
     private void decodeTermFreqs() throws IOException {
       logger.debug("Decode Term Freq in Node: {}", this.hashCode());
+      logger.debug("Decode Term Freq in Node at {}", in.getFilePointer());
       in.readBytes(termFreqCompressedBuffer.bytes, 0, termFreqCompressedBufferLength);
       termFreqCompressedBuffer.offset = 0;
       termFreqCompressedBuffer.length = termFreqCompressedBufferLength;
@@ -213,6 +217,14 @@ public class NodBlockIndexInput extends BlockIndexInput {
       nodBuffer.offset = nodBuffer.length = 0;
       termFreqBuffer.offset = termFreqBuffer.length = 0;
       this.resetCurrentNode();
+
+      nodLenReadPending = true;
+      nodReadPending = true;
+      termFreqReadPending = true;
+
+      nodLenCompressedBufferLength = 0;
+      nodCompressedBufferLength = 0;
+      termFreqCompressedBufferLength = 0;
     }
 
     public void resetCurrentNode() {

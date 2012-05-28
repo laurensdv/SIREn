@@ -29,9 +29,12 @@ import java.io.Serializable;
 
 import org.apache.lucene.util.AttributeImpl;
 
-public class DatatypeAttributeImpl extends AttributeImpl implements DatatypeAttribute, Cloneable, Serializable {
+public class DatatypeAttributeImpl extends AttributeImpl
+implements DatatypeAttribute, Cloneable, Serializable {
 
   private char[] dataTypeURI = null;
+
+  private static final long serialVersionUID = -6117733199775936595L;
 
   @Override
   public char[] datatypeURI() {

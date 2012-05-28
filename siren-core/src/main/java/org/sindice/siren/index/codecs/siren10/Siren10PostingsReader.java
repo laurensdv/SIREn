@@ -30,6 +30,7 @@ import java.util.Collection;
 
 import org.apache.lucene.codecs.BlockTermState;
 import org.apache.lucene.codecs.PostingsReaderBase;
+import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.FieldInfo;
@@ -48,7 +49,10 @@ import org.apache.lucene.util.CodecUtil;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
+import org.sindice.siren.index.PositionsIterator;
+import org.sindice.siren.index.SirenDocsEnum;
 import org.sindice.siren.index.codecs.block.BlockIndexInput;
+import org.sindice.siren.search.base.NodeScorer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,7 +254,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     }
     else {
       docsEnum = (Siren10DocsEnum) reuse;
-      if (docsEnum.getDocNodesEnum().startDocIn != docIn) {
+      if (docsEnum.getDocsNodesAndPositionsEnum().startDocIn != docIn) {
         // If you are using ParellelReader, and pass in a
         // reused DocsAndPositionsEnum, it could have come
         // from another reader also using sep codec
@@ -287,7 +291,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     }
     else {
       postingsEnum = (Siren10DocsEnum) reuse;
-      if (postingsEnum.getDocNodesEnum().startDocIn != docIn) {
+      if (postingsEnum.getDocsNodesAndPositionsEnum().startDocIn != docIn) {
         // If you are using ParellelReader, and pass in a
         // reused DocsAndPositionsEnum, it could have come
         // from another reader also using sep codec
@@ -298,11 +302,34 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     return postingsEnum.init(fieldInfo, termState, liveDocs);
   }
 
-  class Siren10DocsEnum extends DocsAndPositionsEnum {
+  /**
+   * This {@link DocsAndPositionsEnum} implementation is a decorator over a
+   * {@link DocsNodesAndPositionsEnum} which:
+   * <ul>
+   * <li> is used to supply the {@link DocsNodesAndPositionsEnum} in
+   * {@link Siren10PostingsWriter#merge(org.apache.lucene.index.MergeState, DocsEnum, org.apache.lucene.util.FixedBitSet)}
+   * and in {@link NodeScorer}.
+   * <li> emulate a {@link DocsAndPositionsEnum} to be compatible with Lucene's
+   * internal mechanism, especially with {@link CheckIndex}.
+   * </ul>
+   * <p>
+   * Positions in {@link DocsNodesAndPositionsEnum} are local to a node.
+   * This implementation emulates {@link #nextPosition()} by scaling
+   * up positions with a position gap that are relative to the node.
+   * Therefore, the positions returned by this enum are not the real positions.
+   * <p>
+   * The position gap is computed by using the {@link IntsRef#hashCode()} of the
+   * node.
+   * <p>
+   * If this enum is used with Lucene's Positional Scorers, there is a chance
+   * of false-positive results.
+   * <p>
+   * There is a chance that the position returned is negative, in case of large
+   * or deep node tree structure.
+   */
+  class Siren10DocsEnum extends SirenDocsEnum {
 
     private final Siren10DocsNodesAndPositionsEnum docEnum;
-
-    private int freq = 0;
 
     Siren10DocsEnum() throws IOException {
       docEnum = new Siren10DocsNodesAndPositionsEnum();
@@ -311,26 +338,23 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     Siren10DocsEnum init(final FieldInfo fieldInfo, final SepTermState termState, final Bits liveDocs)
     throws IOException {
       docEnum.init(fieldInfo, termState, liveDocs);
-      freq = 0;
       return this;
     }
 
-    public Siren10DocsNodesAndPositionsEnum getDocNodesEnum() {
+    @Override
+    public Siren10DocsNodesAndPositionsEnum getDocsNodesAndPositionsEnum() {
       return docEnum;
     }
 
     @Override
     public int nextDoc() throws IOException {
       docEnum.nextDocument();
-      // cannot perform lazy loading of freq since #freq() does not allow exception
-      // see: LUCENE-4046
-      freq = docEnum.termFreqInDoc();
       return docEnum.doc();
     }
 
     @Override
-    public int freq() {
-      return freq;
+    public int freq() throws IOException {
+      return docEnum.termFreqInDoc();
     }
 
     @Override
@@ -341,9 +365,6 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     @Override
     public int advance(final int target) throws IOException {
       docEnum.skipTo(target);
-      // cannot perform lazy loading of freq since #freq() does not allow exception
-      // see: LUCENE-4046
-      freq = docEnum.termFreqInDoc();
       return docEnum.doc();
     }
 
@@ -354,8 +375,14 @@ public class Siren10PostingsReader extends PostingsReaderBase {
           break; // if no more node, break loop
         }
       }
-      // if no more node, should return sentinel value
-      return docEnum.pos();
+      final int pos = docEnum.pos();
+      if (pos == PositionsIterator.NO_MORE_POS) {
+        return pos;
+      }
+      else {
+        // scale up position based on node hashcode
+        return docEnum.node().hashCode() + pos;
+      }
     }
 
     @Override
@@ -372,7 +399,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
 
     @Override
     public BytesRef getPayload() throws IOException {
-      return sirenPayload.encode(docEnum.node());
+      return sirenPayload.encode(docEnum.node(), docEnum.pos());
     }
 
     @Override
@@ -460,9 +487,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
       skipFP = termState.skipFP;
 
       doc = -1;
-      node = new IntsRef(new int[] { -1 }, 0, 1);
-      termFreqInDoc = nodFreq = termFreqInNode = 0;
-      pos = -1;
+      this.resetFreqNodAndPos();
 
       docCount = 0;
 
@@ -482,11 +507,26 @@ public class Siren10PostingsReader extends PostingsReaderBase {
       termFreqInNodeReadPending = false;
     }
 
+    private final IntsRef UNSET_NODE = new IntsRef(new int[] { -1 }, 0, 1);
+
+    /**
+     * Reset the freqs to 0 and the current node and position to -1.
+     */
+    private void resetFreqNodAndPos() {
+      termFreqInDoc = nodFreq = termFreqInNode = 0; // lazy load of freq
+      node = UNSET_NODE;
+      pos = -1;
+    }
+
     @Override
     public boolean nextDocument() throws IOException {
       do {
         if (docCount == docLimit) {
           doc = NO_MORE_DOC;
+          node = NO_MORE_NOD;
+          pos = NO_MORE_POS;
+          // to stop reading and decoding data in #nextNode and #nextPosition
+          this.resetPendingCounters();
           return false;
         }
 
@@ -503,14 +543,11 @@ public class Siren10PostingsReader extends PostingsReaderBase {
         }
         // decode next doc
         doc = docReader.nextDocument();
-        termFreqInDoc = nodFreq = termFreqInNode = 0; // lazy load of freq
+        this.resetFreqNodAndPos(); // reset freqs, node and pos
         termFreqInNodeReadPending = false; // reset flag
         // increment freq and node pending counters
         pendingTermFreqInDocCount++;
         pendingNodFreqCount++;
-        // reset current node and position for delta computation
-        nodReader.resetCurrentNode();
-        posReader.resetCurrentPosition();
       } while (liveDocs != null && !liveDocs.get(doc));
 
       return true;
@@ -520,6 +557,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     public boolean nextNode() throws IOException {
       termFreqInNode = 0; // lazy load of freq
       termFreqInNodeReadPending = true;
+      pos = -1; // reset position
       final int nodeFreqInDoc = this.nodeFreqInDoc(); // load node freq
 
       // scan over any nodes that were ignored during doc iteration
@@ -530,6 +568,10 @@ public class Siren10PostingsReader extends PostingsReaderBase {
       }
 
       if (pendingNodCount > 0) {
+        if (pendingNodCount == nodeFreqInDoc) { // start of the new doc
+          // reset current node for delta computation
+          nodReader.resetCurrentNode();
+        }
         // no need to check for exhaustion as doc and node blocks are synchronised
         node = nodReader.nextNode();
         pendingNodCount--;
@@ -599,16 +641,20 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     @Override
     public boolean nextPosition() throws IOException {
       final int termFreqInNode = this.termFreqInNode(); // load term freq
-      // scan over any nodes that were ignored during doc iteration
+      // scan over any positions that were ignored during doc iteration
       while (pendingPosNodCount > termFreqInNode) {
         // no need to check for exhaustion as doc and pos blocks are synchronised
         pos = posReader.nextPosition();
         pendingPosNodCount--;
       }
 
-      assert pendingPosNodCount <= this.termFreqInNode();
+      assert pendingPosNodCount <= termFreqInNode;
 
       if (pendingPosNodCount > 0) {
+        if (pendingPosNodCount == termFreqInNode) { // start of the new node
+          // reset current position for delta computation
+          posReader.resetCurrentPosition();
+        }
         // no need to check for exhaustion as doc and pos blocks are synchronised
         pos = posReader.nextPosition();
         pendingPosNodCount--;

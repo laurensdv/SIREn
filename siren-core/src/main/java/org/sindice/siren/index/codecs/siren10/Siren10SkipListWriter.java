@@ -51,10 +51,9 @@ public class Siren10SkipListWriter extends MultiLevelSkipListWriter {
   private int curDoc;
 
   Siren10SkipListWriter(final int blockSkipInterval, final int maxSkipLevels,
-                        final int blockSize,
-                        final int docCount, final BlockIndexOutput docOutput)
+                        final int blockCount, final BlockIndexOutput docOutput)
   throws IOException {
-    super(blockSkipInterval, maxSkipLevels, docCount / blockSize);
+    super(blockSkipInterval, maxSkipLevels, blockCount);
 
     lastSkipDoc = new int[numberOfSkipLevels];
 

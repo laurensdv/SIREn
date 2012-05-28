@@ -132,7 +132,7 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     public static NodeTermQueryBuilder ntq(final String term) {
-      return new NodeTermQueryBuilder(DEFAULT_FIELD, term);
+      return new NodeTermQueryBuilder(DEFAULT_TEST_FIELD, term);
     }
 
     @Override
@@ -262,27 +262,6 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     public NodeQuery getQuery() {
       return twq;
     }
-
-//    public TwigQueryBuilder desc(final NodeBooleanClause clause) {
-//      if (!(clause.getQuery() instanceof TwigQuery)) {
-//        throw new UnsupportedOperationException("Must call instead #desc(NodeBooleanClause, int)");
-//      }
-//      twq.addDescendant((TwigQuery) clause.getQuery(), clause.getOccur());
-//      return this;
-//    }
-//
-//    public TwigQueryBuilder desc(final NodeBooleanClause clause, final int level) {
-//      if (clause.getQuery() instanceof TwigQuery) {
-//        throw new UnsupportedOperationException("Must call instead #desc(NodeBooleanClause)");
-//      }
-//      else if (clause.getQuery() instanceof NodePrimitiveQuery) {
-//        twq.addDescendant((NodePrimitiveQuery) clause.getQuery(), level, clause.getOccur());
-//      }
-//      else {
-//        twq.addDescendant((NodeBooleanQuery) clause.getQuery(), level, clause.getOccur());
-//      }
-//      return this;
-//    }
 
   }
 

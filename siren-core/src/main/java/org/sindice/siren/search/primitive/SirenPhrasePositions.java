@@ -33,7 +33,7 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.NodesConfig;
-import org.sindice.siren.index.codecs.siren020.Siren020DocNodAndPosEnum;
+import org.sindice.siren.index.codecs.siren02.Siren02DocsNodesAndPositionsEnum;
 
 /**
  * Code taken from {@link PhrasePositions} and adapted for the Siren use case.
@@ -59,7 +59,7 @@ class SirenPhrasePositions implements DocsAndNodesIterator {
 
   SirenPhrasePositions(final DocsAndPositionsEnum t, final int o) {
     // TODO: don't instantiate the enum here! this should be done by the specific codec.
-    napEnum = new Siren020DocNodAndPosEnum(new NodesConfig(2), t);
+    napEnum = new Siren02DocsNodesAndPositionsEnum(new NodesConfig(2), t);
     offset = o;
   }
 
