@@ -26,7 +26,6 @@
  */
 package org.sindice.siren.search.primitive;
 
-import static org.sindice.siren.analysis.MockSirenToken.node;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuilder.ntq;
 
 import java.io.IOException;
@@ -68,15 +67,18 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
   @Test
   public void testSimpleMatchWithConstraint() throws Exception {
     this.addDocument("\"Renaud Delbru\" . ");
+    this.addDocument("\"Delbru\" \"Renaud\" . ");
     this.addDocument("\"Delbru\" . \"Renaud\" . ");
+
+    System.out.println(searcher.getIndexReader().maxDoc());
 
     Query query = ntq("renaud").level(1).getQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);
 
-    query = ntq("renaud").bound(node(0,0), node(0,0)).getQuery();
+    query = ntq("renaud").bound(0,0).getQuery();
     hits = searcher.search(query, 100);
-    assertEquals(1, hits.totalHits);
+    assertEquals(2, hits.totalHits);
   }
 
   /**

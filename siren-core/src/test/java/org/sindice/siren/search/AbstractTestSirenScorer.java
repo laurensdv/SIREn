@@ -35,59 +35,24 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.base.NodeQuery;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.search.twig.TwigQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
-//  protected SirenExactPhraseScorer getExactScorer(final String field,
-//                                                  final String[] phraseTerms)
-//  throws IOException {
-//    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
-//    final int[] positions = new int[phraseTerms.length];
-//    for (int i = 0; i < phraseTerms.length; i++) {
-//      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-//        MultiFields.getLiveDocs(reader), DEFAULT_FIELD,
-//        new BytesRef(phraseTerms[i]));
-//      if (p == null) return null;
-//      tps[i] = p;
-//      positions[i] = i;
-//    }
-//
-//    return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
-//      new DefaultSimilarity(), MultiNorms.norms(reader, field));
-//  }
-//
-//  protected SirenExactPhraseScorer getExactScorer(final String field,
-//                                                  final int[] positions,
-//                                                  final String[] phraseTerms)
-//  throws IOException {
-//    final DocsAndPositionsEnum[] tps = new DocsAndPositionsEnum[phraseTerms.length];
-//    for (int i = 0; i < phraseTerms.length; i++) {
-//      final DocsAndPositionsEnum p = MultiFields.getTermPositionsEnum(reader,
-//        MultiFields.getLiveDocs(reader), DEFAULT_FIELD,
-//        new BytesRef(phraseTerms[i]));
-//      if (p == null) return null;
-//      tps[i] = p;
-//    }
-//
-//    return new SirenExactPhraseScorer(new ConstantWeight(), tps, positions,
-//    new DefaultSimilarity(), MultiNorms.norms(reader, field));
-//  }
-
   protected NodeScorer getScorer(final NodeQueryBuilder builder) throws IOException {
     return this.getScorer(builder.getQuery());
   }
 
-  private NodeScorer getScorer(final Query query) throws IOException {
+  protected NodeScorer getScorer(final Query query) throws IOException {
     this.refreshReaderAndSearcher();
     final Weight weight = searcher.createNormalizedWeight(query);
     assertTrue(searcher.getTopReaderContext() instanceof AtomicReaderContext);
@@ -108,13 +73,13 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
   public static abstract class NodeQueryBuilder {
 
-    public NodeQueryBuilder bound(final IntsRef lowerBound, final IntsRef upperBound) {
-      this.getQuery().setNodeConstraint(lowerBound.ints, upperBound.ints);
+    public NodeQueryBuilder bound(final int lowerBound, final int upperBound) {
+      this.getQuery().setNodeConstraint(lowerBound, upperBound);
       return this;
     }
 
     public NodeQueryBuilder level(final int level) {
-      this.getQuery().setNodeLevelConstraint(level);
+      this.getQuery().setLevelConstraint(level);
       return this;
     }
 
@@ -138,6 +103,36 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     @Override
     public NodeQuery getQuery() {
       return ntq;
+    }
+
+  }
+
+  public static class NodePhraseQueryBuilder extends NodeQueryBuilder {
+
+    protected final NodePhraseQuery npq;
+
+    private NodePhraseQueryBuilder(final String fieldName, final String[] terms) {
+      npq = new NodePhraseQuery();
+      for (int i = 0; i < terms.length; i++) {
+        if (terms[i].isEmpty()) { // if empty string, skip it
+          continue;
+        }
+        final Term t = new Term(fieldName, terms[i]);
+        npq.add(t, i);
+      }
+    }
+
+    /**
+     * If term is equal to an empty string, this is considered as a position
+     * gap.
+     */
+    public static NodePhraseQueryBuilder npq(final String ... terms) {
+      return new NodePhraseQueryBuilder(DEFAULT_TEST_FIELD, terms);
+    }
+
+    @Override
+    public NodeQuery getQuery() {
+      return npq;
     }
 
   }

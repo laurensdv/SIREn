@@ -152,7 +152,7 @@ public class TestNodeBooleanScorer extends AbstractTestSirenScorer {
     );
 
     final NodeScorer scorer = this.getScorer(
-      nbq(must("aaa"), should("bbb"), not("ccc")).bound(node(0,1), node(0,1))
+      nbq(must("aaa"), should("bbb"), not("ccc")).bound(1,1)
                                                  .level(2)
     );
 
@@ -195,7 +195,7 @@ public class TestNodeBooleanScorer extends AbstractTestSirenScorer {
 
     assertEndOfStream(scorer);
 
-    scorer = this.getScorer(nbq(must("aaa")).bound(node(0,1), node(0,2)));
+    scorer = this.getScorer(nbq(must("aaa")).bound(1,2));
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
@@ -238,7 +238,7 @@ public class TestNodeBooleanScorer extends AbstractTestSirenScorer {
       nbq(
         must(nbq(must("aaa"))),
         must(nbq(must("bbb")))
-      ).bound(node(0,0), node(0,0))
+      ).bound(0,0)
     );
 
     assertTrue(scorer.nextCandidateDocument());

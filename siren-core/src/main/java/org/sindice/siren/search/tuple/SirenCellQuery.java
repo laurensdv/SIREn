@@ -43,11 +43,11 @@ import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.base.NodePrimitiveScorer;
 import org.sindice.siren.search.primitive.NodePrimitiveQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 
 /**
  * A Query that matches cells matching boolean combinations of term
- * queries, e.g. {@link NodeTermQuery}s or {@link SirenPhraseQuery}s.
+ * queries, e.g. {@link NodeTermQuery}s or {@link NodePhraseQuery}s.
  * <p>
  * Code taken from {@link BooleanQuery} and adapted for the Siren use case.
  */

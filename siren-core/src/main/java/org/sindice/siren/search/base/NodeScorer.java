@@ -111,8 +111,10 @@ public abstract class NodeScorer extends Scorer {
   @Override
   public void score(final Collector collector) throws IOException {
     collector.setScorer(this);
-    while (this.nextCandidateDocument() && this.nextNode()) {
-      collector.collect(this.doc());
+    while (this.nextCandidateDocument()) {
+      if (this.nextNode()) {
+        collector.collect(this.doc());
+      }
     }
   }
 

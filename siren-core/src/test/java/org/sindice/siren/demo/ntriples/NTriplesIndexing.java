@@ -54,7 +54,7 @@ import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
 import org.sindice.siren.search.tuple.SirenTupleQuery;
@@ -145,7 +145,7 @@ public class NTriplesIndexing {
     cq1.setConstraint(1);
 
     // Create a cell query matching the phrase "renaud delbru"
-    final SirenPhraseQuery pq = new SirenPhraseQuery();
+    final NodePhraseQuery pq = new NodePhraseQuery();
     pq.add(new Term(DEFAULT_FIELD, "renaud"));
     pq.add(new Term(DEFAULT_FIELD, "delbru"));
     final NodeBooleanQuery bq2 = new NodeBooleanQuery();

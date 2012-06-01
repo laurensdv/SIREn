@@ -20,32 +20,41 @@
  */
 /**
  * @project siren-core
- * @author Renaud Delbru [ 27 Mar 2012 ]
+ * @author Renaud Delbru [ 24 Jan 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.index.codecs.block;
+package org.sindice.siren.index;
 
 import java.io.IOException;
 
-import org.apache.lucene.store.IndexOutput;
+import org.sindice.siren.util.NodeUtils;
 
-public abstract class IntBlockIndexOutput extends BlockIndexOutput {
+/**
+ * This {@link DocsNodesAndPositionsEnum} wraps another
+ * {@link DocsNodesAndPositionsEnum} and applies the level constraint
+ * over the node paths. It filters all the nodes that do not satisfy the
+ * constraints.
+ *
+ * @see NodeUtils#isConstraintSatisfied(int[], int[], int[], boolean)
+ */
+public class LevelConstrainedNodesEnum extends ConstrainedNodesEnum {
 
-  protected final int blockSize;
+  private final int level;
 
-  public IntBlockIndexOutput(final IndexOutput out, final int blockSize)
-  throws IOException {
-    super(out);
-    this.blockSize = blockSize;
+  public LevelConstrainedNodesEnum(final DocsNodesAndPositionsEnum docsEnum,
+                                   final int level) {
+    super(docsEnum);
+    this.level = level;
   }
 
-  protected abstract class IntBlockWriter extends BlockWriter {
-
-    @Override
-    protected void writeHeader() throws IOException {
-      out.writeVInt(blockSize);
+  @Override
+  public boolean nextNode() throws IOException {
+    while (docsEnum.nextNode()) {
+      if (NodeUtils.isConstraintSatisfied(docsEnum.node(), level)) {
+        return true;
+      }
     }
-
+    return false;
   }
 
 }

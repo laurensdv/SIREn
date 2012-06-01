@@ -53,7 +53,7 @@ import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
 import org.sindice.siren.search.tuple.SirenTupleQuery;
@@ -126,7 +126,7 @@ public class EntityCentricIndexing {
     cq1.setConstraint(0);
 
     final NodeBooleanQuery bq2 = new NodeBooleanQuery();
-    final SirenPhraseQuery spq = new SirenPhraseQuery();
+    final NodePhraseQuery spq = new NodePhraseQuery();
     spq.add(new Term(DEFAULT_FIELD, "renaud"));
     spq.add(new Term(DEFAULT_FIELD, "delbru"));
     bq2.add(spq, NodeBooleanClause.Occur.MUST);

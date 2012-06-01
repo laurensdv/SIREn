@@ -499,7 +499,7 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
 
     final NodeScorer scorer = this.getScorer(
       twq(1, must("aaa")).with(child(must("bbb")))
-                         .bound(node(1), node(3))
+                         .bound(1,3)
     );
 
     assertTrue(scorer.nextCandidateDocument());

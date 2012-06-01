@@ -38,8 +38,6 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.junit.Test;
 import org.sindice.siren.analysis.TupleTokenizer;
-import org.sindice.siren.analysis.attributes.CellAttribute;
-import org.sindice.siren.analysis.attributes.TupleAttribute;
 
 public class TestURILocalnameFilter {
 
@@ -65,17 +63,6 @@ public class TestURILocalnameFilter {
                                 final String[] expectedTypes,
                                 final int[] expectedPosIncrs)
   throws Exception {
-    this.assertNormalisesTo(t, input, expectedImages, expectedTypes, expectedPosIncrs, null,
-      null);
-  }
-
-  public void assertNormalisesTo(final Tokenizer t, final String input,
-                                final String[] expectedImages,
-                                final String[] expectedTypes,
-                                final int[] expectedPosIncrs,
-                                final int[] expectedTupleID,
-                                final int[] expectedCellID)
-  throws Exception {
 
     assertTrue("has TermAttribute", t.hasAttribute(CharTermAttribute.class));
     final CharTermAttribute termAtt = t.getAttribute(CharTermAttribute.class);
@@ -90,18 +77,6 @@ public class TestURILocalnameFilter {
     if (expectedPosIncrs != null) {
       assertTrue("has PositionIncrementAttribute", t.hasAttribute(PositionIncrementAttribute.class));
       posIncrAtt = t.getAttribute(PositionIncrementAttribute.class);
-    }
-
-    TupleAttribute tupleAtt = null;
-    if (expectedTupleID != null) {
-      assertTrue("has TupleAttribute", t.hasAttribute(TupleAttribute.class));
-      tupleAtt = t.getAttribute(TupleAttribute.class);
-    }
-
-    CellAttribute cellAtt = null;
-    if (expectedCellID != null) {
-      assertTrue("has CellAttribute", t.hasAttribute(CellAttribute.class));
-      cellAtt = t.getAttribute(CellAttribute.class);
     }
 
     t.reset(new StringReader(input));
@@ -122,13 +97,6 @@ public class TestURILocalnameFilter {
         assertEquals(expectedPosIncrs[i], posIncrAtt.getPositionIncrement());
       }
 
-      if (expectedTupleID != null) {
-        assertEquals(expectedTupleID[i], tupleAtt.tuple());
-      }
-
-      if (expectedCellID != null) {
-        assertEquals(expectedCellID[i], cellAtt.cell());
-      }
     }
 
     assertFalse("end of stream", filter.incrementToken());
@@ -153,8 +121,8 @@ public class TestURILocalnameFilter {
       new String[] { "uppercase", "Should", "Tokenised", "uppercaseShouldBeTokenised", "http://renaud.delbru.fr/rdf/uppercaseShouldBeTokenised" });
     this.assertNormalisesTo(_t, "<http://renaud.delbru.fr/rdf/AVeryLongLocalnameWithMoreThan64CharactersThatShouldNotBeTokenised>",
       new String[] { "AVeryLongLocalnameWithMoreThan64CharactersThatShouldNotBeTokenised", "http://renaud.delbru.fr/rdf/AVeryLongLocalnameWithMoreThan64CharactersThatShouldNotBeTokenised" });
-    
-    
+
+
     final String triple = "<http://dbpedia.org/resource/The_Kingston_Trio> " +
                           "<http://purl.org/dc/terms/subject>  " +
                           "<http://dbpedia.org/resource/Category:Decca_Records_artists>";

@@ -60,13 +60,15 @@ public class TwigQuery extends NodeBooleanQuery {
 
   private NodeQuery root;
 
-  private final int rootLevel;
-
   /** Constructs an empty twig query. */
   public TwigQuery(final int rootLevel, final NodeQuery root) {
     this.root = root;
-    this.rootLevel = rootLevel;
-    root.setNodeLevelConstraint(rootLevel);
+    // copy the root node constraint, if any
+    final int[] constraint = root.getNodeConstraint();
+    this.setNodeConstraint(constraint[0], constraint[1]);
+    // set level constraint
+    this.setLevelConstraint(rootLevel);
+    root.setLevelConstraint(rootLevel);
   }
 
   /**
@@ -82,8 +84,12 @@ public class TwigQuery extends NodeBooleanQuery {
   public TwigQuery(final int rootLevel, final NodeQuery root, final boolean disableCoord) {
     super(disableCoord);
     this.root = root;
-    this.rootLevel = rootLevel;
-    root.setNodeLevelConstraint(rootLevel);
+    // copy the root node constraint, if any
+    final int[] constraint = root.getNodeConstraint();
+    this.setNodeConstraint(constraint[0], constraint[1]);
+    // set level constraint
+    this.setLevelConstraint(rootLevel);
+    root.setLevelConstraint(rootLevel);
   }
 
   /**
@@ -95,7 +101,10 @@ public class TwigQuery extends NodeBooleanQuery {
    */
   public void addChild(final NodeQuery query, final NodeBooleanClause.Occur occur) {
     // set the level constraint on the query
-    query.setNodeLevelConstraint(rootLevel + 1);
+    query.setLevelConstraint(levelConstraint + 1);
+    // set the ancestor pointer
+    query.setAncestorPointer(root);
+    // add the query to the clauses
     this.add(new NodeBooleanClause(query, occur));
   }
 
@@ -108,7 +117,10 @@ public class TwigQuery extends NodeBooleanQuery {
    */
   public void addDescendant(final int nodeLevel, final NodePrimitiveQuery query, final NodeBooleanClause.Occur occur) {
     // set the level constraint on the query
-    query.setNodeLevelConstraint(nodeLevel);
+    query.setLevelConstraint(nodeLevel);
+    // set the ancestor pointer
+    query.setAncestorPointer(root);
+    // add the query to the clauses
     this.add(new NodeBooleanClause(query, occur));
   }
 
@@ -121,7 +133,10 @@ public class TwigQuery extends NodeBooleanQuery {
    */
   public void addDescendant(final int nodeLevel, final NodeBooleanQuery query, final NodeBooleanClause.Occur occur) {
     // set the level constraint on the query
-    query.setNodeLevelConstraint(nodeLevel);
+    query.setLevelConstraint(nodeLevel);
+    // set the ancestor pointer
+    query.setAncestorPointer(root);
+    // add the query to the clauses
     this.add(new NodeBooleanClause(query, occur));
   }
 
@@ -133,7 +148,31 @@ public class TwigQuery extends NodeBooleanQuery {
    * @see #getMaxClauseCount()
    */
   public void addDescendant(final TwigQuery query, final NodeBooleanClause.Occur occur) {
+    // set the ancestor pointer
+    query.setAncestorPointer(root);
+    // add the query to the clauses
     this.add(new NodeBooleanClause(query, occur));
+  }
+
+  @Override
+  public void setAncestorPointer(final NodeQuery ancestor) {
+    super.setAncestorPointer(ancestor);
+    // keep root query synchronised with twig query
+    root.setAncestorPointer(ancestor);
+  }
+
+  @Override
+  public void setNodeConstraint(final int lowerBound, final int upperBound) {
+    super.setNodeConstraint(lowerBound, upperBound);
+    // keep root query synchronised with twig query
+    root.setNodeConstraint(lowerBound, upperBound);
+  }
+
+  @Override
+  public void setLevelConstraint(final int levelConstraint) {
+    super.setLevelConstraint(levelConstraint);
+    // keep root query synchronised with twig query
+    root.setLevelConstraint(levelConstraint);
   }
 
   /**
@@ -156,9 +195,6 @@ public class TwigQuery extends NodeBooleanQuery {
       for (int i = 0; i < clauses.size(); i++) {
         final NodeBooleanClause c = clauses.get(i);
         final NodeQuery q = c.getQuery();
-        // pass to child query the lower and upper bound contraints
-        // the level constraint has been set by #addChild or #addDescendant
-        q.setNodeConstraint(nodeLowerBoundConstraint, nodeUpperBoundConstraint);
         weights.add(q.createWeight(searcher));
         if (!c.isProhibited()) maxCoord++;
       }
@@ -277,8 +313,8 @@ public class TwigQuery extends NodeBooleanQuery {
         }
       }
 
-      return new TwigScorer(this, disableCoord, rootScorer, rootLevel, required,
-        prohibited, optional, maxCoord);
+      return new TwigScorer(this, disableCoord, rootScorer, levelConstraint,
+        required, prohibited, optional, maxCoord);
     }
 
   }
@@ -295,16 +331,19 @@ public class TwigQuery extends NodeBooleanQuery {
       // rewrite root first
       NodeQuery query = (NodeQuery) root.rewrite(reader);
 
-      // incorporate constraint
-      query.setNodeConstraint(this.nodeLowerBoundConstraint,
-        this.nodeUpperBoundConstraint, this.nodeLevelConstraint);
-
       if (this.getBoost() != 1.0f) {                 // incorporate boost
         if (query == root) {                         // if rewrite was no-op
           query = (NodeQuery) query.clone();         // then clone before boost
         }
         query.setBoost(this.getBoost() * query.getBoost());
       }
+
+      // copy constraint
+      query.setNodeConstraint(lowerBound, upperBound);
+      query.setLevelConstraint(levelConstraint);
+
+      // copy ancestor
+      query.setAncestorPointer(ancestor);
 
       return query;
     }
@@ -319,6 +358,8 @@ public class TwigQuery extends NodeBooleanQuery {
 
     // some clauses rewrote
     if (clone != null) {
+      // copy ancestor
+      clone.setAncestorPointer(ancestor);
       return clone;
     }
     else { // no clauses rewrote
@@ -328,12 +369,14 @@ public class TwigQuery extends NodeBooleanQuery {
 
   private TwigQuery rewriteRoot(TwigQuery clone, final IndexReader reader)
   throws IOException {
-    final Query query = root.rewrite(reader);
+    final NodeQuery query = (NodeQuery) root.rewrite(reader);
     if (query != root) {
       if (clone == null) {
         clone = (TwigQuery) this.clone();
       }
-      clone.root = (NodeQuery) query;
+      // copy ancestor
+      query.setAncestorPointer(ancestor);
+      clone.root = query;
     }
     return clone;
   }
@@ -342,12 +385,14 @@ public class TwigQuery extends NodeBooleanQuery {
   throws IOException {
     for (int i = 0 ; i < clauses.size(); i++) {
       final NodeBooleanClause c = clauses.get(i);
-      final Query query = c.getQuery().rewrite(reader);
+      final NodeQuery query = (NodeQuery) c.getQuery().rewrite(reader);
       if (query != c.getQuery()) {                     // clause rewrote: must clone
         if (clone == null) {
           clone = (TwigQuery) this.clone();
         }
-        clone.clauses.set(i, new NodeBooleanClause((NodeQuery) query, c.getOccur()));
+        // set root as ancestor
+        query.setAncestorPointer(clone.root);
+        clone.clauses.set(i, new NodeBooleanClause(query, c.getOccur()));
       }
     }
     return clone;
@@ -420,7 +465,9 @@ public class TwigQuery extends NodeBooleanQuery {
     return (this.getBoost() == other.getBoost()) &&
            this.clauses.equals(other.clauses) &&
            this.root.equals(other.root) &&
-           this.rootLevel == other.rootLevel;
+           this.levelConstraint == other.levelConstraint &&
+           this.lowerBound == other.lowerBound &&
+           this.upperBound == other.upperBound;
   }
 
 }

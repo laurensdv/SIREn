@@ -49,12 +49,12 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.base.NodeQuery;
 import org.sindice.siren.search.base.NodeScorer;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.SirenPhraseQuery;
 
 /**
  * A Query that matches a boolean combination of primitive queries, e.g.,
- * {@link NodeTermQuery}s, {@link SirenPhraseQuery}s, {@link NodeBooleanQuery}s,
+ * {@link NodeTermQuery}s, {@link NodePhraseQuery}s, {@link NodeBooleanQuery}s,
  * ...
  * <p>
  * Code taken from {@link BooleanQuery} and adapted for the Siren use case.
@@ -185,8 +185,14 @@ public class NodeBooleanQuery extends NodeQuery {
       for (int i = 0; i < clauses.size(); i++) {
         final NodeBooleanClause c = clauses.get(i);
         final NodeQuery q = c.getQuery();
+
         // pass to child query the node contraints
-        q.setNodeConstraint(nodeLowerBoundConstraint, nodeUpperBoundConstraint, nodeLevelConstraint);
+        q.setNodeConstraint(lowerBound, upperBound);
+        q.setLevelConstraint(levelConstraint);
+
+        // transfer ancestor pointer to child
+        q.setAncestorPointer(ancestor);
+
         weights.add(q.createWeight(searcher));
         if (!c.isProhibited()) maxCoord++;
       }
@@ -354,16 +360,19 @@ public class NodeBooleanQuery extends NodeQuery {
         // rewrite first
         NodeQuery query = (NodeQuery) c.getQuery().rewrite(reader);
 
-        // incorporate constraint
-        query.setNodeConstraint(this.nodeLowerBoundConstraint,
-          this.nodeUpperBoundConstraint, this.nodeLevelConstraint);
-
         if (this.getBoost() != 1.0f) {                 // incorporate boost
           if (query == c.getQuery()) {                 // if rewrite was no-op
             query = (NodeQuery) query.clone();         // then clone before boost
           }
           query.setBoost(this.getBoost() * query.getBoost());
         }
+
+        // transfer constraints
+        query.setNodeConstraint(lowerBound, upperBound);
+        query.setLevelConstraint(levelConstraint);
+
+        // transfer ancestor pointer
+        query.setAncestorPointer(ancestor);
 
         return query;
       }
@@ -372,12 +381,20 @@ public class NodeBooleanQuery extends NodeQuery {
     NodeBooleanQuery clone = null;                    // recursively rewrite
     for (int i = 0 ; i < clauses.size(); i++) {
       final NodeBooleanClause c = clauses.get(i);
-      final Query query = c.getQuery().rewrite(reader);
+      final NodeQuery query = (NodeQuery) c.getQuery().rewrite(reader);
       if (query != c.getQuery()) {                     // clause rewrote: must clone
         if (clone == null) {
           clone = (NodeBooleanQuery) this.clone();
         }
-        clone.clauses.set(i, new NodeBooleanClause((NodeQuery) query, c.getOccur()));
+
+        // transfer constraints
+        query.setNodeConstraint(lowerBound, upperBound);
+        query.setLevelConstraint(levelConstraint);
+
+        // transfer ancestor pointer
+        query.setAncestorPointer(ancestor);
+
+        clone.clauses.set(i, new NodeBooleanClause(query, c.getOccur()));
       }
     }
     if (clone != null) {

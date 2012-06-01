@@ -97,56 +97,79 @@ public class NodeUtils {
   }
 
   /**
-   * Check if a node path is satisfying the constraints.
+   * Check if a node path is satisfying the interval constraints.
    * <p>
-   * <b>NOTE:</b> The node path constraints must be of the same length.
+   * The <code>level</code> parameter allows to force the node to be on a
+   * certain level.
    * <p>
-   * The lower bound constraint is satisfied if the node path is either
-   * <ul>
-   * <li> following (in node path order) the lower bound,
-   * <li> descendant of the lower bound, or
-   * <li> equal to the lower bound.
-   * </ul>
-   * The upper bound constraint is satisfied if the node path is either
-   * <ul>
-   * <li> preceding (in node path order) the upper bound,
-   * <li> descendant of the upper bound, or
-   * <li> equal to the upper bound.
-   * </ul>
+   * The <code>levelIndex</code> array contains the level associated with
+   * the interval constraints in <code>constraints</code>.
    * <p>
    * Example: <br>
-   * Given the lower bound constraint [0,1] and upper bound constraint [3,10],
-   * the node paths [0,1], [3,10], [2], [2,5] or [2,3,4] satisfy the
-   * constraints. However, the node paths [0], [0,0], [3,11] or [3] do not
-   * satisfy the constraints.
+   * Given the lower bound constraint [1], upper bound constraint [10] at
+   * level 1, then the node paths [1,4], [5,10,9] or [10,5] satisfy
+   * the constraints. However, the node path [0,3] or [11,0,9] does not satisfy
+   * the constraints.
    */
   public static final boolean isConstraintSatisfied(final IntsRef node,
-                                                    final int[] lowerBound,
-                                                    final int[] upperBound) {
-    // it is assumed that lowerBound.length == upperBound.length
-    final int len = node.length > lowerBound.length ? lowerBound.length : node.length;
+                                                    final int level,
+                                                    final int[] levelIndex,
+                                                    final int[][] constraints) {
+    // check if node satisfies level
+    if (node.length != level) {
+      return false;
+    }
 
-    for (int i = 0, j = node.offset; i < len; i++, j++) {
-      if (node.ints[j] > lowerBound[i] && node.ints[j] < upperBound[i]) {
-        return true;
-      }
-      if (node.ints[j] < lowerBound[i] || node.ints[j] > upperBound[i]) {
+    final int offset = node.offset;
+    final int[] ints = node.ints;
+    int[] constraint;
+    int value;
+
+    for (int i = 0; i < levelIndex.length; i++) {
+      // check if node value at given level satisfies the interval constraint
+      constraint = constraints[i];
+      value = ints[offset + levelIndex[i] - 1];
+      if (value < constraint[0] || value > constraint[1]) {
         return false;
       }
     }
-
-    // if path equal until now, check if the node path is equal or descendant
-    return node.length >= lowerBound.length ? true : false;
+    return true;
   }
 
   /**
-   * Check if a node path is satisfying the constraints.
+   * Check if a node path is satisfying the interval constraints.
    * <p>
-   * If <code>lowerBound</code> and <code>upperBound</code> are null, then
-   * these constraints are ignored and only the level constraint is checked.
+   * The <code>levelIndex</code> array contains the level associated with
+   * the interval constraints in <code>constraints</code>.
    * <p>
-   * The <code>nodeLevel</code> parameter allows to force the node
-   * to be on a certain level.
+   * Example: <br>
+   * Given the lower bound constraint [1], upper bound constraint [10] at
+   * level 1, then the node paths [1,4], [5,10,9] or [10,5] satisfy
+   * the constraints. However, the node path [0,3] or [11,0,9] does not satisfy
+   * the constraints.
+   */
+  public static final boolean isConstraintSatisfied(final IntsRef node,
+                                                    final int level,
+                                                    final int[] constraint) {
+    // check if node satisfies level
+    if (level != -1 && node.length != level) {
+      return false;
+    }
+
+    // retrieve last value of the node path
+    final int value = node.ints[node.offset + node.length - 1];
+
+    if (value < constraint[0] || value > constraint[1]) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Check if a node path is satisfying the level constraint.
+   * <p>
+   * The <code>level</code> parameter allows to force the node to be on a
+   * certain level.
    * <br>
    * Given that the root of the tree (level 0) is the document id, the node
    * level constraint ranges from 1 to <code>Integer.MAX_VALUE</code>. A node
@@ -155,28 +178,16 @@ public class NodeUtils {
    * The sentinel value to ignore the node level constraint is -1.
    * <p>
    * Example: <br>
-   * Given the lower bound constraint [0,1], upper bound constraint [3,10] and
-   * the level constraint 1, then the node paths [0,1], [3,10] or [2,5] satisfy
+   * Given the level constraint 2, the node paths [0,1], [3,10] or [2,5] satisfy
    * the constraints. However, the node path [2,3,4] does not satisfy the
    * constraints.
-   *
-   * @see NodeUtils#isConstraintSatisfied(int[], int[], int[])
    */
   public static final boolean isConstraintSatisfied(final IntsRef node,
-                                                    final int[] lowerBound,
-                                                    final int[] upperBound,
-                                                    final int nodeLevel) {
-    // check level
-    if (nodeLevel != -1 && node.length != nodeLevel) {
+                                                    final int level) {
+    if (level != -1 && node.length != level) {
       return false;
     }
-
-    // if bound set to sentinel value, ignore
-    if (lowerBound == null || upperBound == null) {
-      return true;
-    }
-
-    return isConstraintSatisfied(node, lowerBound, upperBound);
+    return true;
   }
 
 }

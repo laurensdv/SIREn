@@ -37,29 +37,12 @@ import org.sindice.siren.util.NodeUtils;
  *
  * @see NodeUtils#isConstraintSatisfied(int[], int[], int[], boolean)
  */
-public class ConstrainedNodesEnum extends DocsNodesAndPositionsEnum {
+public abstract class ConstrainedNodesEnum extends DocsNodesAndPositionsEnum {
 
-  private final DocsNodesAndPositionsEnum docsEnum;
+  protected final DocsNodesAndPositionsEnum docsEnum;
 
-  private final int[] lowerBound;
-  private final int[] upperBound;
-  private final int levelConstraint;
-
-  public ConstrainedNodesEnum(final DocsNodesAndPositionsEnum docsEnum,
-                              final int[] lowerBound, final int[] upperBound) {
+  public ConstrainedNodesEnum(final DocsNodesAndPositionsEnum docsEnum) {
     this.docsEnum = docsEnum;
-    this.lowerBound = lowerBound;
-    this.upperBound = upperBound;
-    this.levelConstraint = -1; // set to sentinel value
-  }
-
-  public ConstrainedNodesEnum(final DocsNodesAndPositionsEnum docsEnum,
-                              final int[] lowerBound, final int[] upperBound,
-                              final int levelConstraint) {
-    this.docsEnum = docsEnum;
-    this.lowerBound = lowerBound;
-    this.upperBound = upperBound;
-    this.levelConstraint = levelConstraint;
   }
 
   @Override
@@ -68,14 +51,7 @@ public class ConstrainedNodesEnum extends DocsNodesAndPositionsEnum {
   }
 
   @Override
-  public boolean nextNode() throws IOException {
-    while (docsEnum.nextNode()) {
-      if (NodeUtils.isConstraintSatisfied(docsEnum.node(), lowerBound, upperBound, levelConstraint)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  public abstract boolean nextNode() throws IOException;
 
   @Override
   public boolean skipTo(final int target) throws IOException {

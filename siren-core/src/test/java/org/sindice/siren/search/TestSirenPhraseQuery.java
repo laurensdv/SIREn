@@ -42,7 +42,7 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
-import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause.Occur;
@@ -76,14 +76,14 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
     _helper.addDocuments(new String[] { "\"Renaud Delbru\" . ",
                                                     "\"Renaud\" . " });
 
-    SirenPhraseQuery query = new SirenPhraseQuery();
+    NodePhraseQuery query = new NodePhraseQuery();
     // slop is zero by default
     query.add(new Term("content", "renaud"));
     query.add(new Term("content", "delbru"));
     ScoreDoc[] hits = _helper.search(query);
     assertEquals("exact match", 1, hits.length);
 
-    query = new SirenPhraseQuery();
+    query = new NodePhraseQuery();
     query.add(new Term("field", "delbru"));
     query.add(new Term("field", "renaud"));
     hits = _helper.search(query);
@@ -100,14 +100,14 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
                                                     "\"Renaud word1 Delbru\" . "                            
     });
 
-    SirenPhraseQuery query = new SirenPhraseQuery();
+    NodePhraseQuery query = new NodePhraseQuery();
     // slop is zero by default
     query.add(new Term("content", "renaud"));
     query.add(new Term("content", "delbru"));
     ScoreDoc[] hits = _helper.search(query);
     assertEquals("exact match", 1, hits.length);
 
-    query = new SirenPhraseQuery();
+    query = new NodePhraseQuery();
     query.add(new Term("field", "delbru"));
     query.add(new Term("field", "renaud"));
     hits = _helper.search(query);
@@ -124,7 +124,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
                                                     "\"Renaud\" \"Delbru\" . ",
                                                     "\"Renaud\" . \"Delbru\" . " });
 
-    final SirenPhraseQuery query = new SirenPhraseQuery();
+    final NodePhraseQuery query = new NodePhraseQuery();
     // slop is zero by default
     query.add(new Term("content", "renaud"));
     query.add(new Term("content", "delbru"));
@@ -144,7 +144,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
                                                     "\"Renaud\" \"Delbru\" . ",
                                                     "\"Renaud\" . \"Delbru\" . " });
 
-    final SirenPhraseQuery query = new SirenPhraseQuery();
+    final NodePhraseQuery query = new NodePhraseQuery();
     // slop is zero by default
     query.add(new Term("content", "renaud"));
     query.add(new Term("content", "delbru"));
@@ -165,10 +165,10 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
                           "<http://dbpedia.org/resource/Category:Decca_Records_artists> .";
     _helper.addDocument(triple);
     
-    final SirenPhraseQuery q1 = new SirenPhraseQuery();
+    final NodePhraseQuery q1 = new NodePhraseQuery();
     q1.add(new Term("content", "decca"));
     q1.add(new Term("content", "records"));
-    final SirenPhraseQuery q2 = new SirenPhraseQuery();
+    final NodePhraseQuery q2 = new NodePhraseQuery();
     q2.add(new Term("content", "kingston"));
     q2.add(new Term("content", "trio"));
     
@@ -189,7 +189,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
 
     final Term t1 = new Term(QueryTestingHelper.DEFAULT_FIELD, "renaud");
     final Term t2 = new Term(QueryTestingHelper.DEFAULT_FIELD, "delbru");
-    final SirenPhraseQuery query = new SirenPhraseQuery();
+    final NodePhraseQuery query = new NodePhraseQuery();
     query.add(t1); query.add(t2);
     final Weight w = query.createWeight(_helper.getIndexSearcher());
     final IndexReader reader = _helper.getIndexReader();

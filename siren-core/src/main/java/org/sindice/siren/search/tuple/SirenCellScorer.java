@@ -33,11 +33,11 @@ import org.apache.lucene.search.Weight;
 import org.sindice.siren.search.base.NodePrimitiveScorer;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.SirenPhraseQuery;
+import org.sindice.siren.search.primitive.NodePhraseQuery;
 
 /**
  * A Query that matches cells matching boolean combinations of other primitive
- * queries, e.g. {@link NodeTermQuery}s, {@link SirenPhraseQuery}s, etc.
+ * queries, e.g. {@link NodeTermQuery}s, {@link NodePhraseQuery}s, etc.
  * Implements skipTo(), and has no limitations on the numbers of added scorers. <br>
  * Uses ConjunctionScorer, DisjunctionScorer, ReqOptScorer and ReqExclScorer.
  * <p> Code taken from {@link BooleanScorer2} and adapted for the Siren use case.

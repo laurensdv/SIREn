@@ -74,67 +74,50 @@ public class TestNodeUtils {
 
   @Test
   public void testIsConstraintSatisfied() {
+    final int[] levelIndex = new int[] { 1,3 };
+    final int[][] constraints = new int[][] {
+      new int[] { 1,8 },
+      new int[] { 5,5 },
+    };
 
-    final int[] lb = new int[] {1,1,0};
-    final int[] ub = new int[] {1,10,0};
+    IntsRef node = node(1,0,5);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    IntsRef node = node(1,5,1);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(8,10,5);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    node = node(1,1,0);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(4,5,5,90);
+    assertTrue(NodeUtils.isConstraintSatisfied(node, 4, levelIndex, constraints));
 
-    node = node(1,10,0);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(4);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    node = node(1,1,0,0);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(4,10);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    node = node(1,10,0,0);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(0,12,5);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    node = node(1,2);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(9,12,5);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    node = node(1);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(4,5,4);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
 
-    node = node(1,0,1);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
-
-    node = node(1,10,1);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
-
-    node = node(1,10);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
-
-    node = node(1,1);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub));
+    node = node(4,5,6);
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3, levelIndex, constraints));
   }
 
   @Test
   public void testIsLevelConstraintSatisfied() {
-
-    final int[] lb = new int[] {1,1,0};
-    final int[] ub = new int[] {1,10,0};
-
     IntsRef node = node(1,5,1);
-    assertTrue(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
+    assertTrue(NodeUtils.isConstraintSatisfied(node, 3));
 
     node = node(1,5,1);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 2));
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 2));
 
     node = node(1,1,0,0);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
-
-    node = node(1,10,0,0);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
-
-    node = node(1,10);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
-
-    node = node(1,1);
-    assertFalse(NodeUtils.isConstraintSatisfied(node, lb, ub, 3));
+    assertFalse(NodeUtils.isConstraintSatisfied(node, 3));
   }
 
 }

@@ -50,9 +50,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.ReaderUtil;
 import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
-import org.sindice.siren.index.ConstrainedNodesEnum;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.index.SirenDocsEnum;
 import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleQuery;
@@ -119,27 +117,14 @@ public class NodeTermQuery extends NodePrimitiveQuery {
       }
 
       final DocsAndPositionsEnum docsEnum = termsEnum.docsAndPositions(acceptDocs, null, false);
-      final DocsNodesAndPositionsEnum sirenDocsEnum = SirenDocsEnum.map(docsEnum);
-
-      // if node constraints are defined, wraps the enum
-      if (NodeTermQuery.this.isConstrained()) {
-        return new NodeTermScorer(this,
-          new ConstrainedNodesEnum(sirenDocsEnum,
-            nodeLowerBoundConstraint, nodeUpperBoundConstraint,
-            nodeLevelConstraint),
-          this.createDocScorer(context));
-      }
-      else {
-        return new NodeTermScorer(this,
-          sirenDocsEnum,
-          this.createDocScorer(context));
-      }
+      final DocsNodesAndPositionsEnum sirenDocsEnum = NodeTermQuery.this.getDocsNodesAndPositionsEnum(docsEnum);
+      return new NodeTermScorer(this, sirenDocsEnum, this.createDocScorer(context));
     }
 
     /**
      * Creates an {@link ExactDocScorer} for this {@link TermWeight}*/
     ExactSimScorer createDocScorer(final AtomicReaderContext context)
-        throws IOException {
+    throws IOException {
       return similarity.exactSimScorer(stats, context);
     }
 
@@ -165,6 +150,7 @@ public class NodeTermQuery extends NodePrimitiveQuery {
       return reader.docFreq(field, bytes) == 0;
     }
 
+    // TODO: Review explanation to include all the matching nodes
     @Override
     public Explanation explain(final AtomicReaderContext context, final int doc) throws IOException {
       final NodeScorer scorer = (NodeScorer) this.scorer(context, true, false, context.reader().getLiveDocs());
@@ -243,16 +229,16 @@ public class NodeTermQuery extends NodePrimitiveQuery {
   @Override
   public String toString(final String field) {
     final StringBuffer buffer = new StringBuffer();
-    if (nodeLevelConstraint != -1) {
+    if (levelConstraint != -1) {
       buffer.append("[");
-      buffer.append(nodeLevelConstraint);
+      buffer.append(levelConstraint);
 
-      if (nodeLowerBoundConstraint != null && nodeUpperBoundConstraint != null) {
+      if (lowerBound != -1 && upperBound != -1) {
         buffer.append(",");
         buffer.append("[");
-        buffer.append(nodeLowerBoundConstraint);
+        buffer.append(lowerBound);
         buffer.append(",");
-        buffer.append(nodeUpperBoundConstraint);
+        buffer.append(upperBound);
         buffer.append("]");
       }
 
