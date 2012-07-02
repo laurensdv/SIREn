@@ -36,7 +36,7 @@ import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
-import org.sindice.siren.search.base.NodeScorer;
+import org.sindice.siren.search.node.NodeScorer;
 
 public class TestNodeTermScorer extends AbstractTestSirenScorer {
 

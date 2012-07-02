@@ -52,7 +52,7 @@ import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 import org.sindice.siren.index.PositionsIterator;
 import org.sindice.siren.index.SirenDocsEnum;
 import org.sindice.siren.index.codecs.block.BlockIndexInput;
-import org.sindice.siren.search.base.NodeScorer;
+import org.sindice.siren.search.node.NodeScorer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

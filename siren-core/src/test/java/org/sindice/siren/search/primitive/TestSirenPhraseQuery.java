@@ -24,7 +24,7 @@
  * @link http://renaud.delbru.fr/
  * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
-package org.sindice.siren.search;
+package org.sindice.siren.search.primitive;
 
 import java.io.IOException;
 
@@ -42,9 +42,9 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
+import org.sindice.siren.search.node.TupleQuery;
 import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
-import org.sindice.siren.search.tuple.SirenTupleQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause.Occur;
 
 public class TestSirenPhraseQuery extends LuceneTestCase {
@@ -174,7 +174,7 @@ public class TestSirenPhraseQuery extends LuceneTestCase {
     
     final SirenCellQuery cq1 = new SirenCellQuery(q1);
     final SirenCellQuery cq2 = new SirenCellQuery(q2);
-    SirenTupleQuery bq = new SirenTupleQuery();
+    TupleQuery bq = new TupleQuery();
     bq.add(cq1, Occur.MUST);
     bq.add(cq2, Occur.MUST);
     

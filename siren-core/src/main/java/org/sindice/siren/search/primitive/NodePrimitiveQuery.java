@@ -25,7 +25,7 @@
  */
 package org.sindice.siren.search.primitive;
 
-import org.sindice.siren.search.base.NodeQuery;
+import org.sindice.siren.search.node.NodeQuery;
 
 /**
  * Parent class of all primitive node queries such as {@link NodeTermQuery}.

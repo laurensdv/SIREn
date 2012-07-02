@@ -31,8 +31,8 @@ import java.io.IOException;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeConjunctionScorer;
+import org.sindice.siren.search.node.NodeScorer;
 
 /**
  * <p>

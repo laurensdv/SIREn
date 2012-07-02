@@ -24,7 +24,7 @@
  * @link http://renaud.delbru.fr/
  * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
-package org.sindice.siren.search.base;
+package org.sindice.siren.search.node;
 
 import java.io.IOException;
 

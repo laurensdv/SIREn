@@ -56,10 +56,10 @@ import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.TupleQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
-import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 public class IMDBIndexing {
 
@@ -151,13 +151,13 @@ public class IMDBIndexing {
   public Query getFullerStalloneQuery() {
 
     // Create a tuple query that combines the two cell queries
-    final SirenTupleQuery tq1 = new SirenTupleQuery();
+    final TupleQuery tq1 = new TupleQuery();
     tq1.add(this.termInCell("actor", COLUMN_TUPLE_TYPE),
       SirenTupleClause.Occur.MUST);
     tq1.add(this.termInCell("fuller", COLUMN_PERSON_NAME),
       SirenTupleClause.Occur.MUST);
 
-    final SirenTupleQuery tq2 = new SirenTupleQuery();
+    final TupleQuery tq2 = new TupleQuery();
     tq2.add(this.termInCell("actor", COLUMN_TUPLE_TYPE),
       SirenTupleClause.Occur.MUST);
     tq2.add(this.termInCell("stallone", COLUMN_PERSON_NAME),
@@ -181,7 +181,7 @@ public class IMDBIndexing {
   public Query getStaloneFilmMargotFromCanadaBradFromFloridaDirectorBornSeptemberQuery() {
 
     // Actor Margot born in Canada:
-    final SirenTupleQuery tq1 = new SirenTupleQuery();
+    final TupleQuery tq1 = new TupleQuery();
     tq1.add(this.termInCell("actor", COLUMN_TUPLE_TYPE),
       SirenTupleClause.Occur.MUST);
     tq1.add(this.termInCell("margot", COLUMN_PERSON_NAME),
@@ -190,7 +190,7 @@ public class IMDBIndexing {
       SirenTupleClause.Occur.MUST);
 
     // Actor Brad born in Florida:
-    final SirenTupleQuery tq2 = new SirenTupleQuery();
+    final TupleQuery tq2 = new TupleQuery();
     tq2.add(this.termInCell("actor", COLUMN_TUPLE_TYPE),
       SirenTupleClause.Occur.MUST);
     tq2.add(this.termInCell("brad", COLUMN_PERSON_NAME),
@@ -199,14 +199,14 @@ public class IMDBIndexing {
       SirenTupleClause.Occur.MUST);
 
     // Director born in September:
-    final SirenTupleQuery tq3 = new SirenTupleQuery();
+    final TupleQuery tq3 = new TupleQuery();
     tq3.add(this.termInCell("director", COLUMN_TUPLE_TYPE),
       SirenTupleClause.Occur.MUST);
     tq3.add(this.termInCell("september", COLUMN_BIRTH_DATE),
       SirenTupleClause.Occur.MUST);
 
     // A Stallone film:
-    final SirenTupleQuery tq4 = new SirenTupleQuery();
+    final TupleQuery tq4 = new TupleQuery();
     tq4.add(this.termInCell("stallone", COLUMN_ANY),
       SirenTupleClause.Occur.MUST);
 

@@ -32,7 +32,6 @@ import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ScorerDocQueue;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.util.NodeUtils;
 
 /**

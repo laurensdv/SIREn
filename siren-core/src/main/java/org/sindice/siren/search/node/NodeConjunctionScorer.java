@@ -34,7 +34,6 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsAndNodesIterator;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.util.NodeUtils;
 
 /**

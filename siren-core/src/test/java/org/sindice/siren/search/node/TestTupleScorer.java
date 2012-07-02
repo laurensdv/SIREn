@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009-2011 Sindice Limited. All Rights Reserved.
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
  *
  * Project and contact information: http://www.siren.sindice.com/
  *
@@ -19,26 +19,24 @@
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @project siren
- * @author Renaud Delbru [ 10 Dec 2009 ]
+ * @project siren-core
+ * @author Renaud Delbru [ 13 Mar 2012 ]
  * @link http://renaud.delbru.fr/
- * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
 package org.sindice.siren.search.node;
 
 import static org.sindice.siren.analysis.MockSirenToken.node;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
-import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.should;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
+import static org.sindice.siren.search.AbstractTestSirenScorer.TupleQueryBuilder.tuple;
 
 import java.io.IOException;
 
 import org.junit.Test;
-import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 
-public class TestNodeReqOptScorer extends AbstractTestSirenScorer {
+public class TestTupleScorer extends AbstractTestSirenScorer {
 
   @Override
   protected void configure() throws IOException {
@@ -47,39 +45,56 @@ public class TestNodeReqOptScorer extends AbstractTestSirenScorer {
   }
 
   @Test
-  public void testNextPositionWithOptionalTerm() throws Exception {
-    this.addDocuments(
-      "\"aaa bbb\" \"aaa ccc\" . \"aaa bbb ccc\" \"bbb ccc\" . ",
-      "\"aaa\" \"aaa bbb\" . "
-    );
+  public void testUnaryClause() throws IOException {
+    this.addDocument("\"aaa ccc\" \"bbb ccc\" . \"aaa bbb\" \"ccc eee\" . ");
 
-    final NodeScorer scorer = this.getScorer(
-      nbq(must("aaa"), should("bbb"))
+    // {[aaa]}
+    NodeScorer scorer = this.getScorer(
+      tuple().optional(nbq(must("aaa"), must("ccc")))
     );
 
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
-    assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
-    assertEquals(node(0,0), scorer.node());
-    assertTrue(scorer.nextNode());
-    assertEquals(node(0,1), scorer.node());
-    assertTrue(scorer.nextNode());
-    assertEquals(node(1,0), scorer.node());
-    assertFalse(scorer.nextNode());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEquals(node(0), scorer.node());
+    assertEndOfStream(scorer);
+
+    scorer = this.getScorer(
+      tuple().optional(nbq(must("aaa"), must("bbb")))
+    );
 
     assertTrue(scorer.nextCandidateDocument());
-    assertEquals(1, scorer.doc());
-    assertEquals(node(-1), scorer.node());
+    assertEquals(0, scorer.doc());
     assertTrue(scorer.nextNode());
-    assertEquals(node(0,0), scorer.node());
-    assertTrue(scorer.nextNode());
-    assertEquals(node(0,1), scorer.node());
-    assertFalse(scorer.nextNode());
-    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+    assertEquals(node(1), scorer.node());
+    assertEndOfStream(scorer);
 
+    scorer = this.getScorer(
+      tuple().optional(nbq(must("aaa"), must("eee")))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertFalse(scorer.nextNode());
     assertEndOfStream(scorer);
   }
+
+  @Test
+  public void testMoreThanOneClause() throws IOException {
+    this.addDocument("\"aaa ccc\" \"bbb ccc\" . \"aaa bbb\" \"ccc eee\" . ");
+
+    // {[aaa]}
+    final NodeScorer scorer = this.getScorer(
+      tuple().with(nbq(must("aaa"), must("ccc")))
+             .with(nbq(must("aaa"), must("bbb")))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(0), scorer.node());
+    assertEndOfStream(scorer);
+  }
+
 
 }

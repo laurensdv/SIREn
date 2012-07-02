@@ -47,8 +47,6 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
-import org.sindice.siren.search.base.NodeQuery;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 
@@ -470,7 +468,10 @@ public class NodeBooleanQuery extends NodeQuery {
     final NodeBooleanQuery other = (NodeBooleanQuery) o;
     return (this.getBoost() == other.getBoost()) &&
            this.clauses.equals(other.clauses) &&
-           this.disableCoord == other.disableCoord;
+           this.disableCoord == other.disableCoord &&
+           this.levelConstraint == other.levelConstraint &&
+           this.lowerBound == other.lowerBound &&
+           this.upperBound == other.upperBound;
   }
 
   /** Returns a hash code value for this object. */

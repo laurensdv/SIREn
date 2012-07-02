@@ -40,7 +40,7 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.base.NodePrimitiveScorer;
-import org.sindice.siren.search.base.NodeScorer;
+import org.sindice.siren.search.node.NodeScorer;
 
 /**
  * A query that wraps another query or a filter and simply returns a constant score equal to the

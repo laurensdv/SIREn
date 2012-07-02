@@ -23,7 +23,7 @@
  * @author Renaud Delbru [ 13 Mar 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.search.twig;
+package org.sindice.siren.search.node;
 
 import static org.sindice.siren.analysis.MockSirenDocument.doc;
 import static org.sindice.siren.analysis.MockSirenToken.node;
@@ -43,9 +43,7 @@ import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.primitive.NodeTermScorer;
-import org.sindice.siren.search.twig.TwigScorer.AncestorFilterNodeScorer;
 
 public class TestTwigScorer extends AbstractTestSirenScorer {
 

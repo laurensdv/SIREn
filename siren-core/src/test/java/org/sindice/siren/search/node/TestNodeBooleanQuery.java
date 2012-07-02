@@ -44,7 +44,6 @@ import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
-import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 public class TestBooleanQuery extends LuceneTestCase {
 
@@ -83,7 +82,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery reqTuple1 = new SirenTupleQuery();
+    final TupleQuery reqTuple1 = new TupleQuery();
     reqTuple1.add(cq1, SirenTupleClause.Occur.MUST);
     reqTuple1.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -97,7 +96,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery optTuple = new SirenTupleQuery();
+    final TupleQuery optTuple = new TupleQuery();
     optTuple.add(cq1, SirenTupleClause.Occur.MUST);
     optTuple.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -125,7 +124,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery reqTuple1 = new SirenTupleQuery();
+    final TupleQuery reqTuple1 = new TupleQuery();
     reqTuple1.add(cq1, SirenTupleClause.Occur.MUST);
     reqTuple1.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -139,7 +138,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery optTuple = new SirenTupleQuery();
+    final TupleQuery optTuple = new TupleQuery();
     optTuple.add(cq1, SirenTupleClause.Occur.MUST);
     optTuple.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -167,7 +166,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     SirenCellQuery cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery exclTuple = new SirenTupleQuery();
+    final TupleQuery exclTuple = new TupleQuery();
     exclTuple.add(cq1, SirenTupleClause.Occur.MUST);
     exclTuple.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -181,7 +180,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery reqTuple1 = new SirenTupleQuery();
+    final TupleQuery reqTuple1 = new TupleQuery();
     reqTuple1.add(cq1, SirenTupleClause.Occur.MUST);
     reqTuple1.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -195,7 +194,7 @@ public class TestBooleanQuery extends LuceneTestCase {
     cq2 = new SirenCellQuery(bq2);
     cq2.setConstraint(2);
 
-    final SirenTupleQuery reqTuple2 = new SirenTupleQuery();
+    final TupleQuery reqTuple2 = new TupleQuery();
     reqTuple2.add(cq1, SirenTupleClause.Occur.MUST);
     reqTuple2.add(cq2, SirenTupleClause.Occur.MUST);
 

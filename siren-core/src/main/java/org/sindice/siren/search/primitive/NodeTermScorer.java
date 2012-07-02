@@ -33,8 +33,8 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.search.base.NodePositionScorer;
-import org.sindice.siren.search.base.NodeScorer;
+import org.sindice.siren.search.node.NodePositionScorer;
+import org.sindice.siren.search.node.NodeScorer;
 
 /**
  * Expert: A {@link NodeScorer} for documents matching a

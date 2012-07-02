@@ -23,7 +23,7 @@
  * @author Renaud Delbru [ 24 Jan 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.search.base;
+package org.sindice.siren.search.node;
 
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -57,6 +57,10 @@ public abstract class NodeQuery extends Query {
    */
   public void setLevelConstraint(final int levelConstraint) {
     this.levelConstraint = levelConstraint;
+  }
+
+  public int getLevelConstraint() {
+    return levelConstraint;
   }
 
   /**
@@ -132,7 +136,7 @@ public abstract class NodeQuery extends Query {
    * The pointer to node query ancestor is used to retrieve node constraints from
    * ancestors.
    */
-  public void setAncestorPointer(final NodeQuery ancestor) {
+  protected void setAncestorPointer(final NodeQuery ancestor) {
     this.ancestor = ancestor;
   }
 

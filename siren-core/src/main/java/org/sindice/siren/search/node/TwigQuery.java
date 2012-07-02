@@ -24,7 +24,7 @@
  * @link http://renaud.delbru.fr/
  * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
-package org.sindice.siren.search.twig;
+package org.sindice.siren.search.node;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,10 +44,6 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
-import org.sindice.siren.search.base.NodeQuery;
-import org.sindice.siren.search.base.NodeScorer;
-import org.sindice.siren.search.node.NodeBooleanClause;
-import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.primitive.NodePrimitiveQuery;
 
 /**
@@ -464,6 +460,7 @@ public class TwigQuery extends NodeBooleanQuery {
     final TwigQuery other = (TwigQuery) o;
     return (this.getBoost() == other.getBoost()) &&
            this.clauses.equals(other.clauses) &&
+           this.disableCoord == other.disableCoord &&
            this.root.equals(other.root) &&
            this.levelConstraint == other.levelConstraint &&
            this.lowerBound == other.lowerBound &&

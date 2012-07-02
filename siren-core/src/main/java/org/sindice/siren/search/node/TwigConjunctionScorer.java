@@ -23,7 +23,7 @@
  * @author Renaud Delbru [ 1 Feb 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.search.twig;
+package org.sindice.siren.search.node;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -31,8 +31,6 @@ import java.util.Collection;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsAndNodesIterator;
-import org.sindice.siren.search.base.NodeScorer;
-import org.sindice.siren.search.node.NodeConjunctionScorer;
 import org.sindice.siren.util.NodeUtils;
 
 public class TwigConjunctionScorer extends NodeConjunctionScorer {

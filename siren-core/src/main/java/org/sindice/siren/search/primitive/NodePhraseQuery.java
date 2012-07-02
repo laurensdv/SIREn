@@ -53,9 +53,9 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.twig.TwigQuery;
+import org.sindice.siren.search.node.NodeScorer;
+import org.sindice.siren.search.node.TwigQuery;
 
 /**
  * A Query that matches nodes containing a particular sequence of terms. A

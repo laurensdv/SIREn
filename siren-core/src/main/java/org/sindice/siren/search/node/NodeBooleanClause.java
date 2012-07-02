@@ -28,7 +28,6 @@ package org.sindice.siren.search.node;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.sindice.siren.search.base.NodeQuery;
 
 /**
  * A clause in a {@link NodeBooleanQuery}.

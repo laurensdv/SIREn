@@ -36,7 +36,6 @@ import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermState;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ComplexExplanation;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
@@ -51,15 +50,13 @@ import org.apache.lucene.util.ReaderUtil;
 import org.apache.lucene.util.TermContext;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.search.base.NodeScorer;
-import org.sindice.siren.search.tuple.SirenCellQuery;
-import org.sindice.siren.search.tuple.SirenTupleQuery;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeScorer;
 
 /**
- * A Query that matches entities containing a term. Provides an interface to
- * iterate over the entities, tuples and cells containing the term. This may be
- * combined with other terms with a {@link SirenCellQuery}, a
- * {@link SirenTupleQuery} or a {@link BooleanQuery}.
+ * A Query that matches nodes containing a term. Provides an interface to
+ * iterate over the candidate documents and nodes containing the term. This may
+ * be combined with other terms with a {@link NodeBooleanQuery}.
  */
 public class NodeTermQuery extends NodePrimitiveQuery {
 

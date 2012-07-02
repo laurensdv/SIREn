@@ -35,7 +35,6 @@ import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery.NodeBooleanWeight;
 
@@ -217,25 +216,6 @@ public class NodeBooleanScorer extends NodeScorer {
                                ((prohibitedScorers.size() == 1)
                                ? prohibitedScorers.get(0)
                                : new NodeDisjunctionScorer(weight, prohibitedScorers)));
-  }
-
-  /**
-   * Scores and collects all matching documents.
-   *
-   * @param hc
-   *          The collector to which all matching documents are passed through
-   *          {@link HitCollector#collect(int, float)}. <br>
-   *          When this method is used the {@link #explain(int)} method should
-   *          not be used.
-   */
-  @Override
-  public void score(final Collector collector) throws IOException {
-    // TODO
-    throw new UnsupportedOperationException();
-//    collector.setScorer(this);
-//    while (this.nextDocument()) {
-//      collector.collect(this.doc());
-//    }
   }
 
   /**

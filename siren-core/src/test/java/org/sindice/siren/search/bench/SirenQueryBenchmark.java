@@ -32,10 +32,10 @@ import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.bench.SirenBenchmark;
+import org.sindice.siren.search.node.TupleQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
-import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 import com.google.caliper.Param;
 import com.google.caliper.Runner;
@@ -112,7 +112,7 @@ public class SirenQueryBenchmark extends SirenBenchmark {
       cq1.setConstraint(1);
       final SirenCellQuery cq2 = new SirenCellQuery(qperson);
       cq1.setConstraint(2, Integer.MAX_VALUE);
-      final SirenTupleQuery tq = new SirenTupleQuery();
+      final TupleQuery tq = new TupleQuery();
       tq.add(cq1, SirenTupleClause.Occur.MUST);
       tq.add(cq2, SirenTupleClause.Occur.MUST);
       final ScoreDoc[] hits = _helper.search(tq);

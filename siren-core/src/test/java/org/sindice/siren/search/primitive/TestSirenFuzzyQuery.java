@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.sindice.siren.search;
+package org.sindice.siren.search.primitive;
 
 import java.io.IOException;
 import java.util.Arrays;

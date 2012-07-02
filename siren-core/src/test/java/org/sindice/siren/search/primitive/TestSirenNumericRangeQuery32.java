@@ -23,7 +23,7 @@
  * @author Renaud Delbru [ 29 Sep 2011 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.search;
+package org.sindice.siren.search.primitive;
 
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;

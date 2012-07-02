@@ -33,7 +33,6 @@ import java.util.List;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.search.base.NodeScorer;
 
 /**
  * A Scorer for OR like queries within a node, counterpart of

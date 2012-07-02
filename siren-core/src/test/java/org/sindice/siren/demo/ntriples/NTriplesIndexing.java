@@ -53,11 +53,11 @@ import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.AnyURIAnalyzer.URINormalisation;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.TupleQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
-import org.sindice.siren.search.tuple.SirenTupleQuery;
 
 /**
  * A demo that shows how to index and query plain N-Triples documents.
@@ -155,7 +155,7 @@ public class NTriplesIndexing {
     cq2.setConstraint(2);
 
     // Create a tuple query that combines the two cell queries
-    final SirenTupleQuery tq = new SirenTupleQuery();
+    final TupleQuery tq = new TupleQuery();
     tq.add(cq1, SirenTupleClause.Occur.MUST);
     tq.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -184,7 +184,7 @@ public class NTriplesIndexing {
     cq2.setConstraint(2);
 
     // Create a tuple query that combines the two cell queries
-    final SirenTupleQuery tq = new SirenTupleQuery();
+    final TupleQuery tq = new TupleQuery();
     tq.add(cq1, SirenTupleClause.Occur.MUST);
     tq.add(cq2, SirenTupleClause.Occur.MUST);
 
@@ -222,7 +222,7 @@ public class NTriplesIndexing {
     cq2.setConstraint(2);
 
     // Create a tuple query that combines the two cell queries
-    final SirenTupleQuery tq = new SirenTupleQuery();
+    final TupleQuery tq = new TupleQuery();
     tq.add(cq1, SirenTupleClause.Occur.MUST);
     tq.add(cq2, SirenTupleClause.Occur.MUST);
 

@@ -36,14 +36,15 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.sindice.siren.index.DocsAndNodesIterator;
-import org.sindice.siren.search.base.NodeQuery;
-import org.sindice.siren.search.base.NodeScorer;
 import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.NodeQuery;
+import org.sindice.siren.search.node.NodeScorer;
+import org.sindice.siren.search.node.TupleQuery;
+import org.sindice.siren.search.node.TwigQuery;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.twig.TwigQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
@@ -60,16 +61,6 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     final Scorer s = weight.scorer(context, true, true, context.reader().getLiveDocs());
     return (NodeScorer) s;
   }
-
-//  protected SirenCellScorer getCellScorer(final int startCell, final int endCell,
-//                                          final String[] reqTerms, final String[] optTerms,
-//                                          final String[] exclTerms)
-//  throws IOException {
-//    final SirenCellScorer cscorer = new SirenCellScorer(new ConstantWeight(), startCell, endCell);
-//    final NodeScorer bscorer = this.getBooleanScorer(reqTerms, optTerms, exclTerms);
-//    cscorer.setScorer(bscorer);
-//    return cscorer;
-//  }
 
   public static abstract class NodeQueryBuilder {
 
@@ -286,6 +277,54 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
     public static TwigDescendantBuilder desc(final int level, final NodeBooleanClause ... clauses) {
       return new TwigDescendantBuilder(level, clauses);
+    }
+
+  }
+
+  public static class TupleQueryBuilder extends NodeQueryBuilder {
+
+    protected TupleQuery tq;
+
+    private TupleQueryBuilder() {
+      tq = new TupleQuery(true);
+    }
+
+    private TupleQueryBuilder(final int rootLevel) {
+      tq = new TupleQuery(rootLevel, true);
+    }
+
+    public static TupleQueryBuilder tuple() {
+      return new TupleQueryBuilder();
+    }
+
+    public static TupleQueryBuilder tuple(final int rootLevel) {
+      return new TupleQueryBuilder(rootLevel);
+    }
+
+    public TupleQueryBuilder with(final NodeBooleanQueryBuilder ... clauses) {
+      for (final NodeBooleanQueryBuilder clause : clauses) {
+        tq.add(clause.nbq, Occur.MUST);
+      }
+      return this;
+    }
+
+    public TupleQueryBuilder without(final NodeBooleanQueryBuilder ... clauses) {
+      for (final NodeBooleanQueryBuilder clause : clauses) {
+        tq.add(clause.nbq, Occur.MUST_NOT);
+      }
+      return this;
+    }
+
+    public TupleQueryBuilder optional(final NodeBooleanQueryBuilder ... clauses) {
+      for (final NodeBooleanQueryBuilder clause : clauses) {
+        tq.add(clause.nbq, Occur.SHOULD);
+      }
+      return this;
+    }
+
+    @Override
+    public NodeQuery getQuery() {
+      return tq;
     }
 
   }

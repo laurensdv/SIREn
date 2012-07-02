@@ -29,7 +29,6 @@ package org.sindice.siren.search.node;
 import java.io.IOException;
 
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.search.base.NodeScorer;
 
 /**
  * A Scorer for queries with a required part and an optional part. Delays

@@ -23,7 +23,7 @@
  * @author Renaud Delbru [ 29 Sep 2011 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.search;
+package org.sindice.siren.search.primitive;
 
 import java.io.IOException;
 import java.io.Reader;
