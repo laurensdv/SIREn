@@ -32,6 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.codecs.block.BlockCompressor;
 import org.sindice.siren.index.codecs.block.BlockIndexOutput;
+import org.sindice.siren.util.ArrayUtils;
 
 public class PosBlockIndexOutput extends BlockIndexOutput {
 
@@ -96,7 +97,7 @@ public class PosBlockIndexOutput extends BlockIndexOutput {
     public void write(final int pos) {
       if (posBuffer.offset >= posBuffer.ints.length) {
         // Take the max to ensure that buffer will be large enough
-        posBuffer.grow(Math.max(posBuffer.offset + 1, posBuffer.ints.length * 3/2));
+        ArrayUtils.growAndCopy(posBuffer, Math.max(posBuffer.offset + 1, posBuffer.ints.length * 3/2));
       }
 
       posBuffer.ints[posBuffer.offset++] = pos - currentPos;

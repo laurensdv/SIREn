@@ -25,10 +25,19 @@
  */
 package org.sindice.siren.util;
 
+import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 
 public class ArrayUtils {
+
+  /**
+   * Increase the size of the array if needed. Copy the original content into
+   * the new one and update the int[] reference inside the IntsRef.
+   */
+  public static final void growAndCopy(IntsRef ref, final int minSize) {
+    ref.ints = ArrayUtil.grow(ref.ints, minSize);
+  }
 
   /**
    * Increase the size of the array if needed. Do not copy the content of the

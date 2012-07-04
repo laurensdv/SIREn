@@ -34,11 +34,11 @@ import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
-import org.apache.lucene.index.Payload;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
 import org.sindice.siren.analysis.attributes.PositionAttribute;
+import org.sindice.siren.util.ArrayUtils;
 
 /**
  * Filter that encode the structural information of each token into its payload.
@@ -53,7 +53,6 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
   Map<Integer, IntsRef> previousPaths = new HashMap<Integer, IntsRef>();
 
   VIntPayloadCodec codec = new VIntPayloadCodec();
-  Payload payload = new Payload();
 
   public SirenDeltaPayloadFilter(final TokenStream input) {
     super(input);
@@ -92,8 +91,7 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
         previousPaths.put(hash, IntsRef.deepCopyOf(nodeAtt.node()));
         // encode node path and position
         bytes = codec.encode(nodeAtt.node(), posAtt.position());
-        payload.setData(bytes.bytes, bytes.offset, bytes.length);
-        payloadAtt.setPayload(payload);
+        payloadAtt.setPayload(bytes);
       }
       // Perform the difference between the previous and current node paths
       // complexity: one execution per word occurrence
@@ -102,7 +100,7 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
         // retrieve previous node path
         previous = previousPaths.get(hash);
         // ensure previous is large enough to store new path
-        previous.grow(current.length);
+        ArrayUtils.growAndCopy(previous, current.length);
 
         // substraction
         // update previous path during substraction to avoid an additional
@@ -136,8 +134,7 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
 
         // encode node path and position
         bytes = codec.encode(current, posAtt.position());
-        payload.setData(bytes.bytes, bytes.offset, bytes.length);
-        payloadAtt.setPayload(payload);
+        payloadAtt.setPayload(bytes);
       }
       return true;
     }

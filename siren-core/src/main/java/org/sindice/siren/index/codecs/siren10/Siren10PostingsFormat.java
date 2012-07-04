@@ -26,7 +26,6 @@
 package org.sindice.siren.index.codecs.siren10;
 
 import java.io.IOException;
-import java.util.Set;
 
 import org.apache.lucene.codecs.BlockTreeTermsReader;
 import org.apache.lucene.codecs.BlockTreeTermsWriter;
@@ -35,7 +34,6 @@ import org.apache.lucene.codecs.FieldsProducer;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.codecs.PostingsReaderBase;
 import org.apache.lucene.codecs.PostingsWriterBase;
-import org.apache.lucene.index.SegmentInfo;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.sindice.siren.index.codecs.block.VIntBlockCompressor;
@@ -119,14 +117,6 @@ public class Siren10PostingsFormat extends PostingsFormat {
         postings.close();
       }
     }
-  }
-
-  @Override
-  public void files(final SegmentInfo segmentInfo, final String segmentSuffix,
-                    final Set<String> files)
-  throws IOException {
-    Siren10PostingsReader.files(segmentInfo, segmentSuffix, files);
-    BlockTreeTermsReader.files(segmentInfo, segmentSuffix, files);
   }
 
 }

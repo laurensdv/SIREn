@@ -56,6 +56,8 @@ public class TestVariableIntCodec extends CodecTestCase {
     final DocsFreqBlockIndexOutput out = this.getIndexOutput(512);
     final DocsFreqBlockWriter writer = out.getBlockWriter();
 
+    writer.setNodeBlockIndex(out.index());
+    writer.setPosBlockIndex(out.index());
     for (int i = 0; i < 11777; i++) {
       if (writer.isFull()) {
         writer.flush();
@@ -63,11 +65,14 @@ public class TestVariableIntCodec extends CodecTestCase {
       writer.write(i, random().nextInt(10) + 1);
     }
 
+    writer.flush(); // flush remaining data
     out.close();
 
     final DocsFreqBlockIndexInput in = this.getIndexInput();
     final DocsFreqBlockReader reader = in.getBlockReader();
 
+    reader.setNodeBlockIndex(in.index());
+    reader.setPosBlockIndex(in.index());
     for (int i = 0; i < 11777; i++) {
       if (reader.isExhausted()) {
         reader.nextBlock();
@@ -83,6 +88,8 @@ public class TestVariableIntCodec extends CodecTestCase {
     final DocsFreqBlockIndexOutput out = this.getIndexOutput(512);
     final DocsFreqBlockWriter writer = out.getBlockWriter();
 
+    writer.setNodeBlockIndex(out.index());
+    writer.setPosBlockIndex(out.index());
     for (int i = 0; i < 11777; i++) {
       if (writer.isFull()) {
         writer.flush();
@@ -90,18 +97,22 @@ public class TestVariableIntCodec extends CodecTestCase {
       writer.write(i, random().nextInt(10) + 1);
     }
 
+    writer.flush(); // flush remaining data
     out.close();
 
     final DocsFreqBlockIndexInput in = this.getIndexInput();
     final DocsFreqBlockReader reader = in.getBlockReader();
 
+    reader.setNodeBlockIndex(in.index());
+    reader.setPosBlockIndex(in.index());
     for (int i = 0; i < 11777; i++) {
       if (reader.isExhausted()) {
         reader.nextBlock();
       }
       assertEquals(i, reader.nextDocument());
-      assertTrue(reader.nextFreq() > 0);
-      assertTrue(reader.nextFreq() <= 10);
+      final int frq = reader.nextFreq();
+      assertTrue(frq > 0);
+      assertTrue(frq <= 10);
     }
 
     in.close();
@@ -115,6 +126,8 @@ public class TestVariableIntCodec extends CodecTestCase {
     final DocsFreqBlockIndexOutput out = this.getIndexOutput(blockSize);
     final DocsFreqBlockWriter writer = out.getBlockWriter();
 
+    writer.setNodeBlockIndex(out.index());
+    writer.setPosBlockIndex(out.index());
     for (final int value : values) {
       if (writer.isFull()) {
         writer.flush();
@@ -122,11 +135,14 @@ public class TestVariableIntCodec extends CodecTestCase {
       writer.write(value, value);
     }
 
+    writer.flush(); // flush remaining data
     out.close();
 
     final DocsFreqBlockIndexInput in = this.getIndexInput();
     final DocsFreqBlockReader reader = in.getBlockReader();
 
+    reader.setNodeBlockIndex(in.index());
+    reader.setPosBlockIndex(in.index());
     for (final int value : values) {
       if (reader.isExhausted()) {
         reader.nextBlock();

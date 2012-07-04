@@ -87,12 +87,7 @@ public abstract class BlockIndexOutput implements Closeable {
   }
 
   public void close() throws IOException {
-    try {
-      this.getBlockWriter().flush();
-    }
-    finally {
-      out.close();
-    }
+    out.close();
   }
 
   /**

@@ -28,6 +28,7 @@ package org.sindice.siren.index.codecs.siren10;
 import java.io.IOException;
 
 import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.codecs.block.BlockCompressor;
@@ -98,7 +99,14 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
       // increase buffers if needed
       if (nodBufferOffset + nodeLength >= nodBuffer.ints.length) {
         // Take the max to ensure that buffer will be large enough
-        nodBuffer.grow(Math.max(nodBufferOffset + nodeLength, nodBuffer.ints.length * 3/2));
+        /*
+         * stecam: because of the assert, we grow the array in this code
+         * The reason for the assert is because of the offset. However, the
+         * offset is taken care of here, and the array is only grown while
+         * considering the offset value.
+         */
+        final int newLength = Math.max(nodBufferOffset + nodeLength, nodBuffer.ints.length * 3/2);
+        ArrayUtils.growAndCopy(nodBuffer, newLength);
       }
 
       // compute delta
@@ -115,7 +123,7 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
       // increase node length buffer if needed
       if (nodLenBuffer.offset >= nodLenBuffer.ints.length) {
         // Take the max to ensure that buffer will be large enough
-        nodLenBuffer.grow(Math.max(nodLenBuffer.offset + 1, nodLenBuffer.ints.length * 3/2));
+        ArrayUtils.growAndCopy(nodLenBuffer, Math.max(nodLenBuffer.offset + 1, nodLenBuffer.ints.length * 3/2));
       }
 
       currentNodeLength = nodeLength;
@@ -148,7 +156,7 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
       // check size of the buffer and increase it if needed
       if (termFreqBuffer.offset >= termFreqBuffer.ints.length) {
         // Take the max to ensure that buffer will be large enough
-        termFreqBuffer.grow(Math.max(termFreqBuffer.offset + 1, termFreqBuffer.ints.length * 3/2));
+        ArrayUtils.growAndCopy(termFreqBuffer, Math.max(termFreqBuffer.offset + 1, termFreqBuffer.ints.length * 3/2));
       }
       // decrement freq by one
       termFreqBuffer.ints[termFreqBuffer.offset++] = termFreq - 1;

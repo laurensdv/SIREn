@@ -304,6 +304,11 @@ public class TestTupleAnalyzer extends LuceneTestCase {
       new String[] { "<URI>", "<URI>", "<URI>", "<ALPHANUM>", "<ALPHANUM>" });
   }
 
+  /**
+   * In Lucene4.0, the position increment behaviour changed: it is not allowed
+   * anymore to have the first position increment == 0
+   * @throws Exception
+   */
   @Test
   public void testFirstPosInc()
   throws Exception {

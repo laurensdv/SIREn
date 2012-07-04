@@ -26,9 +26,9 @@
 package org.sindice.siren.index.codecs.siren10;
 
 import java.io.IOException;
-import java.util.Collection;
 
 import org.apache.lucene.codecs.BlockTermState;
+import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.PostingsReaderBase;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.DocsAndPositionsEnum;
@@ -45,7 +45,6 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CodecUtil;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
@@ -101,14 +100,6 @@ public class Siren10PostingsReader extends PostingsReaderBase {
         this.close();
       }
     }
-  }
-
-  public static void files(final SegmentInfo segmentInfo, final String segmentSuffix, final Collection<String> files) throws IOException {
-    files.add(IndexFileNames.segmentFileName(segmentInfo.name, segmentSuffix, Siren10PostingsWriter.DOC_EXTENSION));
-    files.add(IndexFileNames.segmentFileName(segmentInfo.name, segmentSuffix, Siren10PostingsWriter.NOD_EXTENSION));
-    files.add(IndexFileNames.segmentFileName(segmentInfo.name, segmentSuffix, Siren10PostingsWriter.SKIP_EXTENSION));
-
-    files.add(IndexFileNames.segmentFileName(segmentInfo.name, segmentSuffix, Siren10PostingsWriter.POS_EXTENSION));
   }
 
   @Override
@@ -244,7 +235,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
   public DocsEnum docs(final FieldInfo fieldInfo, final BlockTermState _termState,
                        final Bits liveDocs, final DocsEnum reuse,
                        final boolean needsFreqs) throws IOException {
-    if (needsFreqs && fieldInfo.indexOptions == IndexOptions.DOCS_ONLY) {
+    if (needsFreqs && fieldInfo.getIndexOptions() == IndexOptions.DOCS_ONLY) {
       return null;
     }
     final SepTermState termState = (SepTermState) _termState;
@@ -275,7 +266,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
                                                final boolean needsOffsets)
   throws IOException {
 
-    if (fieldInfo.indexOptions.compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) < 0) {
+    if (fieldInfo.getIndexOptions().compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) < 0) {
       return null;
     }
 
@@ -283,7 +274,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
       return null;
     }
 
-    assert fieldInfo.indexOptions == IndexOptions.DOCS_AND_FREQS_AND_POSITIONS;
+    assert fieldInfo.getIndexOptions() == IndexOptions.DOCS_AND_FREQS_AND_POSITIONS;
     final SepTermState termState = (SepTermState) _termState;
     Siren10DocsEnum postingsEnum;
     if (reuse == null || !(reuse instanceof Siren10DocsEnum)) {

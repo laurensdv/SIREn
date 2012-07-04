@@ -44,7 +44,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <lucene.version>4.0-SNAPSHOT</lucene.version>
+    <lucene.version>4.0.0-ALPHA</lucene.version>
   </properties>
 
   <build>

@@ -31,6 +31,7 @@ import org.apache.lucene.codecs.BlockTermState;
 import org.apache.lucene.codecs.lucene40.Lucene40PostingsReader;
 import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.SegmentInfo;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -40,10 +41,10 @@ import org.sindice.siren.index.SirenDocsEnum;
 
 public class Siren02PostingsReader extends Lucene40PostingsReader {
 
-  public Siren02PostingsReader(final Directory dir, final SegmentInfo segmentInfo,
+  public Siren02PostingsReader(final Directory dir, FieldInfos fieldInfos, final SegmentInfo segmentInfo,
                                final IOContext ioContext, final String segmentSuffix)
   throws IOException {
-    super(dir, segmentInfo, ioContext, segmentSuffix);
+    super(dir, fieldInfos, segmentInfo, ioContext, segmentSuffix);
   }
 
   @Override
