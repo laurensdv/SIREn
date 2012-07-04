@@ -76,7 +76,7 @@ public class Siren02PostingsFormat extends PostingsFormat {
   @Override
   public FieldsProducer fieldsProducer(final SegmentReadState state)
   throws IOException {
-    final PostingsReaderBase postings = new Siren02PostingsReader(state.dir, state.segmentInfo, state.context, state.segmentSuffix);
+    final PostingsReaderBase postings = new Siren02PostingsReader(state.dir, state.fieldInfos, state.segmentInfo, state.context, state.segmentSuffix);
 
     boolean success = false;
     try {
@@ -96,12 +96,6 @@ public class Siren02PostingsFormat extends PostingsFormat {
         postings.close();
       }
     }
-  }
-
-  @Override
-  public void files(final SegmentInfo segmentInfo, final String segmentSuffix, final Set<String> files) throws IOException {
-    Lucene40PostingsReader.files(segmentInfo, segmentSuffix, files);
-    BlockTreeTermsReader.files(segmentInfo, segmentSuffix, files);
   }
 
   @Override

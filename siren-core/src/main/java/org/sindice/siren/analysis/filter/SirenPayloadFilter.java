@@ -30,7 +30,6 @@ import java.io.IOException;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
-import org.apache.lucene.index.Payload;
 import org.apache.lucene.util.BytesRef;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
 import org.sindice.siren.analysis.attributes.PositionAttribute;
@@ -42,7 +41,6 @@ public class SirenPayloadFilter extends TokenFilter  {
   private final PayloadAttribute payloadAtt;
 
   VIntPayloadCodec codec = new VIntPayloadCodec();
-  Payload payload = new Payload();
 
   public SirenPayloadFilter(final TokenStream input) {
     super(input);
@@ -56,8 +54,7 @@ public class SirenPayloadFilter extends TokenFilter  {
     if (input.incrementToken()) {
       // encode node path
       final BytesRef bytes = codec.encode(nodeAtt.node(), posAtt.position());
-      payload.setData(bytes.bytes, bytes.offset, bytes.length);
-      payloadAtt.setPayload(payload);
+      payloadAtt.setPayload(bytes);
       return true;
     }
     else {

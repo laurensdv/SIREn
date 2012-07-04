@@ -28,7 +28,7 @@
  */
 package org.sindice.siren.similarity;
 
-import org.apache.lucene.search.DefaultSimilarity;
+import org.apache.lucene.search.similarities.DefaultSimilarity;
 
 /**
  * Implement the BM25 saturation function for the term frequency.

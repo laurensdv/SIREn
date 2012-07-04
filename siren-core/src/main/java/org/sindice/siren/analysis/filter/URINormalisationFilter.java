@@ -54,6 +54,7 @@ extends TokenFilter {
   private int    end;
   private int    termLength;
   private CharBuffer termBuffer;
+  protected int     _nTokens = 0;
 
   private final CharTermAttribute termAtt;
   private final PositionIncrementAttribute posIncrAtt;
@@ -81,6 +82,7 @@ extends TokenFilter {
       this.updateBuffer();
       _isNormalising = true;
       start = end = 0;
+      _nTokens =0;
       this.skipScheme();
       this.nextToken();
       return true;
@@ -126,6 +128,7 @@ extends TokenFilter {
         continue;
       }
       this.updateToken();
+      _nTokens++;
       return;
     }
     // No more delimiters, we have to return the full URI as last step
@@ -156,7 +159,8 @@ extends TokenFilter {
 
   protected void updateFinalToken() {
     termAtt.copyBuffer(termBuffer.array(), 0, termLength);
-    posIncrAtt.setPositionIncrement(0);
+    final int posInc = _nTokens == 0 ? 1 : 0;
+    posIncrAtt.setPositionIncrement(posInc);
   }
 
   protected boolean isBreakPoint(final int c) {

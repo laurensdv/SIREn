@@ -29,6 +29,7 @@ import java.io.IOException;
 
 import org.apache.lucene.codecs.MappingMultiDocsAndPositionsEnum;
 import org.apache.lucene.index.MergeState;
+import org.apache.lucene.index.MergeState.DocMap;
 import org.apache.lucene.index.MultiDocsAndPositionsEnum;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
@@ -48,7 +49,7 @@ extends DocsNodesAndPositionsEnum {
   private MultiDocsAndPositionsEnum.EnumWithSlice[] subs;
   int numSubs;
   int upto;
-  int[] currentMap;
+  DocMap currentMap;
   DocsNodesAndPositionsEnum current;
   int currentBase;
   int doc = -1;
@@ -88,7 +89,7 @@ extends DocsNodesAndPositionsEnum {
         int doc = current.doc();
         if (currentMap != null) {
           // compact deletions
-          doc = currentMap[doc];
+          doc = currentMap.get(doc);
           if (doc == -1) {
             continue;
           }

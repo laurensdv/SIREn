@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.MappingMultiDocsAndPositionsEnum;
 import org.apache.lucene.codecs.PostingsWriterBase;
 import org.apache.lucene.codecs.TermStats;
@@ -42,10 +43,10 @@ import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMOutputStream;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CodecUtil;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.IntsRef;
+import org.apache.lucene.util.MutableBits;
 import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 import org.sindice.siren.index.codecs.MappingMultiDocsNodesAndPositionsEnum;
 import org.sindice.siren.index.codecs.block.BlockIndexOutput;
@@ -58,31 +59,31 @@ import org.slf4j.LoggerFactory;
  */
 public class Siren10PostingsWriter extends PostingsWriterBase {
 
-  final static String CODEC = "Siren10PostingsWriter";
+  final static String                          CODEC                       = "Siren10PostingsWriter";
 
-  final static String DOC_EXTENSION = "doc";
-  final static String SKIP_EXTENSION = "skp";
-  final static String NOD_EXTENSION = "nod";
-  final static String POS_EXTENSION = "pos";
+  final static String                          DOC_EXTENSION               = "doc";
+  final static String                          SKIP_EXTENSION              = "skp";
+  final static String                          NOD_EXTENSION               = "nod";
+  final static String                          POS_EXTENSION               = "pos";
 
   // Increment version to change it:
-  final static int VERSION_START = 0;
-  final static int VERSION_CURRENT = VERSION_START;
+  final static int                             VERSION_START               = 0;
+  final static int                             VERSION_CURRENT             = VERSION_START;
 
-  DocsFreqBlockIndexOutput docOut;
+  DocsFreqBlockIndexOutput                     docOut;
   DocsFreqBlockIndexOutput.DocsFreqBlockWriter docWriter;
-  DocsFreqBlockIndexOutput.Index docIndex;
+  DocsFreqBlockIndexOutput.Index               docIndex;
 
-  NodBlockIndexOutput nodOut;
-  NodBlockIndexOutput.NodBlockWriter nodWriter;
-  NodBlockIndexOutput.Index nodIndex;
+  NodBlockIndexOutput                          nodOut;
+  NodBlockIndexOutput.NodBlockWriter           nodWriter;
+  NodBlockIndexOutput.Index                    nodIndex;
 
-  PosBlockIndexOutput posOut;
-  PosBlockIndexOutput.PosBlockWriter posWriter;
-  PosBlockIndexOutput.Index posIndex;
+  PosBlockIndexOutput                          posOut;
+  PosBlockIndexOutput.PosBlockWriter           posWriter;
+  PosBlockIndexOutput.Index                    posIndex;
 
-  IndexOutput skipOut;
-  IndexOutput termsOut;
+  IndexOutput                                  skipOut;
+  IndexOutput                                  termsOut;
 
   final Siren10SkipListWriter skipWriter;
 
@@ -145,7 +146,7 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
       this.blockSkipInterval = blockSkipInterval;
       this.blockSkipMinimum = blockSkipInterval; /* set to the same for now */
 
-      final String docFileName = IndexFileNames.segmentFileName(state.segmentName,
+      final String docFileName = IndexFileNames.segmentFileName(state.segmentInfo.name,
         state.segmentSuffix, DOC_EXTENSION);
       docOut = factory.createDocsFreqOutput(state.directory, docFileName, state.context);
       docWriter = docOut.getBlockWriter();
@@ -153,26 +154,26 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
 
       this.maxBlockSize = docWriter.getMaxBlockSize();
 
-      final String nodFileName = IndexFileNames.segmentFileName(state.segmentName,
+      final String nodFileName = IndexFileNames.segmentFileName(state.segmentInfo.name,
         state.segmentSuffix, NOD_EXTENSION);
       nodOut = factory.createNodOutput(state.directory, nodFileName, state.context);
       nodWriter = nodOut.getBlockWriter();
       nodIndex = nodOut.index();
 
-      final String posFileName = IndexFileNames.segmentFileName(state.segmentName,
+      final String posFileName = IndexFileNames.segmentFileName(state.segmentInfo.name,
         state.segmentSuffix, POS_EXTENSION);
       posOut = factory.createPosOutput(state.directory, posFileName, state.context);
       posWriter = posOut.getBlockWriter();
       posIndex = posOut.index();
 
-      final String skipFileName = IndexFileNames.segmentFileName(state.segmentName,
+      final String skipFileName = IndexFileNames.segmentFileName(state.segmentInfo.name,
         state.segmentSuffix, SKIP_EXTENSION);
       skipOut = state.directory.createOutput(skipFileName, state.context);
 
-      totalNumDocs = state.numDocs;
+      totalNumDocs = state.segmentInfo.getDocCount();
 
       // EStimate number of blocks that will be written
-      final int numBlocks = (int) Math.ceil(state.numDocs / (double) docWriter.getMaxBlockSize());
+      final int numBlocks = (int) Math.ceil(totalNumDocs / (double) docWriter.getMaxBlockSize());
       skipWriter = new Siren10SkipListWriter(blockSkipInterval, maxSkipLevels,
         numBlocks, docOut);
       docWriter.setNodeBlockIndex(nodIndex);
@@ -211,7 +212,7 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
   @Override
   public void setField(final FieldInfo fieldInfo) {
     this.fieldInfo = fieldInfo;
-    this.indexOptions = fieldInfo.indexOptions;
+    this.indexOptions = fieldInfo.getIndexOptions();
     if (indexOptions.compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) >= 0) {
       throw new UnsupportedOperationException("this codec cannot index offsets");
     }

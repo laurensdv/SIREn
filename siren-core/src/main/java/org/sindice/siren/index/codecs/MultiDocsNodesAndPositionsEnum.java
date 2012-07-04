@@ -28,8 +28,8 @@ package org.sindice.siren.index.codecs;
 import java.io.IOException;
 
 import org.apache.lucene.index.MultiDocsAndPositionsEnum.EnumWithSlice;
+import org.apache.lucene.index.ReaderSlice;
 import org.apache.lucene.util.IntsRef;
-import org.apache.lucene.util.ReaderUtil;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 import org.sindice.siren.index.SirenDocsEnum;
 
@@ -161,7 +161,7 @@ public class MultiDocsNodesAndPositionsEnum extends DocsNodesAndPositionsEnum {
   // TODO: implement bulk read more efficiently than super
   public final static class SirenEnumWithSlice {
     public DocsNodesAndPositionsEnum docsNodesAndPositionsEnum;
-    public ReaderUtil.Slice slice;
+    public ReaderSlice slice;
   }
 
 }

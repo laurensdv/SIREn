@@ -37,7 +37,6 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
-import org.apache.lucene.index.Payload;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.LuceneTestCase;
@@ -128,8 +127,7 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
     Assert.assertEquals(termExpected, termAtt.toString());
 
     final VIntPayloadCodec codec = new VIntPayloadCodec();
-    final Payload payload = payloadAtt.getPayload();
-    final BytesRef bytes = new BytesRef(payload.getData(), payload.getOffset(), payload.length());
+    final BytesRef bytes = payloadAtt.getPayload();
     codec.decode(bytes);
     final IntsRef ints = codec.getNode();
 
