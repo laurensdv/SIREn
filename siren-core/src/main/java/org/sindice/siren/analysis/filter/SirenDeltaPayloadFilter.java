@@ -100,8 +100,6 @@ public class SirenDeltaPayloadFilter extends TokenFilter {
         // retrieve previous node path
         previous = previousPaths.get(hash);
         // ensure previous is large enough to store new path
-        // Changed for the Lucene4.0 API
-//        previous.grow(current.length);
         ArrayUtils.growAndCopy(previous, current.length);
 
         // substraction

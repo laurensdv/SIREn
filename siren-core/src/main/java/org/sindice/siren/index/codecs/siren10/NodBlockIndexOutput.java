@@ -107,7 +107,6 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
          */
         final int newLength = Math.max(nodBufferOffset + nodeLength, nodBuffer.ints.length * 3/2);
         ArrayUtils.growAndCopy(nodBuffer, newLength);
-//        nodBuffer.grow(Math.max(nodBufferOffset + nodeLength, nodBuffer.ints.length * 3/2));
       }
 
       // compute delta
@@ -124,8 +123,6 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
       // increase node length buffer if needed
       if (nodLenBuffer.offset >= nodLenBuffer.ints.length) {
         // Take the max to ensure that buffer will be large enough
-        // Changed for the Lucene4.0 API
-//        nodLenBuffer.grow(Math.max(nodLenBuffer.offset + 1, nodLenBuffer.ints.length * 3/2));
         ArrayUtils.growAndCopy(nodLenBuffer, Math.max(nodLenBuffer.offset + 1, nodLenBuffer.ints.length * 3/2));
       }
 
@@ -159,8 +156,6 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
       // check size of the buffer and increase it if needed
       if (termFreqBuffer.offset >= termFreqBuffer.ints.length) {
         // Take the max to ensure that buffer will be large enough
-        // Changed for the Lucene4.0 API
-//        termFreqBuffer.grow(Math.max(termFreqBuffer.offset + 1, termFreqBuffer.ints.length * 3/2));
         ArrayUtils.growAndCopy(termFreqBuffer, Math.max(termFreqBuffer.offset + 1, termFreqBuffer.ints.length * 3/2));
       }
       // decrement freq by one

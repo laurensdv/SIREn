@@ -33,41 +33,9 @@ import org.sindice.siren.index.codecs.siren10.DocsFreqBlockIndexInput;
 import org.sindice.siren.index.codecs.siren10.DocsFreqBlockIndexInput.DocsFreqBlockReader;
 import org.sindice.siren.index.codecs.siren10.DocsFreqBlockIndexOutput;
 import org.sindice.siren.index.codecs.siren10.DocsFreqBlockIndexOutput.DocsFreqBlockWriter;
-import org.sindice.siren.index.codecs.siren10.NodBlockIndexInput;
-import org.sindice.siren.index.codecs.siren10.NodBlockIndexOutput;
-import org.sindice.siren.index.codecs.siren10.PosBlockIndexInput;
-import org.sindice.siren.index.codecs.siren10.PosBlockIndexOutput;
 import org.sindice.siren.index.codecs.siren10.Siren10BlockStreamFactory;
 
 public class TestVariableIntCodec extends CodecTestCase {
-
-  private NodBlockIndexOutput getIndexNodOutput(final int blockSize) throws IOException {
-    final Siren10BlockStreamFactory factory = new Siren10BlockStreamFactory(blockSize);
-    factory.setDocsBlockCompressor(new VIntBlockCompressor());
-    factory.setFreqBlockCompressor(new VIntBlockCompressor());
-    return factory.createNodOutput(directory, "testNod", newIOContext(random()));
-  }
-
-  private PosBlockIndexOutput getIndexPosOutput(final int blockSize) throws IOException {
-    final Siren10BlockStreamFactory factory = new Siren10BlockStreamFactory(blockSize);
-    factory.setDocsBlockCompressor(new VIntBlockCompressor());
-    factory.setFreqBlockCompressor(new VIntBlockCompressor());
-    return factory.createPosOutput(directory, "testPos", newIOContext(random()));
-  }
-
-  private NodBlockIndexInput getIndexNodInput() throws IOException {
-    final Siren10BlockStreamFactory factory = new Siren10BlockStreamFactory(0);
-    factory.setDocsBlockDecompressor(new VIntBlockDecompressor());
-    factory.setFreqBlockDecompressor(new VIntBlockDecompressor());
-    return factory.openNodInput(directory, "testNod", newIOContext(random()));
-  }
-
-  private PosBlockIndexInput getIndexPosInput() throws IOException {
-    final Siren10BlockStreamFactory factory = new Siren10BlockStreamFactory(0);
-    factory.setDocsBlockDecompressor(new VIntBlockDecompressor());
-    factory.setFreqBlockDecompressor(new VIntBlockDecompressor());
-    return factory.openPosInput(directory, "testPos", newIOContext(random()));
-  }
 
   private DocsFreqBlockIndexOutput getIndexOutput(final int blockSize) throws IOException {
     final Siren10BlockStreamFactory factory = new Siren10BlockStreamFactory(blockSize);
@@ -88,10 +56,8 @@ public class TestVariableIntCodec extends CodecTestCase {
     final DocsFreqBlockIndexOutput out = this.getIndexOutput(512);
     final DocsFreqBlockWriter writer = out.getBlockWriter();
 
-    final NodBlockIndexOutput nodOutput = getIndexNodOutput(512);
-    final PosBlockIndexOutput posOutput = getIndexPosOutput(512);
-    writer.setNodeBlockIndex(nodOutput.index());
-    writer.setPosBlockIndex(posOutput.index());
+    writer.setNodeBlockIndex(out.index());
+    writer.setPosBlockIndex(out.index());
     for (int i = 0; i < 11777; i++) {
       if (writer.isFull()) {
         writer.flush();
@@ -100,17 +66,13 @@ public class TestVariableIntCodec extends CodecTestCase {
     }
 
     writer.flush(); // flush remaining data
-    nodOutput.close();
-    posOutput.close();
     out.close();
 
     final DocsFreqBlockIndexInput in = this.getIndexInput();
     final DocsFreqBlockReader reader = in.getBlockReader();
 
-    final NodBlockIndexInput nodInput = getIndexNodInput();
-    final PosBlockIndexInput posInput = getIndexPosInput();
-    reader.setNodeBlockIndex(nodInput.index());
-    reader.setPosBlockIndex(posInput.index());
+    reader.setNodeBlockIndex(in.index());
+    reader.setPosBlockIndex(in.index());
     for (int i = 0; i < 11777; i++) {
       if (reader.isExhausted()) {
         reader.nextBlock();
@@ -118,8 +80,6 @@ public class TestVariableIntCodec extends CodecTestCase {
       assertEquals(i, reader.nextDocument());
     }
 
-    nodInput.close();
-    posInput.close();
     in.close();
   }
 
@@ -128,10 +88,8 @@ public class TestVariableIntCodec extends CodecTestCase {
     final DocsFreqBlockIndexOutput out = this.getIndexOutput(512);
     final DocsFreqBlockWriter writer = out.getBlockWriter();
 
-    final NodBlockIndexOutput nodOutput = getIndexNodOutput(512);
-    final PosBlockIndexOutput posOutput = getIndexPosOutput(512);
-    writer.setNodeBlockIndex(nodOutput.index());
-    writer.setPosBlockIndex(posOutput.index());
+    writer.setNodeBlockIndex(out.index());
+    writer.setPosBlockIndex(out.index());
     for (int i = 0; i < 11777; i++) {
       if (writer.isFull()) {
         writer.flush();
@@ -140,17 +98,13 @@ public class TestVariableIntCodec extends CodecTestCase {
     }
 
     writer.flush(); // flush remaining data
-    nodOutput.close();
-    posOutput.close();
     out.close();
 
     final DocsFreqBlockIndexInput in = this.getIndexInput();
     final DocsFreqBlockReader reader = in.getBlockReader();
 
-    final NodBlockIndexInput nodInput = getIndexNodInput();
-    final PosBlockIndexInput posInput = getIndexPosInput();
-    reader.setNodeBlockIndex(nodInput.index());
-    reader.setPosBlockIndex(posInput.index());
+    reader.setNodeBlockIndex(in.index());
+    reader.setPosBlockIndex(in.index());
     for (int i = 0; i < 11777; i++) {
       if (reader.isExhausted()) {
         reader.nextBlock();
@@ -161,8 +115,6 @@ public class TestVariableIntCodec extends CodecTestCase {
       assertTrue(frq <= 10);
     }
 
-    nodInput.close();
-    posInput.close();
     in.close();
   }
 
@@ -174,10 +126,8 @@ public class TestVariableIntCodec extends CodecTestCase {
     final DocsFreqBlockIndexOutput out = this.getIndexOutput(blockSize);
     final DocsFreqBlockWriter writer = out.getBlockWriter();
 
-    final NodBlockIndexOutput nodOutput = getIndexNodOutput(512);
-    final PosBlockIndexOutput posOutput = getIndexPosOutput(512);
-    writer.setNodeBlockIndex(nodOutput.index());
-    writer.setPosBlockIndex(posOutput.index());
+    writer.setNodeBlockIndex(out.index());
+    writer.setPosBlockIndex(out.index());
     for (final int value : values) {
       if (writer.isFull()) {
         writer.flush();
@@ -186,17 +136,13 @@ public class TestVariableIntCodec extends CodecTestCase {
     }
 
     writer.flush(); // flush remaining data
-    nodOutput.close();
-    posOutput.close();
     out.close();
 
     final DocsFreqBlockIndexInput in = this.getIndexInput();
     final DocsFreqBlockReader reader = in.getBlockReader();
 
-    final NodBlockIndexInput nodInput = getIndexNodInput();
-    final PosBlockIndexInput posInput = getIndexPosInput();
-    reader.setNodeBlockIndex(nodInput.index());
-    reader.setPosBlockIndex(posInput.index());
+    reader.setNodeBlockIndex(in.index());
+    reader.setPosBlockIndex(in.index());
     for (final int value : values) {
       if (reader.isExhausted()) {
         reader.nextBlock();
@@ -205,8 +151,6 @@ public class TestVariableIntCodec extends CodecTestCase {
       assertEquals(value, reader.nextFreq());
     }
 
-    nodInput.close();
-    posInput.close();
     in.close();
 
 //    final VIntBlockCompressor compressor = new VIntBlockCompressor();
