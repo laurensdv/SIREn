@@ -95,8 +95,19 @@ public abstract class BlockIndexOutput implements Closeable {
     }
   }
 
+  /**
+   * Create a new {@link BlockWriter} associated to this
+   * {@link BlockIndexOutput}.
+   * <p>
+   * You should ensure to flush all {@link BlockWriter} before closing the
+   * {@link BlockIndexOutput}.
+   */
   public abstract BlockWriter getBlockWriter();
 
+  /**
+   * More than one {@link BlockWriter} can be instantiated by a
+   * {@link BlockIndexOutput}. Usually one writer is instantiated for each term.
+   */
   protected abstract class BlockWriter {
 
     /**
