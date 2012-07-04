@@ -304,4 +304,13 @@ public class TestTupleAnalyzer extends LuceneTestCase {
       new String[] { "<URI>", "<URI>", "<URI>", "<ALPHANUM>", "<ALPHANUM>" });
   }
 
+  @Test
+  public void testFirstPosInc()
+  throws Exception {
+    this.assertAnalyzesTo(_a, "<aaa>",
+      new String[] { "aaa" },
+      new String[] { "<URI>" },
+      new int[] { 1 });
+  }
+
 }
