@@ -151,7 +151,7 @@ public class TwigQuery extends NodeBooleanQuery {
   }
 
   @Override
-  public void setAncestorPointer(final NodeQuery ancestor) {
+  protected void setAncestorPointer(final NodeQuery ancestor) {
     super.setAncestorPointer(ancestor);
     // keep root query synchronised with twig query
     root.setAncestorPointer(ancestor);

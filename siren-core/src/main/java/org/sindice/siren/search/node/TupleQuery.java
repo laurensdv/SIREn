@@ -75,11 +75,55 @@ public class TupleQuery extends NodeBooleanQuery {
     this.setLevelConstraint(level);
   }
 
+  /**
+   * Adds a clause to a tuple query.
+   *
+   * @throws TooManyClauses
+   *           if the new number of clauses exceeds the maximum clause number
+   * @see #getMaxClauseCount()
+   */
+  @Override
+  public void add(final NodeQuery query, final NodeBooleanClause.Occur occur) {
+    // set the level constraint on the query
+    query.setLevelConstraint(levelConstraint + 1);
+    // set the ancestor pointer
+    query.setAncestorPointer(this);
+    super.add(new NodeBooleanClause(query, occur));
+  }
+
+  /**
+   * Adds a clause to a tuple query.
+   *
+   * @throws TooManyClauses
+   *           if the new number of clauses exceeds the maximum clause number
+   * @see #getMaxClauseCount()
+   */
+  @Override
+  public void add(final NodeBooleanClause clause) {
+    final NodeQuery query = clause.getQuery();
+    // set the level constraint on the query
+    query.setLevelConstraint(levelConstraint + 1);
+    // set the ancestor pointer
+    query.setAncestorPointer(this);
+    super.add(clause);
+  }
+
   protected class TupleWeight extends NodeBooleanWeight {
 
     public TupleWeight(final IndexSearcher searcher, final boolean disableCoord)
     throws IOException {
       super(searcher, disableCoord);
+    }
+
+    @Override
+    protected void initWeights(final IndexSearcher searcher) throws IOException {
+      weights = new ArrayList<Weight>(clauses.size());
+      for (int i = 0; i < clauses.size(); i++) {
+        final NodeBooleanClause c = clauses.get(i);
+        final NodeQuery q = c.getQuery();
+        weights.add(q.createWeight(searcher));
+        if (!c.isProhibited()) maxCoord++;
+      }
     }
 
     @Override

@@ -37,12 +37,12 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.NodeBooleanClause.Occur;
+import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodeQuery;
 import org.sindice.siren.search.node.NodeScorer;
 import org.sindice.siren.search.node.TupleQuery;
 import org.sindice.siren.search.node.TwigQuery;
-import org.sindice.siren.search.node.NodeBooleanClause.Occur;
-import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
@@ -198,6 +198,11 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     @Override
     public NodeQuery getQuery() {
       return nbq;
+    }
+
+    @Override
+    public NodeBooleanQueryBuilder bound(final int lowerBound, final int upperBound) {
+      return (NodeBooleanQueryBuilder) super.bound(lowerBound, upperBound);
     }
 
   }

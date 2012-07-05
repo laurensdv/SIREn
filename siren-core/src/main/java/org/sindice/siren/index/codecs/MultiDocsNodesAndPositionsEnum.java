@@ -89,19 +89,29 @@ public class MultiDocsNodesAndPositionsEnum extends DocsNodesAndPositionsEnum {
 
   @Override
   public boolean nextNode() throws IOException {
-    return current.nextNode();
+    if (current != null) {
+      return current.nextNode();
+    }
+    return false;
   }
 
   @Override
   public boolean nextPosition() throws IOException {
-    return current.nextPosition();
+    if (current != null) {
+      return current.nextPosition();
+    }
+    return false;
   }
 
   @Override
   public boolean skipTo(final int target) throws IOException {
     while(true) {
       if (current != null) {
-        if (current.skipTo(target - currentBase)) {
+        // it is possible that the target is inferior to the current base, i.e.,
+        // when the target is located in a gap between the last document of the
+        // previous sub-enum and the first document of the current sub-enum.
+        final int baseTarget = target < currentBase ? 0 : target - currentBase;
+        if (current.skipTo(baseTarget)) {
           this.doc = current.doc() + currentBase;
           return true;
         }

@@ -317,6 +317,9 @@ public class Siren10PostingsReader extends PostingsReaderBase {
    * <p>
    * There is a chance that the position returned is negative, in case of large
    * or deep node tree structure.
+   * <p>
+   * This position is only used in {@link CheckIndex} after unit tests, where
+   * the node tree structure is relatively simple.
    */
   class Siren10DocsEnum extends SirenDocsEnum {
 
@@ -372,7 +375,9 @@ public class Siren10PostingsReader extends PostingsReaderBase {
       }
       else {
         // scale up position based on node hashcode
-        return docEnum.node().hashCode() + pos;
+        // multiply the hashcode by prime (31) to ensure that the last element
+        // of the node path is scaled up
+        return (docEnum.node().hashCode() * 31) + pos;
       }
     }
 

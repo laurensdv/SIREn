@@ -87,14 +87,18 @@ public class NodeReqExclScorer extends NodeScorer {
    * {@link #skipToCandidate(int)} and reqScorer.doc() may still be excluded.
    * </ul>
    * Advances reqScorer a non excluded candidate document, if any.
+   * <p>
+   * If reqScorer.doc() is equal to exclScorer.doc(), reqScorer.doc() cannot
+   * be excluded immediately, i.e., it is a valid candidate document. We have to
+   * check the exclusion of reqScorer.node().
    *
    * @return true iff there is a non excluded candidate document.
    */
   private boolean toNonExcludedCandidateDocument() throws IOException {
-    int exclDoc = exclScorer.doc();
-    final int reqDoc = reqScorer.doc(); // may be excluded
-
     do {
+      int exclDoc = exclScorer.doc();
+      final int reqDoc = reqScorer.doc(); // may be excluded
+
       if (reqDoc <= exclDoc) {
         return true; // reqScorer advanced to or before exclScorer, not excluded
       }
