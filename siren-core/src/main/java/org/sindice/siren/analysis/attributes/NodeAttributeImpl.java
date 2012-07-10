@@ -28,6 +28,7 @@ package org.sindice.siren.analysis.attributes;
 
 import java.io.Serializable;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
 import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.IntsRef;
@@ -117,6 +118,13 @@ public class NodeAttributeImpl extends AttributeImpl implements NodeAttribute, C
     node.clear();
     this.ensureIntBufferCapacity(nodePath.length);
     node.put(nodePath.ints, nodePath.offset, nodePath.length);
+    // TODO: is this missing ?
+    // node.limit(nodePath.length);
+  }
+
+  @Override
+  public String toString() {
+    return "node=" + node();
   }
 
 }

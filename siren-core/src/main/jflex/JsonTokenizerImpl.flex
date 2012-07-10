@@ -27,7 +27,7 @@ import static org.sindice.siren.analysis.JsonTokenizer.*;
 
 import java.util.Stack;
 import java.util.Arrays;
-
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.IntsRef;
 
 /**
@@ -37,7 +37,6 @@ import org.apache.lucene.util.IntsRef;
  * @version $Revision: 5786 $
  */
 %%
-%debug
 %yylexthrow java.lang.IllegalStateException
 %public
 %class JsonTokenizerImpl
@@ -76,10 +75,8 @@ import org.apache.lucene.util.IntsRef;
 
   /** The size of the path buffer */
   private final static int BUFFER_SIZE      = 1024;
-  /** Object path */
-  private IntsRef nodeObjectPath            = new IntsRef(BUFFER_SIZE);
-  /** Value path */
-  private IntsRef nodeValuePath             = new IntsRef(BUFFER_SIZE * 2); // each object node can have attribute/value pairs
+  /** The path to a node */
+  private IntsRef nodePath                  = new IntsRef(BUFFER_SIZE);
   /** Stack of lexical states */
   private final Stack<Integer> states       = new Stack();
 
@@ -87,56 +84,55 @@ import org.apache.lucene.util.IntsRef;
     return yychar;
   }
 
-  public double getNumber() {
-    return Double.valueOf(buffer.toString());
+  public String getNumber() {
+    return buffer.toString();
   }
 
   /**
-   * Return the current string buffer.
+   * Fills Lucene TermAttribute with the current string buffer.
    */
-  public final char[] getLiteralText() {
+  public final void getLiteralText(CharTermAttribute t) {
     char[] chars = new char[buffer.length()];
     buffer.getChars(0, buffer.length(), chars, 0);
-    return chars;
+    t.copyBuffer(chars, 0, chars.length);
   }
 
-  public IntsRef getNodeObjectPath() {
-    return nodeObjectPath;
+  public IntsRef getNodePath() {
+    return nodePath;
   }
 
-  public IntsRef getNodeValuePath() {
-    return nodeValuePath;
-  }
-
+  /**
+   * Initialise inner variables
+   */
   private void reset() {
     states.clear();
-    Arrays.fill(nodeValuePath.ints, -1);
-    nodeValuePath.offset = 0;
-    nodeValuePath.length = 2;
-    Arrays.fill(nodeObjectPath.ints, -1);
-    nodeObjectPath.offset = 0;
-    nodeObjectPath.length = 0;
+    Arrays.fill(nodePath.ints, -1);
+    nodePath.offset = 0;
+    nodePath.length = 1;
   }
 
   /**
    * Add an object to the current node path
    */
   private void incrNodeObjectPath() {
-    nodeObjectPath.length++;
-    nodeObjectPath.ints[nodeObjectPath.length - 1] += 1;
-    Arrays.fill(nodeObjectPath.ints, nodeObjectPath.length, nodeObjectPath.ints.length, -1); // initialise children nodes
+    nodePath.length++;
+    // the last two are for the attribute/value ids
+    // initialise children nodes
+    Arrays.fill(nodePath.ints, nodePath.length - 1, nodePath.ints.length, -1);
   }
 
-  /** Called when entering a new object */
-  private void incrNodeValuePath() {
-    nodeValuePath.offset += 2;
-    updateValueNode(-1, -1);
+  private void decrNodeObjectPath() {
+    nodePath.length--;
   }
 
   /** Update the path of the current values of the current object node */
-  private void updateValueNode(int attId, int valId) {
-    nodeValuePath.ints[nodeValuePath.offset] = attId;
-    nodeValuePath.ints[nodeValuePath.offset + 1] = valId;
+  private void setLastNode(int val) {
+    nodePath.ints[nodePath.length - 1] = val;
+  }
+
+  /** Update the path of the current values of the current object node */
+  private void addToLastNode(int val) {
+    nodePath.ints[nodePath.length - 1] += val;
   }
 
   private int processNumber() {
@@ -161,71 +157,72 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
 
 %%
 
-{WHITESPACE}                    { /* ignore white space. */ }
+{WHITESPACE}                     { /* ignore white space. */ }
 
 <YYINITIAL> {
-  "{"                           { reset();
-                                  incrNodeObjectPath();
-                                  states.push(sOBJECT);
-                                  yybegin(sOBJECT); }
+  "{"                            { reset();
+                                   states.push(sOBJECT);
+                                   yybegin(sOBJECT);
+                                 }
 }
 
 <sOBJECT> {
-  "}"                            { nodeObjectPath.length--;
+  "}"                            { decrNodeObjectPath();
                                    final int state = states.pop();
                                    if (state != sOBJECT) {
                                      throw new IllegalStateException("Error parsing JSON document: Expected '}', got " + yychar());
                                    }
-                                   if (states.empty()) {
-                                     yybegin(YYINITIAL);
-                                   } else {
-                                     nodeValuePath.offset -= 2;
-                                     yybegin(states.peek());
-                                   }
+                                   yybegin(states.empty() ? YYINITIAL : states.peek());
                                  }
-  ":"{WHITESPACE}*{NULL}         { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], 0); return NULL; }
-  ":"{WHITESPACE}*{FALSE}        { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], 0); return FALSE; }
-  ":"{WHITESPACE}*{TRUE}         { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], 0); return TRUE; }
-  ":"{WHITESPACE}*{NUMBER}       { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], 0); return processNumber(); }
-  ":"{WHITESPACE}*"["            { yybegin(sARRAY); states.push(sARRAY); }
-  ":"{WHITESPACE}*"{"            { incrNodeValuePath();
-                                   incrNodeObjectPath();
+  ":"{WHITESPACE}*{NULL}         { incrNodeObjectPath(); setLastNode(0); return NULL; }
+  ":"{WHITESPACE}*{FALSE}        { incrNodeObjectPath(); setLastNode(0); return FALSE; }
+  ":"{WHITESPACE}*{TRUE}         { incrNodeObjectPath(); setLastNode(0); return TRUE; }
+  ":"{WHITESPACE}*{NUMBER}       { incrNodeObjectPath(); setLastNode(0); return processNumber(); }
+  ":"{WHITESPACE}*"["            { incrNodeObjectPath();
+                                   yybegin(sARRAY);
+                                   states.push(sARRAY);
+                                 }
+  ":"{WHITESPACE}*"{"            { incrNodeObjectPath();
                                    states.push(sOBJECT);
-                                   yybegin(sOBJECT); }
-  ":"{WHITESPACE}*\"             { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], 0);
-                                   buffer.setLength(0); yybegin(sSTRING); }
-  ","                            { return COMMA; }
-  {WHITESPACE}                   { /* ignore white space. */ }
-  \"                             { updateValueNode(nodeValuePath.ints[nodeValuePath.offset] + 1, -1);
+                                   yybegin(sOBJECT);
+                                 }
+  ":"{WHITESPACE}*\"             { incrNodeObjectPath();
+                                   setLastNode(0);
                                    buffer.setLength(0);
-                                   yybegin(sSTRING); }
+                                   yybegin(sSTRING);
+                                 }
+  ","                            { decrNodeObjectPath(); }
+  \"                             { addToLastNode(1);
+                                   buffer.setLength(0);
+                                   yybegin(sSTRING);
+                                 }
+  {WHITESPACE}                   { /* ignore white space. */ }
 }
 
 <sARRAY> {
-  "]"                            { final int state = states.pop();
+  "]"                            { int state = states.pop();
                                    if (state != sARRAY) {
                                      throw new IllegalStateException("Error parsing JSON document: Expected ']', got " + yychar());
                                    }
-                                   if (states.peek() == sARRAY) {
-                                     nodeObjectPath.length--; // nested array
-                                   }
+                                   decrNodeObjectPath();
                                    yybegin(states.peek());
                                  }
-  "{"                            { incrNodeValuePath();
+  "{"                            { addToLastNode(1);
                                    incrNodeObjectPath();
                                    states.push(sOBJECT);
-                                   yybegin(sOBJECT); }
-  "["                            { incrNodeValuePath();
+                                   yybegin(sOBJECT);
+                                 }
+  "["                            { addToLastNode(1);
                                    incrNodeObjectPath();
                                    states.push(sARRAY);
                                    yybegin(sARRAY);
                                  }
-  {NULL}                         { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], nodeValuePath.ints[nodeValuePath.offset + 1] + 1); return NULL; }
-  {TRUE}                         { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], nodeValuePath.ints[nodeValuePath.offset + 1] + 1); return TRUE; }
-  {FALSE}                        { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], nodeValuePath.ints[nodeValuePath.offset + 1] + 1); return FALSE; }
-  {NUMBER}                       { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], nodeValuePath.ints[nodeValuePath.offset + 1] + 1); return processNumber(); }
-  ","                            { return COMMA; }
-  \"                             { updateValueNode(nodeValuePath.ints[nodeValuePath.offset], nodeValuePath.ints[nodeValuePath.offset + 1] + 1);
+  {NULL}                         { addToLastNode(1); return NULL; }
+  {TRUE}                         { addToLastNode(1); return TRUE; }
+  {FALSE}                        { addToLastNode(1); return FALSE; }
+  {NUMBER}                       { addToLastNode(1); return processNumber(); }
+  ","                            { }
+  \"                             { addToLastNode(1);
                                    buffer.setLength(0);
                                    yybegin(sSTRING);
                                  }

@@ -2,7 +2,6 @@ package org.sindice.siren.analysis;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Arrays;
 
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -23,13 +22,11 @@ extends Tokenizer {
   private int                     length    = 0;
 
   /** Token Definition */
-  public static final int         COMMA     = 0;
-  public static final int         COLON     = 1;
-  public static final int         NULL      = 2;
-  public static final int         TRUE      = 3;
-  public static final int         FALSE     = 4;
-  public static final int         NUMBER    = 5;
-  public static final int         LITERAL   = 6;
+  public static final int         NULL      = 0;
+  public static final int         TRUE      = 1;
+  public static final int         FALSE     = 2;
+  public static final int         NUMBER    = 3;
+  public static final int         LITERAL   = 4;
 
   public JsonTokenizer(Reader input, int maxLength) {
     super(input);
@@ -42,9 +39,7 @@ extends Tokenizer {
 
   public static String[] getTokenTypes() {
     if (TOKEN_TYPES == null) {
-      TOKEN_TYPES = new String[7];
-      TOKEN_TYPES[COMMA] = "<COMMA>";
-      TOKEN_TYPES[COLON] = "<COLON>";
+      TOKEN_TYPES = new String[5];
       TOKEN_TYPES[NULL] = "<NULL>";
       TOKEN_TYPES[TRUE] = "<TRUE>";
       TOKEN_TYPES[FALSE] = "<FALSE>";
@@ -88,17 +83,35 @@ extends Tokenizer {
   throws IOException {
     final int tokenType = scanner.getNextToken();
 
-    System.out.println("\t*** object: " + scanner.getNodeObjectPath());
-    System.out.println("\t*** value: " + scanner.getNodeValuePath());
-
     switch (tokenType) {
       case FALSE:
+        termAtt.append("false");
+        this.updateToken(tokenType, null, scanner.yychar());
+        length++;
+        break;
+
       case TRUE:
+        termAtt.append("true");
+        this.updateToken(tokenType, null, scanner.yychar());
+        length++;
+        break;
+
       case NULL:
+        termAtt.append("null");
+        this.updateToken(tokenType, null, scanner.yychar());
+        length++;
+        break;
+
       case NUMBER:
+        termAtt.append(scanner.getNumber());
+        this.updateToken(tokenType, null, scanner.yychar());
+        length++;
+        break;
+
       case LITERAL:
-      case COMMA:
-      case COLON:
+        scanner.getLiteralText(termAtt);
+        this.updateToken(tokenType, null, scanner.yychar() + 1);
+        length++;
         break;
 
       case JsonTokenizerImpl.YYEOF:
@@ -108,6 +121,25 @@ extends Tokenizer {
         return false;
     }
     return true;
+  }
+
+  /**
+   * Update type, datatype, offset, tuple id and cell id of the token
+   *
+   * @param tokenType The type of the generated token
+   * @param datatypeURI The datatype of the generated token
+   * @param startOffset The starting offset of the token
+   */
+  private void updateToken(final int tokenType, final char[] datatypeURI, final int startOffset) {
+    // Update offset
+    offsetAtt.setOffset(this.correctOffset(startOffset),
+      this.correctOffset(startOffset + termAtt.length()));
+    // update token type
+    typeAtt.setType(TOKEN_TYPES[tokenType]);
+    // update datatype
+//    dtypeAtt.setDatatypeURI(datatypeURI);
+    // Update structural information
+    nodeAtt.copyNode(scanner.getNodePath());
   }
 
   @Override
