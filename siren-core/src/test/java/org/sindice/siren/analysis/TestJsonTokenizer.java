@@ -1,7 +1,12 @@
 package org.sindice.siren.analysis;
 
-import static org.junit.Assert.*;
-import static org.sindice.siren.analysis.JsonTokenizer.*;
+import static org.junit.Assert.fail;
+import static org.sindice.siren.analysis.JsonTokenizer.FALSE;
+import static org.sindice.siren.analysis.JsonTokenizer.LITERAL;
+import static org.sindice.siren.analysis.JsonTokenizer.NULL;
+import static org.sindice.siren.analysis.JsonTokenizer.NUMBER;
+import static org.sindice.siren.analysis.JsonTokenizer.TOKEN_TYPES;
+import static org.sindice.siren.analysis.JsonTokenizer.TRUE;
 import static org.sindice.siren.analysis.MockSirenToken.node;
 
 import java.io.StringReader;
@@ -16,16 +21,15 @@ import org.junit.Test;
 public class TestJsonTokenizer
 extends TokenizerHelper {
 
-  private final JsonTokenizer _t   = new JsonTokenizer(new StringReader(""), Integer.MAX_VALUE);
+  private final JsonTokenizer _t      = new JsonTokenizer(new StringReader(""), Integer.MAX_VALUE);
 
-  private final Random        seed = new Random();
-  private Random              rand;
-  private int                 valueType;
+  private final Random        seed    = new Random();
+  private final JsonGenerator jsonGen = new JsonGenerator();
 
   @Before
   public void setUp() {
     final long testseed = seed.nextLong();
-    rand = new Random(testseed);
+    jsonGen.setSeed(testseed);
     System.err.println("TestJsonTokenizer: seed=[" + testseed + "]");
   }
 
@@ -74,14 +78,14 @@ extends TokenizerHelper {
       add(TOKEN_TYPES[LITERAL]);
     }};
 
-    final int arraySize = rand.nextInt(100);
+    final int arraySize = jsonGen.rand.nextInt(100);
     String array = "[";
     for (int i = 0; i < arraySize; i++) {
-      final String v = getRandomValue();
+      final String v = jsonGen.getRandomValue();
       array += v + ",";
-      images.add(valueType == LITERAL ? v.substring(1, v.length() - 1) : v);
+      images.add(jsonGen.valueType == LITERAL ? v.substring(1, v.length() - 1) : v);
       nodes.add(node(0, i));
-      types.add(TOKEN_TYPES[valueType]);
+      types.add(TOKEN_TYPES[jsonGen.valueType]);
     }
     array += "]";
 
@@ -92,22 +96,114 @@ extends TokenizerHelper {
       posIncr, nodes.toArray(new IntsRef[0]));
   }
 
-  private String getRandomValue() {
-    valueType = rand.nextInt(5);
+  @Test
+  public void testObjects()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"a0\":[{\"t1\":1},{\"t2\":2}],\"a1\":{\"t3\":3}}",
+      new String[] { "a0", "t1", "1", "t2", "2", "a1", "t3", "3" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL],
+                     TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new int[] { 1, 1, 1, 1, 1, 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0, 0), node(0, 0, 0, 0), node(0, 1, 0),
+                      node(0, 1, 0, 0), node(1), node(1, 0), node(1, 0, 0) });
+    // nested objects
+    final String a0a1 = jsonGen.getRandomValue();
+    final int a0a1Type = jsonGen.valueType;
+    final String a1a0 = jsonGen.getRandomValue();
+    final int a1a0Type = jsonGen.valueType;
+    this.assertTokenizesTo(_t, "{\"a0\":[{\"t1\":1},{\"t2\":{\"a0a1\":" + a0a1 + "}}],\"a1\":{\"t3\":{\"a1a0\":" + a1a0 + "}}}",
+      new String[] { "a0", "t1", "1", "t2", "a0a1", a0a1Type == LITERAL ? a0a1.substring(1, a0a1.length() - 1) : a0a1, "a1", "t3", "a1a0", a1a0Type == LITERAL ? a1a0.substring(1, a1a0.length() - 1) : a1a0 },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL],
+                     TOKEN_TYPES[LITERAL], TOKEN_TYPES[a0a1Type], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL],
+                     TOKEN_TYPES[LITERAL], TOKEN_TYPES[a1a0Type] },
+      new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0, 0), node(0, 0, 0, 0),
+                      node(0, 1, 0), node(0, 1, 0, 0), node(0, 1, 0, 0, 0),
+                      node(1), node(1, 0), node(1, 0, 0), node(1, 0, 0, 0) });
+    // nested objects + arrays
+    this.assertTokenizesTo(_t, "{\"a0\":[{\"t1\":[1,2]},{\"t2\":{\"a0a1\":[" + a0a1 + ",23]}}],\"a1\":{\"t3\":{\"a1a0\":[true," + a1a0 + "]}}}",
+      new String[] { "a0", "t1", "1", "2", "t2", "a0a1", a0a1Type == LITERAL ? a0a1.substring(1, a0a1.length() - 1) : a0a1, "23", "a1", "t3", "a1a0", "true", a1a0Type == LITERAL ? a1a0.substring(1, a1a0.length() - 1) : a1a0 },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER], TOKEN_TYPES[NUMBER],
+                     TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[a0a1Type], TOKEN_TYPES[NUMBER],
+                     TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[TRUE], TOKEN_TYPES[a1a0Type] },
+      new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0, 0), node(0, 0, 0, 0), node(0, 0, 0, 1),
+                      node(0, 1, 0), node(0, 1, 0, 0), node(0, 1, 0, 0, 0), node(0, 1, 0, 0, 1),
+                      node(1), node(1, 0), node(1, 0, 0), node(1, 0, 0, 0), node(1, 0, 0, 1) });
+    // nested objects + arrays
+    this.assertTokenizesTo(_t, "{\"a0\":[\"a\",{\"o6\":[\"b\",9E9]}],\"o2\":{\"o3\":\"obj3\",\"o4\":{\"o5\":null}}}",
+      new String[] { "a0", "a", "o6", "b", "9E9", "o2", "o3", "obj3", "o4", "o5", "null" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL],
+                     TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL],
+                     TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NULL] },
+      new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0), node(0, 1, 0), node(0, 1, 0, 0), node(0, 1, 0, 1),
+                      node(1), node(1, 0), node(1, 0, 0), node(1, 1), node(1, 1, 0), node(1, 1, 0, 0) });
+  }
 
-    switch (valueType) {
-      case FALSE:
-        return "false";
-      case LITERAL:
-        return "\"stephane\"";
-      case NULL:
-        return "null";
-      case NUMBER:
-        return "324.90E-02";
-      case TRUE:
-        return "true";
-      default:
-        throw new IllegalArgumentException("No value for index=" + valueType);
+  @Test(expected=IllegalStateException.class)
+  public void testUnclosedObject()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"a\":{\"34\":34,23}", // the 23 is not parser, because it is not a literal
+      new String[] { "a", "34", "34" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new int[] { 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0), node(0, 0, 0) });
+  }
+
+  @Test(expected=IllegalStateException.class)
+  public void testWrongClosingCharacter()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"a\":{\"34\":34],\"a\":1}", // \"a\":1 is not parsed because of the stray ']' character
+      new String[] { "a", "34", "34" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new int[] { 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0), node(0, 0, 0) });
+  }
+
+  @Test(expected=IllegalStateException.class)
+  public void testWrongClosingCharacter2()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"a\":[\"34\",34},\"a\":1}", // \"a\":1 is not parsed because of the stray '}' character
+      new String[] { "a", "34", "34" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new int[] { 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0), node(0, 1) });
+  }
+
+  @Test(expected=IllegalStateException.class)
+  public void testColonInArray()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"a\":[\"34\":34},\"a\":1}", // 34},\"a\":1 is not parsed because of the stray '}' character
+      new String[] { "a", "34" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL] },
+      new int[] { 1, 1, 1 },
+      new IntsRef[] { node(0), node(0, 0) });
+  }
+
+  @Test
+  public void testRandomJson()
+  throws Exception {
+    for (int i = 0; i < 50; i++) {
+      try {
+        String json = jsonGen.getRandomJson(50);
+        final int[] incr = new int[jsonGen.incr.size()];
+        for (int j = 0; j < incr.length; j++) {
+          incr[j] = jsonGen.incr.get(j);
+        }
+        this.assertTokenizesTo(_t, json,
+          jsonGen.images.toArray(new String[0]),
+          jsonGen.types.toArray(new String[0]),
+          incr,
+          jsonGen.nodes.toArray(new IntsRef[0]));
+      } catch (IllegalStateException e) {
+        if (!jsonGen.shouldFail) {
+          fail("Failed to parse json!");
+        }
+      }
+      if (jsonGen.shouldFail) {
+        fail("Expected to fail JSON didn't fail!");
+      }
     }
   }
 

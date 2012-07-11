@@ -79,6 +79,12 @@ import org.apache.lucene.util.IntsRef;
   private IntsRef nodePath                  = new IntsRef(BUFFER_SIZE);
   /** Stack of lexical states */
   private final Stack<Integer> states       = new Stack();
+  /**
+   * Indicates if a leaf node, i.e., a literal, a number, null, or a boolean,
+   * was encountered, in which case it needs to be closed, either in the COMMA
+   * state, or in the closing curly bracket.
+   */
+  private boolean openLeafNode = false;
 
   public final int yychar() {
     return yychar;
@@ -109,6 +115,7 @@ import org.apache.lucene.util.IntsRef;
     Arrays.fill(nodePath.ints, -1);
     nodePath.offset = 0;
     nodePath.length = 1;
+    openLeafNode = false;
   }
 
   /**
@@ -116,9 +123,8 @@ import org.apache.lucene.util.IntsRef;
    */
   private void incrNodeObjectPath() {
     nodePath.length++;
-    // the last two are for the attribute/value ids
-    // initialise children nodes
-    Arrays.fill(nodePath.ints, nodePath.length - 1, nodePath.ints.length, -1);
+    // initialise node
+    setLastNode(-1);
   }
 
   private void decrNodeObjectPath() {
@@ -138,8 +144,12 @@ import org.apache.lucene.util.IntsRef;
   private int processNumber() {
     final String text = yytext();
     buffer.setLength(0);
-    buffer.append(text.substring(text.indexOf(':') + 1));
+    buffer.append(text.substring(text.indexOf(':') + 1).trim());
     return NUMBER;
+  }
+
+  private String errorMessage(String msg) {
+    return "Error parsing JSON document at [line=" + yyline + ", column=" + yycolumn + "]: " + msg;
   }
 
 %}
@@ -168,16 +178,20 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
 
 <sOBJECT> {
   "}"                            { decrNodeObjectPath();
+                                   if (openLeafNode) { // unclosed entry to a lead node
+                                     decrNodeObjectPath();
+                                     openLeafNode = false;
+                                   }
                                    final int state = states.pop();
                                    if (state != sOBJECT) {
-                                     throw new IllegalStateException("Error parsing JSON document: Expected '}', got " + yychar());
+                                     throw new IllegalStateException(errorMessage("Expected '}', got " + yychar()));
                                    }
                                    yybegin(states.empty() ? YYINITIAL : states.peek());
                                  }
-  ":"{WHITESPACE}*{NULL}         { incrNodeObjectPath(); setLastNode(0); return NULL; }
-  ":"{WHITESPACE}*{FALSE}        { incrNodeObjectPath(); setLastNode(0); return FALSE; }
-  ":"{WHITESPACE}*{TRUE}         { incrNodeObjectPath(); setLastNode(0); return TRUE; }
-  ":"{WHITESPACE}*{NUMBER}       { incrNodeObjectPath(); setLastNode(0); return processNumber(); }
+  ":"{WHITESPACE}*{NULL}         { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return NULL; }
+  ":"{WHITESPACE}*{FALSE}        { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return FALSE; }
+  ":"{WHITESPACE}*{TRUE}         { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return TRUE; }
+  ":"{WHITESPACE}*{NUMBER}       { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return processNumber(); }
   ":"{WHITESPACE}*"["            { incrNodeObjectPath();
                                    yybegin(sARRAY);
                                    states.push(sARRAY);
@@ -186,25 +200,31 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
                                    states.push(sOBJECT);
                                    yybegin(sOBJECT);
                                  }
-  ":"{WHITESPACE}*\"             { incrNodeObjectPath();
+  ":"{WHITESPACE}*\"             { openLeafNode = true;
+                                   incrNodeObjectPath();
                                    setLastNode(0);
                                    buffer.setLength(0);
                                    yybegin(sSTRING);
                                  }
-  ","                            { decrNodeObjectPath(); }
+  ","                            { if (openLeafNode) {
+                                     openLeafNode = false;
+                                     decrNodeObjectPath();
+                                   }
+                                 }
   \"                             { addToLastNode(1);
                                    buffer.setLength(0);
                                    yybegin(sSTRING);
                                  }
-  {WHITESPACE}                   { /* ignore white space. */ }
+  // Error state
+  "]"                            { throw new IllegalStateException(errorMessage("Found closing array ']' while in OBJECT state")); }
 }
 
 <sARRAY> {
-  "]"                            { int state = states.pop();
+  "]"                            { decrNodeObjectPath();
+                                   int state = states.pop();
                                    if (state != sARRAY) {
-                                     throw new IllegalStateException("Error parsing JSON document: Expected ']', got " + yychar());
+                                     throw new IllegalStateException(errorMessage("Expected ']', got " + yychar()));
                                    }
-                                   decrNodeObjectPath();
                                    yybegin(states.peek());
                                  }
   "{"                            { addToLastNode(1);
@@ -221,11 +241,14 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
   {TRUE}                         { addToLastNode(1); return TRUE; }
   {FALSE}                        { addToLastNode(1); return FALSE; }
   {NUMBER}                       { addToLastNode(1); return processNumber(); }
-  ","                            { }
+  ","                            { /* nothing */ }
   \"                             { addToLastNode(1);
                                    buffer.setLength(0);
                                    yybegin(sSTRING);
                                  }
+  // Error state
+  "}"                            { throw new IllegalStateException(errorMessage("Found closing object '}' while in ARRAY state")); }
+  ":"                            { throw new IllegalStateException(errorMessage("Found ':' while in ARRAY state")); }
 }
 
 <sSTRING> {
@@ -242,7 +265,7 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
 
 /* Check that the states are empty */
 <<EOF>>                          { if (!states.empty()) {
-                                     throw new IllegalStateException("Error parsing JSON document. Check that all arrays/objects/strings are closed.");
+                                     throw new IllegalStateException(errorMessage("Check that all arrays/objects/strings are closed"));
                                    }
                                    return YYEOF;
                                  }

@@ -82,22 +82,22 @@ public abstract class TokenizerHelper {
 
       assertTrue("token "+i+" exists", t.incrementToken());
 
-      assertEquals(expectedImages[i], termAtt.toString());
+      assertEquals("i=" + i, expectedImages[i], termAtt.toString());
 
       if (expectedTypes != null) {
-        assertEquals(expectedTypes[i], typeAtt.type());
+        assertEquals("i=" + i, expectedTypes[i], typeAtt.type());
       }
 
       if (expectedDatatypes != null) {
-        assertEquals(expectedDatatypes[i], dtypeAtt.datatypeURI() == null ? "" : String.valueOf(dtypeAtt.datatypeURI()));
+        assertEquals("i=" + i, expectedDatatypes[i], dtypeAtt.datatypeURI() == null ? "" : String.valueOf(dtypeAtt.datatypeURI()));
       }
 
       if (expectedPosIncrs != null) {
-        assertEquals(expectedPosIncrs[i], posIncrAtt.getPositionIncrement());
+        assertEquals("i=" + i, expectedPosIncrs[i], posIncrAtt.getPositionIncrement());
       }
 
       if (expectedNode != null) {
-        assertEquals(expectedNode[i], nodeAtt.node());
+        assertEquals("i=" + i, expectedNode[i], nodeAtt.node());
       }
 
     }
