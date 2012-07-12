@@ -36,7 +36,6 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
-import org.sindice.siren.analysis.attributes.TupleNodeAttributeImpl;
 
 /**
  * A grammar-based tokenizer constructed with JFlex for N-Tuples. Splits a
@@ -52,11 +51,6 @@ extends Tokenizer {
   private int                      _tid = 0;
 
   private int                      _cid = 0;
-
-  /** Maximum length limitation */
-  private int                      _maxLength           = 0;
-
-  private int                      _length              = 0;
 
   /** Token definition */
 
@@ -83,14 +77,11 @@ extends Tokenizer {
 
   /**
    * Creates a new instance of the {@link TupleTokenizer}. Attaches the
-   * <code>input</code> to a newly created JFlex scanner. The
-   * <code>maxLength</code> determines the maximum number of tokens allowed for
-   * one triple.
+   * <code>input</code> to a newly created JFlex scanner.
    */
-  public TupleTokenizer(final Reader input, final int maxLength) {
+  public TupleTokenizer(final Reader input) {
     super(input);
     this._scanner = new TupleTokenizerImpl(input);
-    this._maxLength = maxLength;
     this.initAttributes();
   }
 
@@ -109,20 +100,15 @@ extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    nodeAtt = new TupleNodeAttributeImpl();
-    this.addAttributeImpl((TupleNodeAttributeImpl) nodeAtt);
+    nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 
   @Override
   public final boolean incrementToken()
   throws IOException {
     this.clearAttributes();
-
-    while (_length < _maxLength) {
-      posIncrAtt.setPositionIncrement(1);
-      return this.nextTupleToken();
-    }
-    return false;
+    posIncrAtt.setPositionIncrement(1);
+    return this.nextTupleToken();
   }
 
   private boolean nextTupleToken()
@@ -133,7 +119,6 @@ extends Tokenizer {
       case TupleTokenizer.BNODE:
         _scanner.getBNodeText(termAtt);
         this.updateToken(tokenType, null, _scanner.yychar() + 2);
-        _length++;
         // Increment tuple cell ID counter
         _cid++;
         break;
@@ -141,7 +126,6 @@ extends Tokenizer {
       case TupleTokenizer.URI:
         _scanner.getURIText(termAtt);
         this.updateToken(tokenType, _scanner.getDatatypeURI(), _scanner.yychar() + 1);
-        _length++;
         // Increment tuple cell ID counter
         _cid++;
         break;
@@ -149,7 +133,6 @@ extends Tokenizer {
       case TupleTokenizer.LITERAL:
         _scanner.getLiteralText(termAtt);
         this.updateToken(tokenType, _scanner.getDatatypeURI(), _scanner.yychar() + 1);
-        _length++;
         // Increment tuple cell ID counter
         _cid++;
         break;
@@ -201,7 +184,6 @@ extends Tokenizer {
       input.reset();
     }
     _scanner.yyreset(input);
-    _length = 0;
     _tid = _cid = 0;
   }
 

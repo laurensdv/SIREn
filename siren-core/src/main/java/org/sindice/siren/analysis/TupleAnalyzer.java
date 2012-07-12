@@ -101,7 +101,7 @@ public class TupleAnalyzer extends Analyzer {
 
   @Override
   protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
-    final TupleTokenizer source = new TupleTokenizer(reader, Integer.MAX_VALUE);
+    final TupleTokenizer source = new TupleTokenizer(reader);
 
     TokenStream sink = new TokenTypeFilter(source, new int[] {TupleTokenizer.BNODE,
                                                               TupleTokenizer.DOT});
