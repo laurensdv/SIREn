@@ -38,7 +38,7 @@ import org.sindice.siren.util.XSDDatatype;
 public class TestTupleTokenizer
 extends TokenizerHelper {
 
-  private final Tokenizer _t = new TupleTokenizer(new StringReader(""), Integer.MAX_VALUE);
+  private final Tokenizer _t = new TupleTokenizer(new StringReader(""));
 
   @Test
   public void testURI()
