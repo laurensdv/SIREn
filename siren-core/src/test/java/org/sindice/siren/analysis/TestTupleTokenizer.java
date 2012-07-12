@@ -36,7 +36,7 @@ import org.junit.Test;
 import org.sindice.siren.util.XSDDatatype;
 
 public class TestTupleTokenizer
-extends TokenizerHelper {
+extends NodeTokenizerHelper {
 
   private final Tokenizer _t = new TupleTokenizer(new StringReader(""), Integer.MAX_VALUE);
 

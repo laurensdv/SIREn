@@ -37,11 +37,6 @@ extends Tokenizer {
 
   private final JsonTokenizerImpl scanner;
 
-  /** Maximum length limitation */
-  private int                     maxLength = 0;
-
-  private int                     length    = 0;
-
   /** Token Definition */
   public static final int         NULL      = 0;
   public static final int         TRUE      = 1;
@@ -49,10 +44,9 @@ extends Tokenizer {
   public static final int         NUMBER    = 3;
   public static final int         LITERAL   = 4;
 
-  public JsonTokenizer(Reader input, int maxLength) {
+  public JsonTokenizer(Reader input) {
     super(input);
     scanner = new JsonTokenizerImpl(input);
-    this.maxLength = maxLength;
     this.initAttributes();
   }
 
@@ -85,8 +79,10 @@ extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    nodeAtt = new JsonNodeAttributeImpl();
-    this.addAttributeImpl((JsonNodeAttributeImpl) nodeAtt);
+    if (!this.hasAttribute(NodeAttribute.class)) {
+      this.addAttributeImpl(new JsonNodeAttributeImpl());
+    }
+    nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 
   @Override
@@ -94,11 +90,8 @@ extends Tokenizer {
   throws IOException {
     this.clearAttributes();
 
-    while (length < maxLength) {
-      posIncrAtt.setPositionIncrement(1);
-      return this.nextTupleToken();
-    }
-    return false;
+    posIncrAtt.setPositionIncrement(1);
+    return this.nextTupleToken();
   }
 
   private boolean nextTupleToken()
@@ -109,31 +102,26 @@ extends Tokenizer {
       case FALSE:
         termAtt.append("false");
         this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
-        length++;
         break;
 
       case TRUE:
         termAtt.append("true");
         this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
-        length++;
         break;
 
       case NULL:
         termAtt.append("null");
         this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
-        length++;
         break;
 
       case NUMBER:
         termAtt.append(scanner.getNumber());
         this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
-        length++;
         break;
 
       case LITERAL:
         scanner.getLiteralText(termAtt);
         this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar() + 1);
-        length++;
         break;
 
       case JsonTokenizerImpl.YYEOF:
@@ -171,7 +159,6 @@ extends Tokenizer {
       input.reset();
     }
     scanner.yyreset(input);
-    length = 0;
   }
 
   @Override

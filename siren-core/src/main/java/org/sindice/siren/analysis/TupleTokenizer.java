@@ -109,8 +109,10 @@ extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    nodeAtt = new TupleNodeAttributeImpl();
-    this.addAttributeImpl((TupleNodeAttributeImpl) nodeAtt);
+    if (!this.hasAttribute(NodeAttribute.class)) {
+      this.addAttributeImpl(new TupleNodeAttributeImpl());
+    }
+    nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 
   @Override
