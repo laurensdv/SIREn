@@ -370,17 +370,4 @@ public class JsonGenerator {
     }
   }
 
-  public String getDatatype(JsonDatatypes type) {
-    switch (type) {
-      case BOOLEAN:
-        return XSDDatatype.XSD_BOOLEAN;
-      case DOUBLE:
-        return XSDDatatype.XSD_DOUBLE;
-      case STRING:
-        return XSDDatatype.XSD_STRING;
-      default:
-        throw new EnumConstantNotPresentException(JsonDatatypes.class, type.toString());
-    }
-  }
-
 }
