@@ -1,3 +1,23 @@
+/**
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
+ *
+ * Project and contact information: http://www.siren.sindice.com/
+ *
+ * This file is part of the SIREn project.
+ *
+ * SIREn is a free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * SIREn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
+ * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.sindice.siren.analysis;
 
 import java.io.IOException;
@@ -9,6 +29,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
+import org.sindice.siren.analysis.attributes.JsonNodeAttributeImpl;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
 
 public class JsonTokenizer
@@ -35,7 +56,7 @@ extends Tokenizer {
     this.initAttributes();
   }
 
-  protected static String[]        TOKEN_TYPES;
+  protected static String[] TOKEN_TYPES = getTokenTypes();
 
   public static String[] getTokenTypes() {
     if (TOKEN_TYPES == null) {
@@ -64,7 +85,8 @@ extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    nodeAtt = this.addAttribute(NodeAttribute.class);
+    nodeAtt = new JsonNodeAttributeImpl();
+    this.addAttributeImpl((JsonNodeAttributeImpl) nodeAtt);
   }
 
   @Override
@@ -86,31 +108,31 @@ extends Tokenizer {
     switch (tokenType) {
       case FALSE:
         termAtt.append("false");
-        this.updateToken(tokenType, null, scanner.yychar());
+        this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
         length++;
         break;
 
       case TRUE:
         termAtt.append("true");
-        this.updateToken(tokenType, null, scanner.yychar());
+        this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
         length++;
         break;
 
       case NULL:
         termAtt.append("null");
-        this.updateToken(tokenType, null, scanner.yychar());
+        this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
         length++;
         break;
 
       case NUMBER:
         termAtt.append(scanner.getNumber());
-        this.updateToken(tokenType, null, scanner.yychar());
+        this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar());
         length++;
         break;
 
       case LITERAL:
         scanner.getLiteralText(termAtt);
-        this.updateToken(tokenType, null, scanner.yychar() + 1);
+        this.updateToken(tokenType, scanner.getDatatypeURI(), scanner.yychar() + 1);
         length++;
         break;
 
@@ -137,7 +159,7 @@ extends Tokenizer {
     // update token type
     typeAtt.setType(TOKEN_TYPES[tokenType]);
     // update datatype
-//    dtypeAtt.setDatatypeURI(datatypeURI);
+    dtypeAtt.setDatatypeURI(datatypeURI);
     // Update structural information
     nodeAtt.copyNode(scanner.getNodePath());
   }

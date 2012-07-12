@@ -37,6 +37,7 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
+import org.sindice.siren.analysis.attributes.TupleNodeAttributeImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,8 @@ public class MockSirenTokenizer extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
-    nodeAtt = this.addAttribute(NodeAttribute.class);
+    nodeAtt = new TupleNodeAttributeImpl();
+    this.addAttributeImpl((TupleNodeAttributeImpl) nodeAtt);
   }
 
   @Override

@@ -28,7 +28,6 @@ package org.sindice.siren.analysis.attributes;
 
 import java.io.Serializable;
 import java.nio.IntBuffer;
-import java.util.Arrays;
 
 import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.IntsRef;
@@ -37,7 +36,7 @@ import org.sindice.siren.util.ArrayUtils;
 /**
  * The node path of a token.
  */
-public class NodeAttributeImpl extends AttributeImpl implements NodeAttribute, Cloneable, Serializable {
+public class TupleNodeAttributeImpl extends AttributeImpl implements NodeAttribute, Cloneable, Serializable {
 
   private final IntsRef ref = new IntsRef(2);
   protected IntBuffer node = IntBuffer.allocate(2);
@@ -74,8 +73,8 @@ public class NodeAttributeImpl extends AttributeImpl implements NodeAttribute, C
       return true;
     }
 
-    if (other instanceof NodeAttributeImpl) {
-      final NodeAttributeImpl o = (NodeAttributeImpl) other;
+    if (other instanceof TupleNodeAttributeImpl) {
+      final TupleNodeAttributeImpl o = (TupleNodeAttributeImpl) other;
       return node.equals(o.node);
     }
 
@@ -89,7 +88,7 @@ public class NodeAttributeImpl extends AttributeImpl implements NodeAttribute, C
 
   @Override
   public void copyTo(final AttributeImpl target) {
-    final NodeAttributeImpl t = (NodeAttributeImpl) target;
+    final TupleNodeAttributeImpl t = (TupleNodeAttributeImpl) target;
     t.node.clear();
     t.node.put(node);
   }
@@ -118,8 +117,6 @@ public class NodeAttributeImpl extends AttributeImpl implements NodeAttribute, C
     node.clear();
     this.ensureIntBufferCapacity(nodePath.length);
     node.put(nodePath.ints, nodePath.offset, nodePath.length);
-    // TODO: is this missing ?
-    // node.limit(nodePath.length);
   }
 
   @Override

@@ -60,7 +60,6 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
 
   private final CharArrayMap<Analyzer> dtsAnalyzer;
 
-  //
   private CharTermAttribute termAtt;
   private OffsetAttribute offsetAtt;
   private PositionIncrementAttribute posIncrAtt;

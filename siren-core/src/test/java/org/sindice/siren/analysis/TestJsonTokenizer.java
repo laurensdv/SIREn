@@ -1,3 +1,23 @@
+/**
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
+ *
+ * Project and contact information: http://www.siren.sindice.com/
+ *
+ * This file is part of the SIREn project.
+ *
+ * SIREn is a free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * SIREn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
+ * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.sindice.siren.analysis;
 
 import static org.junit.Assert.fail;
@@ -17,6 +37,7 @@ import java.util.Random;
 import org.apache.lucene.util.IntsRef;
 import org.junit.Before;
 import org.junit.Test;
+import org.sindice.siren.util.XSDDatatype;
 
 public class TestJsonTokenizer
 extends TokenizerHelper {
@@ -34,6 +55,34 @@ extends TokenizerHelper {
   }
 
   @Test
+  public void testNodePathBufferOverflow()
+  throws Exception {
+    final int size = 1030;
+    final StringBuilder sb = new StringBuilder("{");
+    final String[] images = new String[size + 1];
+    final String[] types = new String[size + 1];
+
+    for (int i = 0; i < size; i++) {
+      images[i] = "o" + i;
+      types[i] = TOKEN_TYPES[LITERAL];
+    }
+    images[size] = "true";
+    types[size] = TOKEN_TYPES[TRUE];
+
+    // Creates nested objects
+    for (int i = 0; i < size; i++) {
+      sb.append("{\"o").append(i).append("\":");
+    }
+    sb.append("true");
+    // Close nested objects
+    for (int i = 0; i < size; i++) {
+      sb.append("}");
+    }
+    sb.append("}");
+    this.assertTokenizesTo(_t, sb.toString(), images, types);
+  }
+
+  @Test
   public void testEmptyJson()
   throws Exception {
     this.assertTokenizesTo(_t, "{}", new String[] {}, new String[] {});
@@ -47,6 +96,7 @@ extends TokenizerHelper {
     // nested empty array
     this.assertTokenizesTo(_t, "{\"a\":[ false, [], true ]}", new String[] { "a", "false", "true" },
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[FALSE], TOKEN_TYPES[TRUE] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_BOOLEAN, XSDDatatype.XSD_BOOLEAN },
       new int[] { 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(0, 2) });
   }
@@ -59,6 +109,9 @@ extends TokenizerHelper {
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER],
                      TOKEN_TYPES[LITERAL], TOKEN_TYPES[TRUE], TOKEN_TYPES[LITERAL], TOKEN_TYPES[FALSE],
                      TOKEN_TYPES[LITERAL], TOKEN_TYPES[NULL] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_DOUBLE,
+                     XSDDatatype.XSD_STRING, XSDDatatype.XSD_BOOLEAN, XSDDatatype.XSD_STRING, XSDDatatype.XSD_BOOLEAN,
+                     XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING },
       new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(1), node(1, 0),
                       node(2), node(2, 0), node(3), node(3, 0), 
@@ -103,6 +156,8 @@ extends TokenizerHelper {
       new String[] { "a0", "t1", "1", "t2", "2", "a1", "t3", "3" },
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL],
                      TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_DOUBLE, XSDDatatype.XSD_STRING,
+                     XSDDatatype.XSD_DOUBLE, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_DOUBLE },
       new int[] { 1, 1, 1, 1, 1, 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0, 0), node(0, 0, 0, 0), node(0, 1, 0),
                       node(0, 1, 0, 0), node(1), node(1, 0), node(1, 0, 0) });
@@ -136,6 +191,9 @@ extends TokenizerHelper {
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL],
                      TOKEN_TYPES[NUMBER], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL],
                      TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NULL] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING,
+                     XSDDatatype.XSD_DOUBLE, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING,
+                     XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING },
       new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(0, 1, 0), node(0, 1, 0, 0), node(0, 1, 0, 1),
                       node(1), node(1, 0), node(1, 0, 0), node(1, 1), node(1, 1, 0), node(1, 1, 0, 0) });
@@ -147,6 +205,7 @@ extends TokenizerHelper {
     this.assertTokenizesTo(_t, "{\"a\":{\"34\":34,23}", // the 23 is not parser, because it is not a literal
       new String[] { "a", "34", "34" },
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_DOUBLE },
       new int[] { 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(0, 0, 0) });
   }
@@ -157,6 +216,7 @@ extends TokenizerHelper {
     this.assertTokenizesTo(_t, "{\"a\":{\"34\":34],\"a\":1}", // \"a\":1 is not parsed because of the stray ']' character
       new String[] { "a", "34", "34" },
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_DOUBLE },
       new int[] { 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(0, 0, 0) });
   }
@@ -167,6 +227,7 @@ extends TokenizerHelper {
     this.assertTokenizesTo(_t, "{\"a\":[\"34\",34},\"a\":1}", // \"a\":1 is not parsed because of the stray '}' character
       new String[] { "a", "34", "34" },
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL], TOKEN_TYPES[NUMBER] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING, XSDDatatype.XSD_DOUBLE },
       new int[] { 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(0, 1) });
   }
@@ -177,6 +238,7 @@ extends TokenizerHelper {
     this.assertTokenizesTo(_t, "{\"a\":[\"34\":34},\"a\":1}", // 34},\"a\":1 is not parsed because of the stray '}' character
       new String[] { "a", "34" },
       new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL] },
+      new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_STRING },
       new int[] { 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0) });
   }
@@ -194,6 +256,7 @@ extends TokenizerHelper {
         this.assertTokenizesTo(_t, json,
           jsonGen.images.toArray(new String[0]),
           jsonGen.types.toArray(new String[0]),
+          jsonGen.datatypes.toArray(new String[0]),
           incr,
           jsonGen.nodes.toArray(new IntsRef[0]));
       } catch (IllegalStateException e) {

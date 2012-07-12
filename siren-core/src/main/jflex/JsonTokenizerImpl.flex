@@ -1,24 +1,22 @@
-/*
- *    This program is free software; you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation; either version 2 of the License, or
- *    (at your option) any later version.
+/**
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
+ * Project and contact information: http://www.siren.sindice.com/
  *
- *    You should have received a copy of the GNU General Public License
- *    along with this program; if not, write to the Free Software
- *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
-/*
- * Scanner.java
- * Copyright (C) 2009 University of Waikato, Hamilton, New Zealand
+ * This file is part of the SIREn project.
  *
- * Copied From Weka for the SIREn use case
+ * SIREn is a free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * SIREn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
+ * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.sindice.siren.analysis;
@@ -29,12 +27,13 @@ import java.util.Stack;
 import java.util.Arrays;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.util.ArrayUtils;
+import org.sindice.siren.util.XSDDatatype;
 
 /**
- * A scanner for JSON data files.
+ * Json document scanner
  *
- * @author FracPete (fracpete at waikato dot ac dot nz)
- * @version $Revision: 5786 $
+ * @author Stephane Campinas [ 12 Jul 2012 ]
  */
 %%
 %yylexthrow java.lang.IllegalStateException
@@ -69,22 +68,45 @@ import org.apache.lucene.util.IntsRef;
 
 %{
 
-  public static final String[] TOKEN_TYPES  = getTokenTypes();
+  /** Datatype representing xsd:string */
+  private static final char[]   XSD_STRING   = XSDDatatype.XSD_STRING.toCharArray();
 
-  StringBuffer buffer                       = new StringBuffer();
+  /**
+   * Datatype representing xsd:double
+   * Any number is by default a double
+   */
+  private static final char[]   XSD_DOUBLE   = XSDDatatype.XSD_DOUBLE.toCharArray();
+
+  /** Datatype representing xsd:boolean */
+  private static final char[]   XSD_BOOLEAN  = XSDDatatype.XSD_BOOLEAN.toCharArray();
+
+  private char[]                datatype;
+
+  /** Buffer containing literal or number value */
+  private final StringBuffer    buffer       = new StringBuffer();
 
   /** The size of the path buffer */
-  private final static int BUFFER_SIZE      = 1024;
+  private final static int      BUFFER_SIZE  = 1024;
+
   /** The path to a node */
-  private IntsRef nodePath                  = new IntsRef(BUFFER_SIZE);
+  private final IntsRef         nodePath     = new IntsRef(BUFFER_SIZE);
+
   /** Stack of lexical states */
-  private final Stack<Integer> states       = new Stack();
+  private final Stack<Integer>  states       = new Stack();
+
   /**
    * Indicates if a leaf node, i.e., a literal, a number, null, or a boolean,
    * was encountered, in which case it needs to be closed, either in the COMMA
    * state, or in the closing curly bracket.
    */
-  private boolean openLeafNode = false;
+  private boolean               openLeafNode = false;
+
+  /**
+   * Return the datatype URI.
+   */
+  public final char[] getDatatypeURI() {
+    return datatype;
+  }
 
   public final int yychar() {
     return yychar;
@@ -103,7 +125,7 @@ import org.apache.lucene.util.IntsRef;
     t.copyBuffer(chars, 0, chars.length);
   }
 
-  public IntsRef getNodePath() {
+  public final IntsRef getNodePath() {
     return nodePath;
   }
 
@@ -116,12 +138,14 @@ import org.apache.lucene.util.IntsRef;
     nodePath.offset = 0;
     nodePath.length = 1;
     openLeafNode = false;
+    datatype = null;
   }
 
   /**
    * Add an object to the current node path
    */
   private void incrNodeObjectPath() {
+    ArrayUtils.growAndCopy(nodePath, nodePath.length + 1);
     nodePath.length++;
     // initialise node
     setLastNode(-1);
@@ -142,6 +166,7 @@ import org.apache.lucene.util.IntsRef;
   }
 
   private int processNumber() {
+    datatype = XSD_DOUBLE;
     final String text = yytext();
     buffer.setLength(0);
     buffer.append(text.substring(text.indexOf(':') + 1).trim());
@@ -188,9 +213,9 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
                                    }
                                    yybegin(states.empty() ? YYINITIAL : states.peek());
                                  }
-  ":"{WHITESPACE}*{NULL}         { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return NULL; }
-  ":"{WHITESPACE}*{FALSE}        { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return FALSE; }
-  ":"{WHITESPACE}*{TRUE}         { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return TRUE; }
+  ":"{WHITESPACE}*{NULL}         { datatype = XSD_STRING; openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return NULL; }
+  ":"{WHITESPACE}*{FALSE}        { datatype = XSD_BOOLEAN; openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return FALSE; }
+  ":"{WHITESPACE}*{TRUE}         { datatype = XSD_BOOLEAN; openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return TRUE; }
   ":"{WHITESPACE}*{NUMBER}       { openLeafNode = true; incrNodeObjectPath(); setLastNode(0); return processNumber(); }
   ":"{WHITESPACE}*"["            { incrNodeObjectPath();
                                    yybegin(sARRAY);
@@ -237,9 +262,9 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
                                    states.push(sARRAY);
                                    yybegin(sARRAY);
                                  }
-  {NULL}                         { addToLastNode(1); return NULL; }
-  {TRUE}                         { addToLastNode(1); return TRUE; }
-  {FALSE}                        { addToLastNode(1); return FALSE; }
+  {NULL}                         { datatype = XSD_STRING; addToLastNode(1); return NULL; }
+  {TRUE}                         { datatype = XSD_BOOLEAN; addToLastNode(1); return TRUE; }
+  {FALSE}                        { datatype = XSD_BOOLEAN; addToLastNode(1); return FALSE; }
   {NUMBER}                       { addToLastNode(1); return processNumber(); }
   ","                            { /* nothing */ }
   \"                             { addToLastNode(1);
@@ -252,7 +277,7 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
 }
 
 <sSTRING> {
-  \"                             { yybegin(states.peek()); return LITERAL; }
+  \"                             { datatype = XSD_STRING; yybegin(states.peek()); return LITERAL; }
   [^\n\r\"\\]+                   { buffer.append(yytext()); }
   \\\"                           { buffer.append('\"'); }
   \\b                            { buffer.append('\b'); }

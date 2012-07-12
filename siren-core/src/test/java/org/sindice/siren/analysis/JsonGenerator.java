@@ -1,3 +1,23 @@
+/**
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
+ *
+ * Project and contact information: http://www.siren.sindice.com/
+ *
+ * This file is part of the SIREn project.
+ *
+ * SIREn is a free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * SIREn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public
+ * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.sindice.siren.analysis;
 
 import static org.sindice.siren.analysis.JsonTokenizer.FALSE;
@@ -14,6 +34,7 @@ import java.util.Stack;
 
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.util.ArrayUtils;
+import org.sindice.siren.util.XSDDatatype;
 
 public class JsonGenerator {
 
@@ -30,6 +51,7 @@ public class JsonGenerator {
   public final ArrayList<IntsRef> nodes       = new ArrayList<IntsRef>();
   public final ArrayList<Integer> incr        = new ArrayList<Integer>();
   public final ArrayList<String>  types       = new ArrayList<String>();
+  public final ArrayList<String>  datatypes   = new ArrayList<String>();
   private final IntsRef           curNodePath = new IntsRef(1024);
   public boolean                  shouldFail  = false;
   private final int               MAX_DEPTH   = 50;
@@ -52,6 +74,7 @@ public class JsonGenerator {
     images.clear();
     nodes.clear();
     incr.clear();
+    datatypes.clear();
     types.clear();
     curNodePath.length = 1;
     curNodePath.offset = 0;
@@ -86,6 +109,7 @@ public class JsonGenerator {
             images.add("stepha n e");
             types.add(TOKEN_TYPES[LITERAL]);
             incr.add(1);
+            datatypes.add(XSDDatatype.XSD_STRING);
             return "\"stepha n e\"" + getWhitespace() + ",";
           case 1:
             addToLastNode(1);
@@ -93,6 +117,7 @@ public class JsonGenerator {
             images.add("34.560e-9");
             types.add(TOKEN_TYPES[NUMBER]);
             incr.add(1);
+            datatypes.add(XSDDatatype.XSD_DOUBLE);
             return "34.560e-9" + getWhitespace() + ",";
           case 2:
             addToLastNode(1);
@@ -100,6 +125,7 @@ public class JsonGenerator {
             images.add("true");
             types.add(TOKEN_TYPES[TRUE]);
             incr.add(1);
+            datatypes.add(XSDDatatype.XSD_BOOLEAN);
             return "true" + getWhitespace() + ",";
           case 3:
             addToLastNode(1);
@@ -107,6 +133,7 @@ public class JsonGenerator {
             images.add("false");
             types.add(TOKEN_TYPES[FALSE]);
             incr.add(1);
+            datatypes.add(XSDDatatype.XSD_BOOLEAN);
             return "false" + getWhitespace() + ",";
           case 4:
             addToLastNode(1);
@@ -114,6 +141,7 @@ public class JsonGenerator {
             images.add("null");
             types.add(TOKEN_TYPES[NULL]);
             incr.add(1);
+            datatypes.add(XSDDatatype.XSD_STRING);
             return "null" + getWhitespace() + ",";
           case 5:
             if (states.size() <= MAX_DEPTH) {
@@ -152,6 +180,7 @@ public class JsonGenerator {
             incr.add(1);
             addToLastNode(1);
             nodes.add(IntsRef.deepCopyOf(curNodePath));
+            datatypes.add(XSDDatatype.XSD_STRING);
 
             states.push(OBJECT_VAL);
             return "\"ste ph ane\"" + getWhitespace() + ":";
@@ -175,6 +204,7 @@ public class JsonGenerator {
             setLastNode(0);
             nodes.add(IntsRef.deepCopyOf(curNodePath));
             decrNodeObjectPath();
+            datatypes.add(XSDDatatype.XSD_DOUBLE);
 
             states.pop(); // remove OBJECT_VAL state
             return "34.560e-9" + getWhitespace() + ",";
@@ -186,6 +216,7 @@ public class JsonGenerator {
             setLastNode(0);
             nodes.add(IntsRef.deepCopyOf(curNodePath));
             decrNodeObjectPath();
+            datatypes.add(XSDDatatype.XSD_BOOLEAN);
 
             states.pop(); // remove OBJECT_VAL state
             return "true" + getWhitespace() + ",";
@@ -197,6 +228,7 @@ public class JsonGenerator {
             setLastNode(0);
             nodes.add(IntsRef.deepCopyOf(curNodePath));
             decrNodeObjectPath();
+            datatypes.add(XSDDatatype.XSD_BOOLEAN);
 
             states.pop(); // remove OBJECT_VAL state
             return "false" + getWhitespace() + ",";
@@ -208,6 +240,7 @@ public class JsonGenerator {
             setLastNode(0);
             nodes.add(IntsRef.deepCopyOf(curNodePath));
             decrNodeObjectPath();
+            datatypes.add(XSDDatatype.XSD_STRING);
 
             states.pop(); // remove OBJECT_VAL state
             return "null" + getWhitespace() + ",";
@@ -308,6 +341,7 @@ public class JsonGenerator {
     setLastNode(0);
     nodes.add(IntsRef.deepCopyOf(curNodePath));
     decrNodeObjectPath();
+    datatypes.add(XSDDatatype.XSD_STRING);
 
     states.pop(); // remove OBJECT_VAL state
     return "\"" + val + "\"" + getWhitespace() + ",";
@@ -333,6 +367,19 @@ public class JsonGenerator {
         return "true";
       default:
         throw new IllegalArgumentException("No value for index=" + valueType);
+    }
+  }
+
+  public String getDatatype(JsonDatatypes type) {
+    switch (type) {
+      case BOOLEAN:
+        return XSDDatatype.XSD_BOOLEAN;
+      case DOUBLE:
+        return XSDDatatype.XSD_DOUBLE;
+      case STRING:
+        return XSDDatatype.XSD_STRING;
+      default:
+        throw new EnumConstantNotPresentException(JsonDatatypes.class, type.toString());
     }
   }
 
