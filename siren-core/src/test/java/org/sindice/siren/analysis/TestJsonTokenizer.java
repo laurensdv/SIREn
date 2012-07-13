@@ -40,9 +40,9 @@ import org.junit.Test;
 import org.sindice.siren.util.XSDDatatype;
 
 public class TestJsonTokenizer
-extends TokenizerHelper {
+extends NodeTokenizerHelper {
 
-  private final JsonTokenizer _t      = new JsonTokenizer(new StringReader(""), Integer.MAX_VALUE);
+  private final JsonTokenizer _t      = new JsonTokenizer(new StringReader(""));
 
   private final Random        seed    = new Random();
   private final JsonGenerator jsonGen = new JsonGenerator();

@@ -34,7 +34,7 @@ import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
 
-public abstract class TokenizerHelper {
+public abstract class NodeTokenizerHelper {
 
   protected void assertTokenizesTo(final Tokenizer t, final String input,
                                 final String[] expectedImages,

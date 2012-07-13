@@ -36,6 +36,7 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 import org.sindice.siren.analysis.attributes.NodeAttribute;
+import org.sindice.siren.analysis.attributes.TupleNodeAttributeImpl;
 
 /**
  * A grammar-based tokenizer constructed with JFlex for N-Tuples. Splits a
@@ -100,6 +101,9 @@ extends Tokenizer {
     posIncrAtt = this.addAttribute(PositionIncrementAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dtypeAtt = this.addAttribute(DatatypeAttribute.class);
+    if (!this.hasAttribute(NodeAttribute.class)) {
+      this.addAttributeImpl(new TupleNodeAttributeImpl());
+    }
     nodeAtt = this.addAttribute(NodeAttribute.class);
   }
 

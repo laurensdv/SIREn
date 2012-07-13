@@ -21,6 +21,7 @@
 package org.sindice.siren.analysis.attributes;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.IntsRef;
@@ -37,7 +38,7 @@ extends AttributeImpl
 implements NodeAttribute, Cloneable, Serializable {
 
   private static final long serialVersionUID = 8820316999175774635L;
-  private IntsRef           node;
+  private final IntsRef     node             = new IntsRef();
 
   /**
    * Returns this Token's node path.
@@ -48,7 +49,9 @@ implements NodeAttribute, Cloneable, Serializable {
 
   @Override
   public void clear() {
-    node = null;
+    node.length = 0;
+    node.offset = 0;
+    Arrays.fill(node.ints, 0);
   }
 
   @Override
@@ -73,14 +76,15 @@ implements NodeAttribute, Cloneable, Serializable {
   @Override
   public void copyTo(final AttributeImpl target) {
     final JsonNodeAttributeImpl t = (JsonNodeAttributeImpl) target;
-    t.clear(); // reclame the memory from the previous IntsRef
     t.copyNode(node);
   }
 
   @Override
   public void copyNode(final IntsRef nodePath) {
-    clear();
-    node = new IntsRef(nodePath.ints, nodePath.offset, nodePath.length);
+    ArrayUtils.growAndCopy(node, nodePath.length);
+    System.arraycopy(nodePath.ints, nodePath.offset, node.ints, node.offset, nodePath.length);
+    node.offset = nodePath.offset;
+    node.length = nodePath.length;
   }
 
   @Override

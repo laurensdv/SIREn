@@ -35,8 +35,7 @@ import org.apache.lucene.util.IntsRef;
 import org.junit.Test;
 import org.sindice.siren.util.XSDDatatype;
 
-public class TestTupleTokenizer
-extends TokenizerHelper {
+public class TestTupleTokenizer extends NodeTokenizerHelper {
 
   private final Tokenizer _t = new TupleTokenizer(new StringReader(""));
 

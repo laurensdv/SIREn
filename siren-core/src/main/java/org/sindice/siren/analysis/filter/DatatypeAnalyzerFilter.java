@@ -37,6 +37,7 @@ import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharArrayMap;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.Version;
+import org.sindice.siren.analysis.JsonTokenizer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.analysis.TupleTokenizer;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
@@ -52,8 +53,9 @@ import org.sindice.siren.util.XSDDatatype;
  * This filter provides a {@link #register(char[], Analyzer)} method which allows
  * to register an analyzer to a specific datatype URI. It can be called through
  * the {@link TupleAnalyzer} class.
- * <p> The {@link TupleTokenizer} assigns by default the datatype
- * {@link XSDDatatype.XSD_STRING} to literals and
+ * <p>
+ * The {@link TupleTokenizer} and {@link JsonTokenizer} assign by default the
+ * datatype {@link XSDDatatype.XSD_STRING} to literals and
  * {@link XSDDatatype.XSD_ANY_URI} to URI.
  */
 public class DatatypeAnalyzerFilter extends TokenFilter {
