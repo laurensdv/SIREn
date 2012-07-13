@@ -150,24 +150,28 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
 
     @Override
     protected void writeHeader() throws IOException {
-      logger.debug("Write DocFreq header - writer-id={}", this.hashCode());
-      logger.debug("DocFreq header start at fp={}", out.getFilePointer());
+      // logger.debug("Write DocFreq header - writer-id={}", this.hashCode());
+      // logger.debug("DocFreq header start at fp={}", out.getFilePointer());
+
       // write block size (same for all of them)
       out.writeVInt(docBuffer.length);
-      logger.debug("blockSize: {}", docBuffer.length);
+      // logger.debug("blockSize: {}", docBuffer.length);
+
       // write size of each compressed data block
       out.writeVInt(docCompressedBuffer.length);
-      logger.debug("docCompressedBuffer.length: {}", docCompressedBuffer.length);
+      // logger.debug("docCompressedBuffer.length: {}", docCompressedBuffer.length);
       out.writeVInt(freqCompressedBuffer.length);
-      logger.debug("freqCompressedBuffer.length: {}", freqCompressedBuffer.length);
+      // logger.debug("freqCompressedBuffer.length: {}", freqCompressedBuffer.length);
       out.writeVInt(nodFreqCompressedBuffer.length);
-      logger.debug("nodFreqCompressedBuffer.length: {}", nodFreqCompressedBuffer.length);
+      // logger.debug("nodFreqCompressedBuffer.length: {}", nodFreqCompressedBuffer.length);
+
       // write first and last doc id
       out.writeVInt(firstDocId);
       out.writeVInt(lastDocId - firstDocId);
-      logger.debug("firstDocId: {}, lastDocId: {}", firstDocId, lastDocId);
+      // logger.debug("firstDocId: {}, lastDocId: {}", firstDocId, lastDocId);
+
       // write node and pos skip data
-      logger.debug("Write node and pos skip data");
+      // logger.debug("Write node and pos skip data");
       nodeBlockIndex.mark();
       nodeBlockIndex.write(out, true);
       posBlockIndex.mark();

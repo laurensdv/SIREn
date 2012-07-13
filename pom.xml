@@ -20,6 +20,7 @@
     <module>siren-core</module>
     <module>siren-solr</module>
     <module>siren-qparser</module>
+    <module>siren-benchmark</module>
   </modules>
   
   <licenses>

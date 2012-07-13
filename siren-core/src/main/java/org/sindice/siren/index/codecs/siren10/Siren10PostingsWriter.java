@@ -46,7 +46,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.IntsRef;
-import org.apache.lucene.util.MutableBits;
 import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 import org.sindice.siren.index.codecs.MappingMultiDocsNodesAndPositionsEnum;
 import org.sindice.siren.index.codecs.block.BlockIndexOutput;
@@ -385,7 +384,7 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
 
   @Override
   public void flushTermsBlock(final int start, final int count) throws IOException {
-    logger.debug("flushTermsBlock: {}", this.hashCode());
+    // logger.debug("flushTermsBlock: {}", this.hashCode());
     assert indexBytesWriter.getFilePointer() == 0;
     final int absStart = pendingTerms.size() - start;
     final List<PendingTerm> slice = pendingTerms.subList(absStart, absStart+count);
@@ -405,11 +404,11 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
       final PendingTerm t = slice.get(idx);
 
       // write block count stat
-      logger.debug("Write blockCount: {}", t.blockCount);
+      // logger.debug("Write blockCount: {}", t.blockCount);
       indexBytesWriter.writeVInt(t.blockCount);
 
       docIndexFlush.copyFrom(t.docIndex, false);
-      logger.debug("Write docIndex: {}", docIndexFlush);
+      // logger.debug("Write docIndex: {}", docIndexFlush);
       docIndexFlush.write(indexBytesWriter, isFirstTerm);
 
       if (t.skipFP != -1) {

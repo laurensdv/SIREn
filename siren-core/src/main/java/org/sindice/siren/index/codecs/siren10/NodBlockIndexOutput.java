@@ -28,7 +28,6 @@ package org.sindice.siren.index.codecs.siren10;
 import java.io.IOException;
 
 import org.apache.lucene.store.IndexOutput;
-import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.index.codecs.block.BlockCompressor;
@@ -176,13 +175,15 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
 
     @Override
     protected void writeHeader() throws IOException {
-      logger.debug("Write Nod header: {}", this.hashCode());
-      logger.debug("Nod header start at {}", out.getFilePointer());
+      // logger.debug("Write Nod header: {}", this.hashCode());
+      // logger.debug("Nod header start at {}", out.getFilePointer());
+
       // write block sizes
       out.writeVInt(nodLenBuffer.length);
       out.writeVInt(nodBuffer.length);
       out.writeVInt(termFreqBuffer.length);
       assert nodLenBuffer.length <= nodBuffer.length;
+
       // write size of compressed data blocks
       out.writeVInt(nodLenCompressedBuffer.length);
       out.writeVInt(nodCompressedBuffer.length);
@@ -221,12 +222,12 @@ public class NodBlockIndexOutput extends BlockIndexOutput {
 
     @Override
     protected void writeData() throws IOException {
-      logger.debug("Write Node data: {}", this.hashCode());
-      logger.debug("Write Node Length at {}", out.getFilePointer());
+      // logger.debug("Write Node data: {}", this.hashCode());
+      // logger.debug("Write Node Length at {}", out.getFilePointer());
       out.writeBytes(nodLenCompressedBuffer.bytes, nodLenCompressedBuffer.length);
-      logger.debug("Write Node at {}", out.getFilePointer());
+      // logger.debug("Write Node at {}", out.getFilePointer());
       out.writeBytes(nodCompressedBuffer.bytes, nodCompressedBuffer.length);
-      logger.debug("Write Term Freq in Node at {}", out.getFilePointer());
+      // logger.debug("Write Term Freq in Node at {}", out.getFilePointer());
       out.writeBytes(termFreqCompressedBuffer.bytes, termFreqCompressedBuffer.length);
     }
 

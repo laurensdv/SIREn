@@ -97,21 +97,6 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>com.google.caliper</groupId>
-      <artifactId>caliper</artifactId>
-      <version>0.5-rc1</version>
-      <scope>test</scope>
-    </dependency>
-
-    <!-- Because of a dependency issue in caliper -->
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>1.7.1</version>
-      <scope>test</scope>
-    </dependency>
-
   </dependencies>
 
 </project>

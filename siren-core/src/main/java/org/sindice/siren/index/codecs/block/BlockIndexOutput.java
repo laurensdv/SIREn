@@ -70,7 +70,7 @@ public abstract class BlockIndexOutput implements Closeable {
 
     public void write(final IndexOutput indexOut, final boolean absolute)
     throws IOException {
-      logger.debug("Write index at {}", fp);
+      // logger.debug("Write index at {}", fp);
       if (absolute) {
         indexOut.writeVLong(fp);
       }

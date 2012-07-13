@@ -66,8 +66,9 @@ public class PosBlockIndexOutput extends BlockIndexOutput {
 
     @Override
     protected void writeHeader() throws IOException {
-      logger.debug("Write Pos header: {}", this.hashCode());
-      logger.debug("Pos header start at {}", out.getFilePointer());
+      // logger.debug("Write Pos header: {}", this.hashCode());
+      // logger.debug("Pos header start at {}", out.getFilePointer());
+
       // write block sizes
       out.writeVInt(posBuffer.length);
       // write size of compressed data block
@@ -90,7 +91,8 @@ public class PosBlockIndexOutput extends BlockIndexOutput {
 
     @Override
     protected void writeData() throws IOException {
-      logger.debug("Write Pos data: {}", this.hashCode());
+      // logger.debug("Write Pos data: {}", this.hashCode());
+
       out.writeBytes(posCompressedBuffer.bytes, posCompressedBuffer.length);
     }
 
