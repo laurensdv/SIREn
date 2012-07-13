@@ -58,7 +58,7 @@ extends NodeTokenizerHelper {
   public void testNodePathBufferOverflow()
   throws Exception {
     final int size = 1030;
-    final StringBuilder sb = new StringBuilder("{");
+    final StringBuilder sb = new StringBuilder();
     final String[] images = new String[size + 1];
     final String[] types = new String[size + 1];
 
@@ -78,7 +78,6 @@ extends NodeTokenizerHelper {
     for (int i = 0; i < size; i++) {
       sb.append("}");
     }
-    sb.append("}");
     this.assertTokenizesTo(_t, sb.toString(), images, types);
   }
 
@@ -99,6 +98,22 @@ extends NodeTokenizerHelper {
       new String[] { XSDDatatype.XSD_STRING, XSDDatatype.XSD_BOOLEAN, XSDDatatype.XSD_BOOLEAN },
       new int[] { 1, 1, 1 },
       new IntsRef[] { node(0), node(0, 0), node(0, 2) });
+  }
+
+  @Test
+  public void testURIinLiteral()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"http://oai.rkbexplorer.com/id/dspace.vsb.cz/oai:dspace.vsb.cz:10084/55723\":true}",
+      new String[] { "http://oai.rkbexplorer.com/id/dspace.vsb.cz/oai:dspace.vsb.cz:10084/55723", "true" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[TRUE] });
+  }
+
+  @Test
+  public void testBackslashes()
+  throws Exception {
+    this.assertTokenizesTo(_t, "{\"test\":\"200309350 DP \\\\\\\\*\\\\\"}",
+      new String[] { "test", "200309350 DP \\\\\\\\*\\\\" },
+      new String[] { TOKEN_TYPES[LITERAL], TOKEN_TYPES[LITERAL] });
   }
 
   @Test

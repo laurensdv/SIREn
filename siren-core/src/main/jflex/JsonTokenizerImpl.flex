@@ -241,7 +241,7 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
                                    yybegin(sSTRING);
                                  }
   // Error state
-  "]"                            { throw new IllegalStateException(errorMessage("Found closing array ']' while in OBJECT state")); }
+  .                              { throw new IllegalStateException(errorMessage("Found bad character while in OBJECT state")); }
 }
 
 <sARRAY> {
@@ -272,20 +272,15 @@ WHITESPACE  = {ENDOFLINE} | [ \t\f]
                                    yybegin(sSTRING);
                                  }
   // Error state
-  "}"                            { throw new IllegalStateException(errorMessage("Found closing object '}' while in ARRAY state")); }
-  ":"                            { throw new IllegalStateException(errorMessage("Found ':' while in ARRAY state")); }
+  .                              { throw new IllegalStateException(errorMessage("Found bad character while in ARRAY state")); }
 }
 
 <sSTRING> {
   \"                             { datatype = XSD_STRING; yybegin(states.peek()); return LITERAL; }
   [^\n\r\"\\]+                   { buffer.append(yytext()); }
   \\\"                           { buffer.append('\"'); }
-  \\b                            { buffer.append('\b'); }
-  \\f                            { buffer.append('\f'); }
-  \\n                            { buffer.append('\n'); }
-  \\r                            { buffer.append('\r'); }
-  \\t                            { buffer.append('\t'); }
-  \\                             { buffer.append('\\'); }
+  \\.                            { buffer.append(yytext()); }
+  \\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F] { buffer.append(Character.toChars(Integer.parseInt(new String(zzBufferL, zzStartRead+2, zzMarkedPos - zzStartRead - 2 ), 16))); }
 }
 
 /* Check that the states are empty */
