@@ -58,7 +58,7 @@ extends Tokenizer {
       TOKEN_TYPES[NULL] = "<NULL>";
       TOKEN_TYPES[TRUE] = "<TRUE>";
       TOKEN_TYPES[FALSE] = "<FALSE>";
-      TOKEN_TYPES[NUMBER] = "<INTEGER>";
+      TOKEN_TYPES[NUMBER] = "<NUMBER>";
       TOKEN_TYPES[LITERAL] = "<LITERAL>";
     }
     return TOKEN_TYPES;
