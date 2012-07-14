@@ -242,9 +242,10 @@ public class NodeDisjunctionScorerQueue {
    * @return If the least scorer has no more nodes, returns false.
    */
   public final boolean nextNodeAndAdjust() throws IOException {
-    // count number of scorers having the same document and node
-    // counting the number of scorers and then performing the iterations of
-    // all the scorers allows to avoid a node array copy (i.e., current node cache)
+    // Count number of scorers having the same document and node.
+    // Counting the number of scorers allows to avoid a node array copy
+    // (i.e., caching the current node) when moving forward all the matching
+    // scorers
     if (size > 0 && nrMatchersInNode < 0) {
       this.countAndSumMatchers();
     }

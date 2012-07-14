@@ -462,7 +462,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
                                           final SepTermState termState,
                                           final Bits liveDocs)
     throws IOException {
-      logger.debug("Init DocsNodesAndPositionsEnum - id={}", this.hashCode());
+      // logger.debug("Init DocsNodesAndPositionsEnum - id={}", this.hashCode());
       this.liveDocs = liveDocs;
 
       // Init readers
@@ -472,7 +472,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
 
       // TODO: can't we only do this if consumer
       // skipped consuming the previous docs?
-      logger.debug("Set docIndex: {}", termState.docIndex);
+      // logger.debug("Set docIndex: {}", termState.docIndex);
       docIndex.set(termState.docIndex);
       docIndex.seek(docReader);
 

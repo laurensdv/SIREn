@@ -94,8 +94,9 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
 
     @Override
     protected void readHeader() throws IOException {
-      logger.debug("Read DocFreq header: {}", this.hashCode());
-      logger.debug("DocFreq header start at {}", in.getFilePointer());
+      // logger.debug("Read DocFreq header: {}", this.hashCode());
+      // logger.debug("DocFreq header start at {}", in.getFilePointer());
+
       // read blockSize and check buffer size
       blockSize = in.readVInt();
       docBuffer = ArrayUtils.grow(docBuffer, blockSize);
@@ -134,11 +135,12 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
       size += nodFreqCompressedBufferLength;
 
       this.seek(dataBlockOffset + size);
-      logger.debug("Skip DocFreq data: {}", dataBlockOffset + size);
+      // logger.debug("Skip DocFreq data: {}", dataBlockOffset + size);
     }
 
     private void decodeDocs() throws IOException {
-      logger.debug("Decode Doc block: {}", this.hashCode());
+      // logger.debug("Decode Doc block: {}", this.hashCode());
+
       in.seek(dataBlockOffset); // skip to doc data block
       in.readBytes(docCompressedBuffer.bytes, 0, docCompressedBufferLength);
       docCompressedBuffer.offset = 0;
@@ -149,7 +151,8 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
     }
 
     private void decodeFreqs() throws IOException {
-      logger.debug("Decode Freqs block: {}", this.hashCode());
+      // logger.debug("Decode Freqs block: {}", this.hashCode());
+
       in.seek(dataBlockOffset + docCompressedBufferLength); // skip to freq data block
       in.readBytes(freqCompressedBuffer.bytes, 0, freqCompressedBufferLength);
       freqCompressedBuffer.offset = 0;
@@ -160,7 +163,8 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
     }
 
     private void decodeNodeFreqs() throws IOException {
-      logger.debug("Decode Node Freqs block: {}", this.hashCode());
+      // logger.debug("Decode Node Freqs block: {}", this.hashCode());
+
       in.seek(dataBlockOffset + docCompressedBufferLength + freqCompressedBufferLength); // skip to node freq data block
       in.readBytes(nodFreqCompressedBuffer.bytes, 0, nodFreqCompressedBufferLength);
       nodFreqCompressedBuffer.offset = 0;
