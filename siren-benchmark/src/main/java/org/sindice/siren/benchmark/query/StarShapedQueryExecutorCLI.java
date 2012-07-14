@@ -30,7 +30,7 @@ import java.io.IOException;
 
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
 import org.sindice.siren.benchmark.query.provider.QueryProvider;
-import org.sindice.siren.benchmark.query.provider.StarShapedQueryProvider;
+import org.sindice.siren.benchmark.query.provider.TreeQueryProvider;
 
 /**
  *
@@ -69,7 +69,7 @@ public class StarShapedQueryExecutorCLI extends AbstractQueryExecutorCLI {
       parser.printHelpOn(System.out);
       throw new RuntimeException("low-group option missing");
     }
-    final StarShapedQueryProvider provider = new StarShapedQueryProvider(null, null, (Integer) opts.valueOf(NB_PAIRS), (Boolean) opts.valueOf(WITH_LOW));
+    final TreeQueryProvider provider = new TreeQueryProvider(null, null, (Integer) opts.valueOf(NB_PAIRS), (Boolean) opts.valueOf(WITH_LOW));
     final TermLexiconReader readerAtt = new TermLexiconReader((File) opts.valueOf(ATTRIBUTE_LEXICON_DIR));
     final TermLexiconReader readerVal = new TermLexiconReader((File) opts.valueOf(VALUE_LEXICON_DIR));
 

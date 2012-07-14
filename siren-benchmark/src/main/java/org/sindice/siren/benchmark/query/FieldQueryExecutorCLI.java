@@ -31,12 +31,12 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
-import org.sindice.siren.benchmark.query.provider.FieldQueryProvider;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
-import org.sindice.siren.benchmark.query.provider.KeywordQueryProvider;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
+import org.sindice.siren.benchmark.query.provider.AttributeQueryProvider;
+import org.sindice.siren.benchmark.query.provider.BooleanQuery.Occur;
+import org.sindice.siren.benchmark.query.provider.BooleanQueryProvider;
 import org.sindice.siren.benchmark.query.provider.QueryProvider;
-import org.sindice.siren.benchmark.query.provider.TermLexiconQueryProvider;
+import org.sindice.siren.benchmark.query.provider.PrimitiveQueryProvider;
 
 public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
 
@@ -47,7 +47,7 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
   public static final String       VALUE_SPEC            = "value-spec";
 
   private Occur[]            occurs              = null;
-  private TermGroups[]       groups              = null;
+  private TermGroup[]       groups              = null;
 
   public FieldQueryExecutorCLI () {
     super();
@@ -65,7 +65,7 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
 
   @Override
   protected QueryProvider getQueryProvider() throws IOException {
-    final FieldQueryProvider provider = new FieldQueryProvider(null, null);
+    final AttributeQueryProvider provider = new AttributeQueryProvider(null, null);
     provider.setPredicateProvider(this.getPredicateProvider());
     provider.setValueProvider(this.getValueProvider());
 // rendel - 25-09-10 - commented because compilation error
@@ -83,7 +83,7 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
     return builder.toString();
   }
 
-  private KeywordQueryProvider getPredicateProvider() throws IOException {
+  private BooleanQueryProvider getPredicateProvider() throws IOException {
     // Terms Specification
     if (opts.has(PREDICATE_SPEC)) {
       this.setTermsSpec(opts.valuesOf(PREDICATE_SPEC));
@@ -95,7 +95,7 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
     }
 
     // QueryProvider
-    final KeywordQueryProvider queryProvider = new KeywordQueryProvider(occurs, groups);
+    final BooleanQueryProvider queryProvider = new BooleanQueryProvider(occurs, groups);
 
     // Term lexicon directory
     File termLexiconDir = null;
@@ -111,12 +111,12 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
     // Instantiate the query provider
     final TermLexiconReader reader = new TermLexiconReader(termLexiconDir);
     reader.setSeed(seed);
-    queryProvider.setTermLexiconReader(reader);
+    queryProvider.setTermLexicon(reader);
 
     return queryProvider;
   }
 
-  private TermLexiconQueryProvider getValueProvider() throws IOException {
+  private PrimitiveQueryProvider getValueProvider() throws IOException {
     // Terms Specification
     if (opts.has(VALUE_SPEC)) {
       this.setTermsSpec(opts.valuesOf(VALUE_SPEC));
@@ -128,11 +128,11 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
     }
 
     // QueryProvider
-    TermLexiconQueryProvider queryProvider = null;
+    PrimitiveQueryProvider queryProvider = null;
     if (opts.has(VALUE_QUERY_PROVIDER)) {
       try {
         final Class clazz = Class.forName((String) opts.valueOf(VALUE_QUERY_PROVIDER));
-        final Constructor<TermLexiconQueryProvider> ct = clazz.getConstructors()[0];
+        final Constructor<PrimitiveQueryProvider> ct = clazz.getConstructors()[0];
         queryProvider = ct.newInstance(occurs, groups);
       } catch (final Exception e) {
         logger.error("The QueryProvider class could not be instanciated.", e);
@@ -155,18 +155,18 @@ public class FieldQueryExecutorCLI extends AbstractQueryExecutorCLI {
     // Instantiate the query provider
     final TermLexiconReader reader = new TermLexiconReader(termLexiconDir);
     reader.setSeed(seed);
-    queryProvider.setTermLexiconReader(reader);
+    queryProvider.setTermLexicon(reader);
 
     return queryProvider;
   }
 
   private final void setTermsSpec(final List<?> spec) {
     String[] specValues = null;
-    groups = new TermGroups[spec.size()];
+    groups = new TermGroup[spec.size()];
     occurs = new Occur[spec.size()];
     for (int i = 0; i < spec.size(); i++) {
       specValues = ((String) spec.get(i)).trim().split(":");
-      groups[i] = TermGroups.valueOf(specValues[0]);
+      groups[i] = TermGroup.valueOf(specValues[0]);
       occurs[i] = Occur.valueOf(specValues[1]);
     }
   }

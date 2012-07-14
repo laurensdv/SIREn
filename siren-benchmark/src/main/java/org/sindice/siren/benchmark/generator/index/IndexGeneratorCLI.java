@@ -123,8 +123,8 @@ public class IndexGeneratorCLI {
     final IndexGenerator indexGenerator = new IndexGenerator(wrapperType,
       indexDir, providerType, inputDir);
 
-    logger.info("Start index generation using document provider {} " +
-    		"and index wrapper {}", providerType, wrapperType);
+    logger.info("Start index generation using document provider '{}' " +
+    		"and index wrapper '{}'", providerType, wrapperType);
 
     indexGenerator.generateIndex();
 
@@ -132,6 +132,8 @@ public class IndexGeneratorCLI {
 
     indexGenerator.exportCommitTimes(timeDir);
     indexGenerator.exportOptimiseTime(timeDir);
+
+    logger.info("Time logs exported to {}", timeDir);
 
     indexGenerator.close();
   }

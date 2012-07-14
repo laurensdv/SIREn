@@ -41,23 +41,23 @@ import org.slf4j.LoggerFactory;
 
 public class TermLexiconWriter {
 
-  public enum TermGroups {
+  public enum TermGroup {
     HIGH, MEDIUM, LOW
   };
 
   private long                                  nTerms  = 0;
   private long                                  wordOcc = 0;
   private final File                            outputDir;
-  private final Map<TermGroups, TermFileWriter> writers;
+  private final Map<TermGroup, TermFileWriter>  writers;
 
   private final boolean                         keepFile;
   private final String[]                        ranges;
 
-  final Logger                                  logger = LoggerFactory.getLogger(TermLexiconWriter.class);
+  final Logger logger = LoggerFactory.getLogger(TermLexiconWriter.class);
 
   public TermLexiconWriter(final File outputDir, final String selectivityRange, final Boolean keepSortedFile) {
     this.outputDir = outputDir;
-    writers = new HashMap<TermGroups, TermFileWriter>(3);
+    writers = new HashMap<TermGroup, TermFileWriter>(3);
     this.ranges = selectivityRange.split("-");
     this.keepFile = keepSortedFile;
 
@@ -195,12 +195,12 @@ public class TermLexiconWriter {
   private void findRanges(final File sortedFile) throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(sortedFile));
     logger.info("Using the Selectivity range: {}-{}-{}", new Object[] { ranges[0], ranges[1], ranges[2] });
-    this.findRange(reader, TermGroups.HIGH, (wordOcc * Integer.valueOf(ranges[0])) / 100);
-    this.findRange(reader, TermGroups.MEDIUM, (wordOcc * Integer.valueOf(ranges[1])) / 100);
-    this.findLowRange(reader, TermGroups.LOW);
+    this.findRange(reader, TermGroup.HIGH, (wordOcc * Integer.valueOf(ranges[0])) / 100);
+    this.findRange(reader, TermGroup.MEDIUM, (wordOcc * Integer.valueOf(ranges[1])) / 100);
+    this.findLowRange(reader, TermGroup.LOW);
   }
 
-  private void findRange(final BufferedReader reader, final TermGroups group,
+  private void findRange(final BufferedReader reader, final TermGroup group,
                          final long maxCumulativeFreq)
   throws NumberFormatException, IOException {
     String line;
@@ -219,7 +219,7 @@ public class TermLexiconWriter {
     }
   }
 
-  private void findLowRange(final BufferedReader reader, final TermGroups group)
+  private void findLowRange(final BufferedReader reader, final TermGroup group)
   throws IOException {
     long cpt = 0;
 
@@ -232,12 +232,12 @@ public class TermLexiconWriter {
   private void writeTermFiles(final File input)
   throws IOException {
     final BufferedReader reader = new BufferedReader(new FileReader(input));
-    logger.info("Average frequency for the group {}:", TermGroups.HIGH);
-    this.writeTermFile(reader, writers.get(TermGroups.HIGH));
-    logger.info("Average frequency for the group {}:", TermGroups.MEDIUM);
-    this.writeTermFile(reader, writers.get(TermGroups.MEDIUM));
-    logger.info("Average frequency for the group {}:", TermGroups.LOW);
-    this.writeTermFile(reader, writers.get(TermGroups.LOW));
+    logger.info("Average frequency for the group {}:", TermGroup.HIGH);
+    this.writeTermFile(reader, writers.get(TermGroup.HIGH));
+    logger.info("Average frequency for the group {}:", TermGroup.MEDIUM);
+    this.writeTermFile(reader, writers.get(TermGroup.MEDIUM));
+    logger.info("Average frequency for the group {}:", TermGroup.LOW);
+    this.writeTermFile(reader, writers.get(TermGroup.LOW));
     reader.close();
   }
 
@@ -261,7 +261,7 @@ public class TermLexiconWriter {
         min = frq;
       cumulativeFRQ += frq;
     }
-    logger.info("Average frequency: {}", cumulativeFRQ / writer.getNumberTerms());
+    logger.info("Average frequency: {}", nTerms == 0 ? 0 : cumulativeFRQ / nTerms);
     logger.info("Min-Max values: [ {}, {} ]", new Object[] { min, max });
   }
 
@@ -269,7 +269,7 @@ public class TermLexiconWriter {
   public final String toString() {
     final StringBuilder builder = new StringBuilder();
 
-    for (final Entry<TermGroups, TermFileWriter> entry : writers.entrySet()) {
+    for (final Entry<TermGroup, TermFileWriter> entry : writers.entrySet()) {
       builder.append(entry.getKey().name());
       builder.append(": ");
       builder.append(entry.getValue().getNumberTerms());

@@ -27,26 +27,28 @@ package org.sindice.siren.benchmark.query.provider;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconGenerator;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
+import org.sindice.siren.benchmark.query.provider.Query.Occur;
 
-public class PhraseQueryProvider extends PrimitiveQueryProvider {
+public class BooleanQueryProvider extends PrimitiveQueryProvider {
 
-  private final TermGroup termGroup;
-
+  private final Map<TermGroup, Occur> clauses;
   private int counter = 0;
 
-  public PhraseQueryProvider(final TermGroup termGroup) {
-   this.termGroup = termGroup;
+  public BooleanQueryProvider(final Map<TermGroup, Occur> clauses) {
+    this.clauses = clauses;
   }
 
   @Override
   public void setTermLexicon(final File lexiconDir) throws IOException {
-    reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.PHRASE_SUBDIR));
+    reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.TERM_SUBDIR));
   }
 
   @Override
@@ -55,45 +57,51 @@ public class PhraseQueryProvider extends PrimitiveQueryProvider {
   }
 
   @Override
-  public PhraseQuery next() {
-    final PhraseQuery pq = new PhraseQuery();
+  public BooleanQuery next() {
+    final BooleanQuery kq = new BooleanQuery();
 
     counter++;
-    try {
-      pq.addPhrase(reader.getRandomTerm(termGroup));
-    }
-    catch (final IOException e) {
-      e.printStackTrace();
-    }
-    return pq;
-  }
-
-  public static class PhraseQuery extends PrimitiveQuery {
-
-    private final List<String> phrases = new ArrayList<String>();
-
-    public void addPhrase(final String phrase) {
-      final String[] words = phrase.split(" ");
-      for (final String word : words) {
-        phrases.add(word);
+    for (final Entry<TermGroup, Occur> clause : clauses.entrySet()) {
+      try {
+        kq.addClause(reader.getRandomTerm(clause.getKey()), clause.getValue());
+      }
+      catch (final IOException e) {
+        e.printStackTrace();
       }
     }
 
-    public List<String> getPhrases() {
-      return this.phrases;
+    return kq;
+  }
+
+  public static class BooleanQuery extends PrimitiveQuery {
+
+    private final Map<String, Occur> clauses;
+
+    public BooleanQuery() {
+      clauses = new HashMap<String, Occur>(4);
+    }
+
+    public void addClause(final String term, final Occur occur) {
+      this.clauses.put(term, occur);
+    }
+
+    public Set<Entry<String, Occur>> getClauses() {
+      return this.clauses.entrySet();
     }
 
     @Override
     public String toString() {
       final StringBuilder builder = new StringBuilder();
-      builder.append("\"");
-      for (final String word : phrases) {
-        builder.append(word + " ");
+      for (final Entry<String, Occur> clause : clauses.entrySet()) {
+        builder.append(clause.getKey());
+        builder.append(":");
+        builder.append(clause.getValue());
+        builder.append(",");
       }
       builder.setLength(builder.length() - 1);
-      builder.append("\"");
       return builder.toString();
     }
+
   }
 
 }

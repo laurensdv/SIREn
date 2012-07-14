@@ -31,13 +31,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TermLexiconReader {
 
-  private final Map<TermGroups, TermFileReader> readers;
+  private final Map<TermGroup, TermFileReader> readers;
 
   final Random rand    = new Random();
   final Logger logger  = LoggerFactory.getLogger(TermLexiconReader.class);
@@ -56,12 +56,12 @@ public class TermLexiconReader {
     }
   }
 
-  private static Map<TermGroups, TermFileReader> getReaders(final File dir)
+  private static Map<TermGroup, TermFileReader> getReaders(final File dir)
   throws IOException {
-    final Map<TermGroups, TermFileReader> readers = new HashMap<TermGroups, TermFileReader>(3);
-    readers.put(TermGroups.HIGH, new TermFileReader(new File(dir, TermGroups.HIGH.toString())));
-    readers.put(TermGroups.MEDIUM, new TermFileReader(new File(dir, TermGroups.MEDIUM.toString())));
-    readers.put(TermGroups.LOW, new TermFileReader(new File(dir, TermGroups.LOW.toString())));
+    final Map<TermGroup, TermFileReader> readers = new HashMap<TermGroup, TermFileReader>(3);
+    readers.put(TermGroup.HIGH, new TermFileReader(new File(dir, TermGroup.HIGH.toString())));
+    readers.put(TermGroup.MEDIUM, new TermFileReader(new File(dir, TermGroup.MEDIUM.toString())));
+    readers.put(TermGroup.LOW, new TermFileReader(new File(dir, TermGroup.LOW.toString())));
     return readers;
   }
 
@@ -71,7 +71,7 @@ public class TermLexiconReader {
    * @return
    * @throws IOException
    */
-  public final String getRandomTerm(final TermGroups group)
+  public final String getRandomTerm(final TermGroup group)
   throws IOException {
     final TermFileReader reader = readers.get(group);
     return reader.getTerm(rand.nextInt((int) reader.getNumberTerms()));

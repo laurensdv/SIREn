@@ -25,28 +25,22 @@
  */
 package org.sindice.siren.benchmark.query.provider;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
 
-public abstract class TermLexiconQueryProvider extends QueryProvider {
+public abstract class PrimitiveQueryProvider extends QueryProvider {
 
   protected TermLexiconReader reader;
 
-  public TermLexiconQueryProvider (final Occur[] occurs, final TermGroups[] groups) {
-    super(occurs, groups);
-  }
-
-  public void setTermLexiconReader(final TermLexiconReader reader) {
-    this.reader = reader;
-  }
+  public abstract void setTermLexicon(final File lexiconDir) throws IOException;
 
   @Override
-  public void close()
-  throws IOException {
+  public void close() throws IOException {
     reader.close();
   }
+
+  public static abstract class PrimitiveQuery implements Query {}
 
 }

@@ -31,10 +31,10 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
+import org.sindice.siren.benchmark.query.provider.BooleanQuery.Occur;
 import org.sindice.siren.benchmark.query.provider.QueryProvider;
-import org.sindice.siren.benchmark.query.provider.TermLexiconQueryProvider;
+import org.sindice.siren.benchmark.query.provider.PrimitiveQueryProvider;
 
 public class BasicQueryExecutorCLI extends AbstractQueryExecutorCLI {
 
@@ -43,7 +43,7 @@ public class BasicQueryExecutorCLI extends AbstractQueryExecutorCLI {
   public static final String       TERMS_SPEC          = "terms-spec";
 
   private Occur[]            occurs              = null;
-  private TermGroups[]       groups              = null;
+  private TermGroup[]       groups              = null;
 
   public BasicQueryExecutorCLI () {
     super();
@@ -68,11 +68,11 @@ public class BasicQueryExecutorCLI extends AbstractQueryExecutorCLI {
     }
 
     // QueryProvider
-    TermLexiconQueryProvider queryProvider = null;
+    PrimitiveQueryProvider queryProvider = null;
     if (opts.has(QUERY_PROVIDER)) {
       try {
         final Class clazz = Class.forName((String) opts.valueOf(QUERY_PROVIDER));
-        final Constructor<TermLexiconQueryProvider> ct = clazz.getConstructors()[0];
+        final Constructor<PrimitiveQueryProvider> ct = clazz.getConstructors()[0];
         queryProvider = ct.newInstance(occurs, groups);
       } catch (final Exception e) {
         logger.error("The QueryProvider class could not be instanciated.", e);
@@ -95,18 +95,18 @@ public class BasicQueryExecutorCLI extends AbstractQueryExecutorCLI {
     // Instantiate the query provider
     final TermLexiconReader reader = new TermLexiconReader(termLexiconDir);
     reader.setSeed(seed);
-    queryProvider.setTermLexiconReader(reader);
+    queryProvider.setTermLexicon(reader);
 
     return queryProvider;
   }
 
   private final void setTermsSpec(final List<?> spec) {
     String[] specValues = null;
-    groups = new TermGroups[spec.size()];
+    groups = new TermGroup[spec.size()];
     occurs = new Occur[spec.size()];
     for (int i = 0; i < spec.size(); i++) {
       specValues = ((String) spec.get(i)).trim().split(":");
-      groups[i] = TermGroups.valueOf(specValues[0]);
+      groups[i] = TermGroup.valueOf(specValues[0]);
       occurs[i] = Occur.valueOf(specValues[1]);
     }
   }

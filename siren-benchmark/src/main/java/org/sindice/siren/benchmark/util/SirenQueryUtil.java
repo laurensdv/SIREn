@@ -31,9 +31,9 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.sindice.siren.benchmark.query.provider.FieldQuery;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
+import org.sindice.siren.benchmark.query.provider.AttributeQuery;
+import org.sindice.siren.benchmark.query.provider.BooleanQuery;
+import org.sindice.siren.benchmark.query.provider.BooleanQuery.Occur;
 import org.sindice.siren.benchmark.query.provider.PhraseQuery;
 import org.sindice.siren.benchmark.query.provider.StarShapedQuery;
 import org.sindice.siren.benchmark.wrapper.AbstractIndexWrapper;
@@ -46,14 +46,14 @@ import org.sindice.siren.search.primitive.NodeTermQuery;
 public class SirenQueryUtil {
 
   public static Query convertQuery(final org.sindice.siren.benchmark.query.provider.Query query) {
-    if (query instanceof KeywordQuery) {
-      return convertKeywordQuery((KeywordQuery) query);
+    if (query instanceof BooleanQuery) {
+      return convertKeywordQuery((BooleanQuery) query);
     }
     else if (query instanceof PhraseQuery) {
       return convertPhraseQuery((PhraseQuery) query);
     }
-    else if (query instanceof FieldQuery) {
-      return convertFieldQuery((FieldQuery) query);
+    else if (query instanceof AttributeQuery) {
+      return convertFieldQuery((AttributeQuery) query);
     }
     else if (query instanceof StarShapedQuery) {
       return convertStarQuery((StarShapedQuery) query);
@@ -69,12 +69,12 @@ public class SirenQueryUtil {
     return pq;
   }
 
-  protected static NodeBooleanQuery convertKeywordQuery(final KeywordQuery query) {
+  protected static NodeBooleanQuery convertKeywordQuery(final BooleanQuery query) {
     final NodeBooleanQuery bq = new NodeBooleanQuery();
     NodeTermQuery tq;
     NodeBooleanClause clause;
 
-    for (final Entry<String, Occur> entry : query.getKeywords()) {
+    for (final Entry<String, Occur> entry : query.getClauses()) {
       tq = new NodeTermQuery(new Term(AbstractIndexWrapper.DEFAULT_CONTENT_FIELD, entry.getKey()));
       clause = new NodeBooleanClause(tq, convertToNodeOccur(entry.getValue()));
       bq.add(clause);
@@ -93,16 +93,16 @@ public class SirenQueryUtil {
     return bq;
   }
 
-  protected static TwigQuery convertFieldQuery(final FieldQuery query) {
+  protected static TwigQuery convertFieldQuery(final AttributeQuery query) {
     // Convert field name into node boolean query
-    final NodeBooleanQuery field = convertKeywordQuery(query.getFieldName());
+    final NodeBooleanQuery field = convertKeywordQuery(query.getAttributeName());
 
     final TwigQuery tq = new TwigQuery(1, field);
 
     // convert value query
     final org.sindice.siren.benchmark.query.provider.Query valueQuery = query.getValueQuery();
-    if (valueQuery instanceof KeywordQuery) {
-      tq.addChild(convertKeywordQuery((KeywordQuery) valueQuery), NodeBooleanClause.Occur.MUST);
+    if (valueQuery instanceof BooleanQuery) {
+      tq.addChild(convertKeywordQuery((BooleanQuery) valueQuery), NodeBooleanClause.Occur.MUST);
     }
     else if (valueQuery instanceof PhraseQuery) {
       tq.addChild(convertPhraseQuery((PhraseQuery) valueQuery), NodeBooleanClause.Occur.MUST);

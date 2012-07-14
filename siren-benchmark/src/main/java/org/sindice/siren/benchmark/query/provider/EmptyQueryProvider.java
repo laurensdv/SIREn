@@ -20,42 +20,39 @@
  */
 /**
  * @project siren-benchmark
- * @author Renaud Delbru [ 6 Jul 2012 ]
+ * @author Renaud Delbru [ 14 Jul 2012 ]
  * @link http://renaud.delbru.fr/
  */
 package org.sindice.siren.benchmark.query.provider;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
 
-/*
- * By default, Occur equals MUST
- */
-public class PhraseQuery
-implements Query {
+public class EmptyQueryProvider extends PrimitiveQueryProvider {
 
-  private final List<String> phrases = new ArrayList<String>();
+  @Override
+  public void setTermLexicon(final File lexiconDir) throws IOException {}
 
-  public void addPhrase(final String phrase) {
-    final String[] words = phrase.split(" ");
-    for (final String word : words) {
-      phrases.add(word);
-    }
-  }
-
-  public List<String> getPhrases() {
-    return this.phrases;
+  @Override
+  public boolean hasNext() {
+    return true;
   }
 
   @Override
-  public String toString() {
-    final StringBuilder builder = new StringBuilder();
-    builder.append("<");
-    for (final String word : phrases) {
-      builder.append(word + ",");
-    }
-    builder.setLength(builder.length() - 1);
-    builder.append(">");
-    return builder.toString();
+  public Query next() {
+    return new EmptyQuery();
   }
+
+  @Override
+  public void close() throws IOException {}
+
+  public static class EmptyQuery extends PrimitiveQuery {
+
+    @Override
+    public String toString() {
+      return "[]";
+    }
+
+  }
+
 }

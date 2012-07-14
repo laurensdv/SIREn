@@ -43,21 +43,25 @@ public abstract class AbstractQueryExecutorCLI {
   protected OptionSet          opts;
 
   public static final String       HELP                = "help";
+
   public static final String       INDEX_WRAPPER       = "index-wrapper";
   public static final String       INDEX_DIRECTORY     = "index-dir";
+
+  public static final String       QUERY_PROVIDER      = "query-provider";
+  public static final String       TERM_LEXICON_DIR    = "term-lexicon-dir";
+  public static final String       TERMS_SPEC          = "terms-spec";
+
   public static final String       NB_QUERIES          = "nb-queries";
-  public static final String       MULTI_QUERY         = "multi-query";
   public static final String       COLD_CACHE          = "cold-cache";
-  public static final String       RESULTS_DIR         = "results-dir";
   public static final String       SEED                = "seed";
   public static final String       THREADS             = "thread";
+
 
   protected QueryProvider    queryProvider       = null;
   private IndexWrapper       indexWrapper        = null;
   private File               indexDirectory      = null;
   private boolean            coldCache           = false;
-  private boolean            multiQuery          = false;
-  private File               resultsDir          = null;
+  private final File               resultsDir          = null;
   private int                nThreads            = 1;
   protected int              seed                = 42;
 
@@ -74,14 +78,16 @@ public abstract class AbstractQueryExecutorCLI {
           .withRequiredArg().ofType(Integer.class).defaultsTo(50);
     parser.accepts(COLD_CACHE, "The cache will be flushed before executing the query.")
           .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
-    parser.accepts(MULTI_QUERY, "Activate multi-query task")
-          .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
-    parser.accepts(RESULTS_DIR, "The directory where the results will be written")
-          .withRequiredArg().ofType(File.class);
     parser.accepts(SEED, "The seed for generating random keywords")
           .withRequiredArg().ofType(Integer.class);
     parser.accepts(THREADS, "The number of threads for concurrent query execution")
           .withRequiredArg().ofType(Integer.class);
+    parser.accepts(QUERY_PROVIDER, "the class of the QueryProvider that will be used.")
+          .withRequiredArg().ofType(String.class);
+    parser.accepts(TERM_LEXICON_DIR, "The directory where the groups terms files for the Indexed Data are stored.")
+          .withRequiredArg().ofType(File.class);
+    parser.accepts(TERMS_SPEC, "The specification for the terms in the generated queries, in the format <TermGroups:Occur>+, values seperated by ','.")
+          .withRequiredArg().withValuesSeparatedBy(',');
   }
 
   public final void parseAndExecute(final String[] cmds)
@@ -119,13 +125,6 @@ public abstract class AbstractQueryExecutorCLI {
 
     // Cold Cache
     coldCache = (Boolean) opts.valueOf(COLD_CACHE);
-    // multi query
-    multiQuery = (Boolean) opts.valueOf(MULTI_QUERY);
-
-    // Results Directory
-    if (opts.has(RESULTS_DIR)) {
-      resultsDir = (File) opts.valueOf(RESULTS_DIR);
-    }
 
     // TermLexiconReader seed
     if (opts.has(SEED)) {

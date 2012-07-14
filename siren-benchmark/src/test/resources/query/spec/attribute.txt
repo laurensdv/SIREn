@@ -1,0 +1,11 @@
+{
+
+  "root" : [
+      {
+         "attribute" : { "phrase" : "HIGH" },
+         "value" : { "boolean" : ["HIGH:MUST"] }
+      }
+ 
+    ]
+
+}

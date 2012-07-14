@@ -62,7 +62,7 @@ public abstract class AbstractSirenIndexWrapper extends AbstractIndexWrapper {
       protected TokenStreamComponents createComponents(final String fieldName,
                                                        final Reader reader) {
         final Version matchVersion = Version.LUCENE_40;
-        final JsonTokenizer src = new JsonTokenizer(reader, Integer.MAX_VALUE);
+        final JsonTokenizer src = new JsonTokenizer(reader);
         TokenStream tok = new DatatypeAnalyzerFilter(matchVersion, src,
           new StandardAnalyzer(matchVersion), new StandardAnalyzer(matchVersion));
         tok = new LengthFilter(true, tok, 3, StandardAnalyzer.DEFAULT_MAX_TOKEN_LENGTH);
