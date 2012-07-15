@@ -27,7 +27,6 @@ package org.sindice.siren.benchmark.wrapper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
@@ -45,9 +44,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.benchmark.generator.document.BenchmarkDocument;
-import org.sindice.siren.benchmark.query.task.QueryTask;
-import org.sindice.siren.benchmark.query.task.SirenMultiQueryTask;
-import org.sindice.siren.benchmark.query.task.SirenSingleQueryTask;
 
 public abstract class AbstractIndexWrapper implements IndexWrapper {
 
@@ -159,24 +155,6 @@ public abstract class AbstractIndexWrapper implements IndexWrapper {
       mgr.release(searcher);
       searcher = null;
     }
-  }
-
-  @Override
-  public QueryTask issueQuery(final org.sindice.siren.benchmark.query.provider.Query query)
-  throws IOException {
-    if (mgr == null) {
-      mgr = new SearcherManager(dir, null);
-    }
-    return new SirenSingleQueryTask(query, mgr);
-  }
-
-  @Override
-  public QueryTask issueQueries(final List<org.sindice.siren.benchmark.query.provider.Query> queries)
-  throws IOException {
-    if (mgr == null) {
-      mgr = new SearcherManager(dir, null);
-    }
-    return new SirenMultiQueryTask(queries, mgr);
   }
 
 }

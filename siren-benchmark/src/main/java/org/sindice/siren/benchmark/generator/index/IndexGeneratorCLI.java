@@ -40,9 +40,7 @@ public class IndexGeneratorCLI {
 
   private final OptionParser parser;
   private OptionSet          opts;
-  final Logger               logger              = LoggerFactory.getLogger(IndexGeneratorCLI.class);
 
-  private final File outputFile = null;
   private IndexWrapperType wrapperType = null;
   private File outputDir = null;
   private DocumentProviderType providerType = null;
@@ -53,6 +51,8 @@ public class IndexGeneratorCLI {
   private final String INPUT_DIR           = "input-dir";
   private final String INDEX_WRAPPER       = "index-wrapper";
   private final String OUTPUT_DIR          = "output-dir";
+
+  final Logger logger = LoggerFactory.getLogger(IndexGeneratorCLI.class);
 
   public IndexGeneratorCLI() {
     parser = new OptionParser();

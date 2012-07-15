@@ -35,11 +35,9 @@ import java.io.IOException;
 import org.sindice.siren.benchmark.Measurement;
 import org.sindice.siren.benchmark.RatesStats;
 import org.sindice.siren.benchmark.Stats;
-import org.sindice.siren.benchmark.query.provider.QueryProvider;
 import org.sindice.siren.benchmark.util.Bootstrap;
 import org.sindice.siren.benchmark.util.Bootstrap.EstimatorSd;
 import org.sindice.siren.benchmark.util.HarmonicMeanEstimator;
-import org.sindice.siren.benchmark.wrapper.IndexWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,10 +113,6 @@ public abstract class AbstractQueryExecutor implements Closeable {
 
    protected       Measurement[] measurements;
 
-   protected final IndexWrapper  wrapper;
-
-   protected final QueryProvider provider;
-
    protected Stats     cpuTime;
    protected Stats     userTime;
    protected Stats     systemTime;
@@ -126,11 +120,6 @@ public abstract class AbstractQueryExecutor implements Closeable {
    protected Long      hits;
 
    final Logger logger = LoggerFactory.getLogger(AbstractQueryExecutor.class);
-
-   public AbstractQueryExecutor(final IndexWrapper wrapper, final QueryProvider provider) {
-     this.wrapper = wrapper;
-     this.provider = provider;
-   }
 
    public Measurement[] getMeasurements() {
      return measurements;
@@ -229,9 +218,11 @@ public abstract class AbstractQueryExecutor implements Closeable {
     * <ul>
     */
    protected void flushCache() throws IOException {
-     this.wrapper.flushCache();
+     this.flushWrapperCache();
      this.flushFSCache();
    }
+
+   protected abstract void flushWrapperCache() throws IOException;
 
    /** command to flush system fs caches */
    private static final String FLUSH_FS_CACHE_COMMAND = "sudo /usr/sbin/flush-fs-cache.sh";
@@ -329,14 +320,12 @@ public abstract class AbstractQueryExecutor implements Closeable {
     * Create the directory tree if it does not exist.
     */
    protected File generateOutputFile(final File output, final String prefix) {
-     // Generate output dir (output/WrapperClass/)
-     final File outputDir = new File(output, wrapper.getClass().getSimpleName());
-     if (!outputDir.exists()) {
-       outputDir.mkdirs();
-       logger.info("Created output directory {}", outputDir);
+     if (!output.exists()) {
+       output.mkdirs();
+       logger.info("Created output directory {}", output);
      }
      final String filename = this.generateFilename(prefix);
-     return new File(outputDir, filename);
+     return new File(output, filename);
    }
 
    /**

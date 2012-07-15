@@ -34,6 +34,8 @@ public abstract class QueryProvider implements Iterator<Query>, Closeable {
 
   protected int nbQueries = 50;
 
+  public abstract void setSeed(final int seed);
+
   public void setNbQueries(final int nbQueries) {
     this.nbQueries = nbQueries;
   }

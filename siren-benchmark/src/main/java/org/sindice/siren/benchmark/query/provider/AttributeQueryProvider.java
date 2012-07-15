@@ -37,6 +37,12 @@ public class AttributeQueryProvider extends QueryProvider {
   private int counter = 0;
 
   @Override
+  public void setSeed(final int seed) {
+    attributeProvider.setSeed(seed);
+    valueProvider.setSeed(seed);
+  }
+
+  @Override
   public void setNbQueries(final int nbQueries) {
     super.setNbQueries(nbQueries);
     attributeProvider.setNbQueries(nbQueries);

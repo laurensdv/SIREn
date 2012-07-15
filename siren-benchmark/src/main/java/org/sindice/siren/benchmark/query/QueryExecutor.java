@@ -3,20 +3,22 @@
  *
  * Project and contact information: http://www.siren.sindice.com/
  *
- * This file is part of the SIREn project.
+ * This file is part of the SIREn project and is derived from the "benchmarking
+ * framework" of Elliptic Group, Inc. You can find the original source code on
+ * <http://www.ellipticgroup.com/html/benchmarkingArticle.html>.
  *
- * SIREn is a free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * This file is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * SIREn is distributed in the hope that it will be useful,
+ * This file is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 /**
  * @project siren-benchmark
@@ -25,17 +27,24 @@
  */
 package org.sindice.siren.benchmark.query;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sindice.siren.benchmark.Measurement;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
 import org.sindice.siren.benchmark.query.provider.Query;
 import org.sindice.siren.benchmark.query.provider.QueryProvider;
+import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser;
+import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.TreeQuerySpecification;
 import org.sindice.siren.benchmark.query.task.QueryTask;
 import org.sindice.siren.benchmark.util.BenchmarkTimer;
 import org.sindice.siren.benchmark.util.JvmState;
 import org.sindice.siren.benchmark.util.JvmUtils;
 import org.sindice.siren.benchmark.wrapper.IndexWrapper;
+import org.sindice.siren.benchmark.wrapper.IndexWrapperFactory;
+import org.sindice.siren.benchmark.wrapper.IndexWrapperFactory.IndexWrapperType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,12 +55,21 @@ import org.slf4j.LoggerFactory;
  */
 public class QueryExecutor extends AbstractQueryExecutor {
 
-  protected boolean             coldCache  = false;
+  private final IndexWrapper wrapper;
+  private final QueryProvider provider;
+
+  protected boolean coldCache = false;
 
   final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
 
-  public QueryExecutor(final IndexWrapper wrapper, final QueryProvider provider) {
-    super(wrapper, provider);
+  public QueryExecutor(final IndexWrapperType wrapperType,
+                       final File indexDirectory,
+                       final File querySpec,
+                       final File lexiconDir) throws IOException {
+    this.wrapper = IndexWrapperFactory.createIndexWrapper(wrapperType, indexDirectory);
+    final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
+    final TreeQuerySpecification spec = parser.parse(querySpec);
+    provider = spec.getQueryProvider();
   }
 
   /**
@@ -62,11 +80,24 @@ public class QueryExecutor extends AbstractQueryExecutor {
   }
 
   /**
+   * Set the number of queries to use during the execution
+   */
+  public void setNbQueries(final int nbQueries) {
+    this.provider.setNbQueries(nbQueries);
+  }
+
+  /**
+   * Set the seed for the {@link TermLexiconReader}
+   */
+  public void setSeed(final int seed) {
+    this.provider.setSeed(seed);
+  }
+
+  /**
    * Execute the query benchmark until the query provider does not return
    * anymore query.
    * <br>
    * Flush the cache before each query execution if coldCache is set to true.
-   * @throws Exception
    */
   @Override
   public void execute() throws Exception {
@@ -87,7 +118,6 @@ public class QueryExecutor extends AbstractQueryExecutor {
   /**
    * Execute the query, and record query information such as time and number
    * of hits.
-   * @throws Exception
    */
   protected void doBenchmark(final QueryTask task) throws Exception {
     // warmup the jwm
@@ -209,6 +239,11 @@ public class QueryExecutor extends AbstractQueryExecutor {
     total.setNumberExecutions(n);
     total.setJvmState(new JvmState());
     return total;
+  }
+
+  @Override
+  protected void flushWrapperCache() throws IOException {
+    this.wrapper.flushCache();
   }
 
   @Override

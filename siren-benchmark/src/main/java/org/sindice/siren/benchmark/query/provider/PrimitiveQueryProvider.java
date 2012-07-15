@@ -34,7 +34,14 @@ public abstract class PrimitiveQueryProvider extends QueryProvider {
 
   protected TermLexiconReader reader;
 
+  protected int seed = 42;
+
   public abstract void setTermLexicon(final File lexiconDir) throws IOException;
+
+  @Override
+  public void setSeed(final int seed) {
+    this.seed = seed;
+  }
 
   @Override
   public void close() throws IOException {

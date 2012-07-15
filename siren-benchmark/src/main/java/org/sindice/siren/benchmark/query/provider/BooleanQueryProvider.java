@@ -49,6 +49,7 @@ public class BooleanQueryProvider extends PrimitiveQueryProvider {
   @Override
   public void setTermLexicon(final File lexiconDir) throws IOException {
     reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.TERM_SUBDIR));
+    reader.setSeed(seed);
   }
 
   @Override

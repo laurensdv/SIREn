@@ -28,6 +28,7 @@ package org.sindice.siren.benchmark.wrapper;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -35,12 +36,17 @@ import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.miscellaneous.LengthFilter;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.JsonTokenizer;
 import org.sindice.siren.analysis.filter.DatatypeAnalyzerFilter;
 import org.sindice.siren.analysis.filter.PositionAttributeFilter;
 import org.sindice.siren.analysis.filter.SirenPayloadFilter;
 import org.sindice.siren.benchmark.generator.lexicon.TermFreqIterator;
+import org.sindice.siren.benchmark.query.provider.Query;
+import org.sindice.siren.benchmark.query.task.QueryTask;
+import org.sindice.siren.benchmark.query.task.SirenMultiQueryTask;
+import org.sindice.siren.benchmark.query.task.SirenSingleQueryTask;
 
 public abstract class AbstractSirenIndexWrapper extends AbstractIndexWrapper {
 
@@ -74,6 +80,22 @@ public abstract class AbstractSirenIndexWrapper extends AbstractIndexWrapper {
       }
 
     };
+  }
+
+  @Override
+  public QueryTask issueQuery(final Query query) throws IOException {
+    if (mgr == null) {
+      mgr = new SearcherManager(dir, null);
+    }
+    return new SirenSingleQueryTask(query, mgr);
+  }
+
+  @Override
+  public QueryTask issueQueries(final List<Query> queries) throws IOException {
+    if (mgr == null) {
+      mgr = new SearcherManager(dir, null);
+    }
+    return new SirenMultiQueryTask(queries, mgr);
   }
 
 }

@@ -34,25 +34,26 @@ import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.sindice.siren.benchmark.Measurement;
 import org.sindice.siren.benchmark.query.provider.Query;
-import org.sindice.siren.benchmark.util.SirenQueryUtil;
+import org.sindice.siren.benchmark.query.provider.SirenQueryConverter;
+import org.sindice.siren.search.node.TwigQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SirenMultiQueryTask extends MultiQueryTask {
+public class SirenMultiQueryTask extends QueryTask {
 
-  private final List<org.apache.lucene.search.Query> queries;
+  private final List<TwigQuery> queries;
   private final SearcherManager mgr;
 
   protected final Logger logger = LoggerFactory.getLogger(SirenMultiQueryTask.class);
 
   public SirenMultiQueryTask(final List<Query> queries, final SearcherManager mgr)
   throws IOException {
-    super(queries);
     this.mgr = mgr;
-    this.queries = new ArrayList<org.apache.lucene.search.Query>(queries.size());
+    this.queries = new ArrayList<TwigQuery>(queries.size());
+    final SirenQueryConverter converter = new SirenQueryConverter();
     for (final Query query : queries) {
       logger.debug("Received query: {}", query.toString());
-      final org.apache.lucene.search.Query q = SirenQueryUtil.convertQuery(query);
+      final TwigQuery q = converter.convert(query);
       logger.debug("Converted query into: {}", q.toString());
       this.queries.add(q);
     }

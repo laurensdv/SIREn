@@ -47,6 +47,7 @@ public class PhraseQueryProvider extends PrimitiveQueryProvider {
   @Override
   public void setTermLexicon(final File lexiconDir) throws IOException {
     reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.PHRASE_SUBDIR));
+    reader.setSeed(seed);
   }
 
   @Override

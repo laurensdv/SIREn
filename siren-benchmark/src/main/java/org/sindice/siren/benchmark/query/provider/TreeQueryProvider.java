@@ -39,6 +39,16 @@ public class TreeQueryProvider extends QueryProvider {
   private int counter = 0;
 
   @Override
+  public void setSeed(final int seed) {
+    for (final AttributeQueryProvider attrProvider : rootAttributeProviders) {
+      attrProvider.setSeed(seed);
+    }
+    for (final TreeQueryProvider treeProvider : ancestorProviders) {
+      treeProvider.setSeed(seed);
+    }
+  }
+
+  @Override
   public void setNbQueries(final int nbQueries) {
     super.setNbQueries(nbQueries);
     for (final AttributeQueryProvider attrProvider : rootAttributeProviders) {
