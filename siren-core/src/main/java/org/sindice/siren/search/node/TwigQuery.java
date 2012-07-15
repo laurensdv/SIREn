@@ -42,9 +42,11 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ToStringUtils;
-import org.sindice.siren.search.primitive.NodePrimitiveQuery;
+import org.sindice.siren.search.node.TwigQuery.EmptyRootQuery.EmptyRootScorer;
 
 /**
  * A Query that matches a boolean combination of Ancestor-Descendant and
@@ -56,26 +58,16 @@ public class TwigQuery extends NodeBooleanQuery {
 
   private NodeQuery root;
 
-  /** Constructs an empty twig query. */
-  public TwigQuery(final int rootLevel, final NodeQuery root) {
-    this.root = root;
-    // copy the root node constraint, if any
-    final int[] constraint = root.getNodeConstraint();
-    this.setNodeConstraint(constraint[0], constraint[1]);
-    // set level constraint
-    this.setLevelConstraint(rootLevel);
-    root.setLevelConstraint(rootLevel);
-  }
-
   /**
    * Constructs an empty twig query.
    *
-   * {@link SimilarityProvider#coord(int,int)} may be disabled in scoring, as
+   * {@link Similarity#coord(int,int)} may be disabled in scoring, as
    * appropriate. For example, this score factor does not make sense for most
    * automatically generated queries, like {@link WildcardQuery} and {@link
    * FuzzyQuery}.
    *
-   * @param disableCoord disables {@link SimilarityProvider#coord(int,int)} in scoring.
+   * @param disableCoord enables/disables {@link Similarity#coord(int,int)} in
+   * scoring.
    */
   public TwigQuery(final int rootLevel, final NodeQuery root, final boolean disableCoord) {
     super(disableCoord);
@@ -86,6 +78,57 @@ public class TwigQuery extends NodeBooleanQuery {
     // set level constraint
     this.setLevelConstraint(rootLevel);
     root.setLevelConstraint(rootLevel);
+  }
+
+  /**
+   * Constructs an empty twig query with no root query specified.
+   *
+   * {@link Similarity#coord(int,int)} may be disabled in scoring, as
+   * appropriate. For example, this score factor does not make sense for most
+   * automatically generated queries, like {@link WildcardQuery} and {@link
+   * FuzzyQuery}.
+   *
+   * @param disableCoord disables {@link Similarity#coord(int,int)} in scoring.
+   */
+  public TwigQuery(final int rootLevel, final boolean disableCoord) {
+    this(1, new EmptyRootQuery(), disableCoord);
+  }
+
+  /**
+   * Constructs an empty twig query.
+   * <p>
+   * {@link Similarity#coord(int,int)} is disabled by default.
+   */
+  public TwigQuery(final int rootLevel, final NodeQuery root) {
+    this(rootLevel, root, false);
+  }
+
+  /**
+   * Constructs an empty twig query with a default level of 1.
+   * <p>
+   * {@link Similarity#coord(int,int)} is disabled by default.
+   */
+  public TwigQuery(final NodeQuery root) {
+    this(1, root);
+  }
+
+  /**
+   * Constructs an empty twig query with no root query specified.
+   * <p>
+   * {@link Similarity#coord(int,int)} is disabled by default.
+   */
+  public TwigQuery(final int rootLevel) {
+    this(rootLevel, new EmptyRootQuery());
+  }
+
+  /**
+   * Constructs an empty twig query with no root query specified and with a
+   * default level of 1.
+   * <p>
+   * {@link Similarity#coord(int,int)} is disabled by default.
+   */
+  public TwigQuery() {
+    this(1, new EmptyRootQuery());
   }
 
   /**
@@ -111,39 +154,9 @@ public class TwigQuery extends NodeBooleanQuery {
    *           if the new number of clauses exceeds the maximum clause number
    * @see #getMaxClauseCount()
    */
-  public void addDescendant(final int nodeLevel, final NodePrimitiveQuery query, final NodeBooleanClause.Occur occur) {
+  public void addDescendant(final int nodeLevel, final NodeQuery query, final NodeBooleanClause.Occur occur) {
     // set the level constraint on the query
     query.setLevelConstraint(nodeLevel);
-    // set the ancestor pointer
-    query.setAncestorPointer(root);
-    // add the query to the clauses
-    this.add(new NodeBooleanClause(query, occur));
-  }
-
-  /**
-   * Adds a descendant clause to the twig query.
-   *
-   * @throws TooManyClauses
-   *           if the new number of clauses exceeds the maximum clause number
-   * @see #getMaxClauseCount()
-   */
-  public void addDescendant(final int nodeLevel, final NodeBooleanQuery query, final NodeBooleanClause.Occur occur) {
-    // set the level constraint on the query
-    query.setLevelConstraint(nodeLevel);
-    // set the ancestor pointer
-    query.setAncestorPointer(root);
-    // add the query to the clauses
-    this.add(new NodeBooleanClause(query, occur));
-  }
-
-  /**
-   * Adds a descendant clause to the twig query.
-   *
-   * @throws TooManyClauses
-   *           if the new number of clauses exceeds the maximum clause number
-   * @see #getMaxClauseCount()
-   */
-  public void addDescendant(final TwigQuery query, final NodeBooleanClause.Occur occur) {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
@@ -309,8 +322,15 @@ public class TwigQuery extends NodeBooleanQuery {
         }
       }
 
-      return new TwigScorer(this, disableCoord, rootScorer, levelConstraint,
-        required, prohibited, optional, maxCoord);
+      // check if rootScorer is an EmptyRootScorer
+      if (rootScorer instanceof EmptyRootScorer) {
+        return new TwigScorer(this, disableCoord, levelConstraint, required,
+          prohibited, optional, maxCoord);
+      }
+      else {
+        return new TwigScorer(this, disableCoord, rootScorer, levelConstraint,
+          required, prohibited, optional, maxCoord);
+      }
     }
 
   }
@@ -322,9 +342,9 @@ public class TwigQuery extends NodeBooleanQuery {
 
   @Override
   public Query rewrite(final IndexReader reader) throws IOException {
-    // optimize 0-clause queries
+    // optimize 0-clause queries (root only)
     if (clauses.size() == 0) {
-      // rewrite root first
+      // rewrite and return root
       NodeQuery query = (NodeQuery) root.rewrite(reader);
 
       if (this.getBoost() != 1.0f) {                 // incorporate boost
@@ -465,6 +485,102 @@ public class TwigQuery extends NodeBooleanQuery {
            this.levelConstraint == other.levelConstraint &&
            this.lowerBound == other.lowerBound &&
            this.upperBound == other.upperBound;
+  }
+
+  /**
+   * An empty root query is used to create twig query in which the root query
+   * is not specified.
+   * <p>
+   * Act as an interface for the constraint stack (i.e., ancestor pointer).
+   */
+  protected static class EmptyRootQuery extends NodeQuery {
+
+    @Override
+    public Weight createWeight(final IndexSearcher searcher) throws IOException {
+      return new EmptyRootWeight();
+    }
+
+    @Override
+    public String toString(final String field) {
+      return "";
+    }
+
+    protected class EmptyRootWeight extends Weight {
+
+      @Override
+      public Explanation explain(final AtomicReaderContext context, final int doc)
+      throws IOException {
+        return new ComplexExplanation(true, 0.0f, "empty root query");
+      }
+
+      @Override
+      public Query getQuery() {
+        return EmptyRootQuery.this;
+      }
+
+      @Override
+      public float getValueForNormalization() throws IOException {
+        return 0;
+      }
+
+      @Override
+      public void normalize(final float norm, final float topLevelBoost) {}
+
+      @Override
+      public Scorer scorer(final AtomicReaderContext context,
+                           final boolean scoreDocsInOrder,
+                           final boolean topScorer,
+                           final Bits acceptDocs)
+      throws IOException {
+        return new EmptyRootScorer(this);
+      }
+
+    }
+
+    /**
+     * The empty root scorer.
+     * <p>
+     * All methods throw a {@link UnsupportedOperationException} as they should
+     * never be used.
+     */
+    protected class EmptyRootScorer extends NodeScorer {
+
+      protected EmptyRootScorer(final Weight weight) {
+        super(weight);
+      }
+
+      @Override
+      public boolean nextCandidateDocument() throws IOException {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public boolean nextNode() throws IOException {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public boolean skipToCandidate(final int target) throws IOException {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public int doc() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public IntsRef node() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public float score() throws IOException {
+        throw new UnsupportedOperationException();
+      }
+
+    }
+
   }
 
 }

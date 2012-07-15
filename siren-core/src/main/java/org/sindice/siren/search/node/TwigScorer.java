@@ -81,6 +81,37 @@ public class TwigScorer extends NodeBooleanScorer {
       addAncestorFilter(optional, rootLevel), maxCoord);
   }
 
+  /**
+   * Creates a {@link TwigScorer} with no root scorer and with lists of
+   * required, prohibited and optional scorers.
+   *
+   * @param weight
+   *          The BooleanWeight to be used.
+   * @param disableCoord
+   *          If this parameter is true, coordination level matching
+   *          ({@link Similarity#coord(int, int)}) is not used.
+   * @param rootLevel
+   *          The level of the twig root.
+   * @param required
+   *          the list of required scorers.
+   * @param prohibited
+   *          the list of prohibited scorers.
+   * @param optional
+   *          the list of optional scorers.
+   */
+  public TwigScorer(final TwigWeight weight,
+                    final boolean disableCoord,
+                    final int rootLevel,
+                    final List<NodeScorer> required,
+                    final List<NodeScorer> prohibited,
+                    final List<NodeScorer> optional,
+                    final int maxCoord) throws IOException {
+    super(weight, disableCoord,
+      addAncestorFilter(required, rootLevel),
+      addAncestorFilter(prohibited, rootLevel),
+      addAncestorFilter(optional, rootLevel), maxCoord);
+  }
+
   private static final List<NodeScorer> addAncestorFilter(final List<NodeScorer> scorers,
                                                           final int ancestorLevel) {
     final ArrayList<NodeScorer> filteredScorers = new ArrayList<NodeScorer>();
@@ -90,7 +121,8 @@ public class TwigScorer extends NodeBooleanScorer {
     return filteredScorers;
   }
 
-  private static final List<NodeScorer> append(final List<NodeScorer> scorers, final NodeScorer scorer) {
+  private static final List<NodeScorer> append(final List<NodeScorer> scorers,
+                                               final NodeScorer scorer) {
     scorers.add(scorer);
     return scorers;
   }

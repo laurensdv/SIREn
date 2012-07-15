@@ -92,8 +92,7 @@ public class NodeTermQuery extends NodePrimitiveQuery {
     }
 
     @Override
-    public float getValueForNormalization()
-    throws IOException {
+    public float getValueForNormalization() throws IOException {
       return stats.getValueForNormalization();
     }
 
