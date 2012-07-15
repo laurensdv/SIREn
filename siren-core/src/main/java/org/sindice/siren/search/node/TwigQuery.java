@@ -131,6 +131,16 @@ public class TwigQuery extends NodeBooleanQuery {
     this(1, new EmptyRootQuery());
   }
 
+  @Override
+  public void add(final NodeQuery query, final NodeBooleanClause.Occur occur) {
+    throw new UnsupportedOperationException("addChild or addDescendant must be called instead");
+  }
+
+  @Override
+  public void add(final NodeBooleanClause clause) {
+    throw new UnsupportedOperationException("addChild or addDescendant must be called instead");
+  }
+
   /**
    * Adds a child clause to the twig query.
    *
@@ -144,7 +154,7 @@ public class TwigQuery extends NodeBooleanQuery {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
-    this.add(new NodeBooleanClause(query, occur));
+    super.add(new NodeBooleanClause(query, occur));
   }
 
   /**
@@ -160,7 +170,7 @@ public class TwigQuery extends NodeBooleanQuery {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
-    this.add(new NodeBooleanClause(query, occur));
+    super.add(new NodeBooleanClause(query, occur));
   }
 
   @Override
@@ -182,6 +192,10 @@ public class TwigQuery extends NodeBooleanQuery {
     super.setLevelConstraint(levelConstraint);
     // keep root query synchronised with twig query
     root.setLevelConstraint(levelConstraint);
+  }
+
+  public NodeQuery getRoot() {
+    return root;
   }
 
   /**
@@ -493,7 +507,7 @@ public class TwigQuery extends NodeBooleanQuery {
    * <p>
    * Act as an interface for the constraint stack (i.e., ancestor pointer).
    */
-  protected static class EmptyRootQuery extends NodeQuery {
+  public static class EmptyRootQuery extends NodeQuery {
 
     @Override
     public Weight createWeight(final IndexSearcher searcher) throws IOException {
