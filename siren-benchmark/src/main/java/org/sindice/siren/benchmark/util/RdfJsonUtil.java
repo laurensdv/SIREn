@@ -50,6 +50,7 @@ public class RdfJsonUtil {
     final JSONCollector collector = new JSONCollector(mapper);
     parser.setPreserveBNodeIDs(true);
     parser.setRDFHandler(collector);
+    parser.setStopAtFirstError(false);
     parser.parse(new StringReader(ntriples), "");
 
     // create entity pair

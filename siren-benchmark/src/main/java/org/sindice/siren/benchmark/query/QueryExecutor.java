@@ -57,6 +57,7 @@ public class QueryExecutor extends AbstractQueryExecutor {
 
   private final IndexWrapper wrapper;
   private final QueryProvider provider;
+  private final String querySpecName;
 
   protected boolean coldCache = false;
 
@@ -70,6 +71,7 @@ public class QueryExecutor extends AbstractQueryExecutor {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
     final TreeQuerySpecification spec = parser.parse(querySpec);
     provider = spec.getQueryProvider();
+    querySpecName = querySpec.getName().replace(".txt", "");
   }
 
   /**
@@ -205,7 +207,7 @@ public class QueryExecutor extends AbstractQueryExecutor {
          this.flushFSCache();
        }
        measurements[i] = this.measure(task, nExecutions);
-       logger.debug("Measurement: {}", measurements[i]);
+       logger.debug("Measurement {}: {}", i, measurements[i]);
 
        if (!measurements[i].getJvmState().equals(jvmState)) {
          logger.info("Reset measurement loop. Detected JVM state change: {}", measurements[i].getJvmState().difference(jvmState));
@@ -247,13 +249,18 @@ public class QueryExecutor extends AbstractQueryExecutor {
   }
 
   @Override
-  protected String generateFilename(final String prefix) {
+  protected String getFilename(final String prefix) {
     if (coldCache) {
-      return prefix + "-COLD-" + provider.toString();
+      return prefix + "-COLD";
     }
     else {
-      return prefix + "-WARM-" +  provider.toString();
+      return prefix + "-WARM";
     }
+  }
+
+  @Override
+  protected String getQuerySpecName() {
+   return querySpecName;
   }
 
   @Override

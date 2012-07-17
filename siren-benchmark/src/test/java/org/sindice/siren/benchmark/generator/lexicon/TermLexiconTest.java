@@ -36,7 +36,6 @@ import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sindice.siren.benchmark.MockTermFreqIterator;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
 
 public class TermLexiconTest {

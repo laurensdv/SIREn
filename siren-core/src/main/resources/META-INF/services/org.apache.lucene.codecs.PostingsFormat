@@ -1,2 +1,3 @@
+org.apache.lucene.codecs.lucene40.Lucene40PostingsFormat
 org.sindice.siren.index.codecs.siren10.Siren10PostingsFormat
 org.sindice.siren.index.codecs.siren02.Siren02PostingsFormat

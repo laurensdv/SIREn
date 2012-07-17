@@ -123,7 +123,7 @@ public class TermLexiconGenerator {
 
   private void createLexicon(final IndexWrapper indexWrapper, final File outputDir,
                              final String selectivityRange) throws IOException {
-    final TermLexiconWriter tlWriter = new TermLexiconWriter(outputDir, selectivityRange, true);
+    final TermLexiconWriter tlWriter = new TermLexiconWriter(outputDir, selectivityRange, false);
     // filter out all terms with a frequency of 1
     tlWriter.create(indexWrapper.getTermFreqIterator(2));
     logger.info("Term Lexicon - " + tlWriter.toString());
@@ -153,7 +153,9 @@ public class TermLexiconGenerator {
     return doc;
   }
 
-  private BenchmarkDocument filterObject(final JsonNode node, final BenchmarkDocument doc) throws IOException {
+  private BenchmarkDocument filterObject(final JsonNode node,
+                                         final BenchmarkDocument doc)
+  throws IOException {
     final ArrayList<String> filteredContent = new ArrayList<String>();
     final Iterator<JsonNode> subjects = node.getElements();
     JsonNode subject;

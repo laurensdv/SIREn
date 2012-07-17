@@ -25,6 +25,8 @@
  */
 package org.sindice.siren.benchmark.query.provider;
 
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
+
 public interface Query {
 
   /**
@@ -35,5 +37,17 @@ public interface Query {
     MUST_NOT,
     SHOULD
   };
+
+  public class Term {
+
+    public Term(final TermGroup group, final Occur occur) {
+      this.group = group;
+      this.occur = occur;
+    }
+
+    public TermGroup group;
+    public Occur occur;
+
+  }
 
 }

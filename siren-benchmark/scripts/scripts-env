@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
+#
+# Project and contact information: http://www.siren.sindice.com/
+#
+# This file is part of the SIREn project.
+#
+# SIREn is a free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# SIREn is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
+#
+# util functions used by scripts
+
+JAVA_HOME=/usr/lib/jvm/java-6-sun
+
+JAVA_CMD=${JAVA_HOME}/bin/java
+
+JAVA_PARAM="-server -Xms512m -Xmx2048m"
+
+SCRIPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+BENCH_HOME=${SCRIPT_HOME}/../
+
+TARGET_DIR=${BENCH_HOME}/target/
+
+JAVA_CP="${TARGET_DIR}siren-benchmark-0.3.0-SNAPSHOT-jar-with-dependencies.jar"

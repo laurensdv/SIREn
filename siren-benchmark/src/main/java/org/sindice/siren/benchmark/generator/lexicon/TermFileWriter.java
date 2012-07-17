@@ -74,8 +74,7 @@ public class TermFileWriter implements Closeable {
   }
 
   @Override
-  public void close()
-  throws IOException {
+  public void close() throws IOException {
     this.raf.close();
   }
 

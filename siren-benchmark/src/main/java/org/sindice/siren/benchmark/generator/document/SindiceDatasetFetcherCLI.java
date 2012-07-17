@@ -41,8 +41,8 @@ public class SindiceDatasetFetcherCLI {
   final Logger               logger              = LoggerFactory.getLogger(SindiceDatasetFetcherCLI.class);
 
   private final String       HELP                = "help";
-  private final String       OUTPUT_DIR          = "output-dir";
-  private final String       SAMPLE_SIZE         = "sample-size";
+  private final String       OUTPUT_DIR          = "output";
+  private final String       SAMPLE_SIZE         = "size";
 
   private File               outputDir;
   private int                sampleSize;
@@ -69,7 +69,8 @@ public class SindiceDatasetFetcherCLI {
     }
     else {
       parser.printHelpOn(System.err);
-      throw new IllegalArgumentException("You must specify an output directory (--output-dir)");
+      throw new IllegalArgumentException("You must specify an output " +
+      		"directory (--output)");
     }
 
     // Sample size
@@ -78,7 +79,8 @@ public class SindiceDatasetFetcherCLI {
     }
     else {
       parser.printHelpOn(System.err);
-      throw new IllegalArgumentException("You must specify a sample size (--sample-size)");
+      throw new IllegalArgumentException("You must specify a sample size " +
+      		"(--size)");
     }
 
     // Fetch dataset sample

@@ -1,0 +1,9 @@
+{
+
+  "root" : [
+      {
+         "value" : { "boolean" : ["HIGH:SHOULD", "HIGH:SHOULD"] }
+      }
+    ]
+
+}

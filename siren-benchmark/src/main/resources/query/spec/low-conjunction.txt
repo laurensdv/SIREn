@@ -1,0 +1,9 @@
+{
+
+  "root" : [
+      {
+         "value" : { "boolean" : ["LOW:MUST", "LOW:MUST"] }
+      }
+    ]
+
+}

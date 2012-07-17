@@ -90,7 +90,7 @@ public class TermLexiconWriter {
     final File tmp1 = new File(outputDir, "term-freq.tmp");
     tmp1.deleteOnExit();
     final File tmp2 = new File(outputDir, "term-freq.sort.tmp");
-    logger.info("Is the sorted file being removed? {}", !keepFile);
+    logger.info("Is the sorted file must be removed? {}", !keepFile);
     if (!keepFile)
       tmp2.deleteOnExit();
 

@@ -1,0 +1,11 @@
+{
+
+  "root" : [
+      {
+         "attribute" : { "boolean" : ["HIGH:MUST"] },
+         "value" : { "boolean" : ["HIGH:MUST"] }
+      }
+ 
+    ]
+
+}

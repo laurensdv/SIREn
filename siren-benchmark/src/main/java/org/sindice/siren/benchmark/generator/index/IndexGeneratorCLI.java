@@ -26,6 +26,7 @@
 package org.sindice.siren.benchmark.generator.index;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import joptsimple.OptionParser;
@@ -47,10 +48,10 @@ public class IndexGeneratorCLI {
   private File inputDir = null;
 
   private final String HELP                = "help";
-  private final String DOCUMENT_PROVIDER   = "document-provider";
-  private final String INPUT_DIR           = "input-dir";
-  private final String INDEX_WRAPPER       = "index-wrapper";
-  private final String OUTPUT_DIR          = "output-dir";
+  private final String DOCUMENT_PROVIDER   = "document";
+  private final String INPUT_DIR           = "input";
+  private final String INDEX_WRAPPER       = "index";
+  private final String OUTPUT_DIR          = "output";
 
   final Logger logger = LoggerFactory.getLogger(IndexGeneratorCLI.class);
 
@@ -58,12 +59,13 @@ public class IndexGeneratorCLI {
     parser = new OptionParser();
     parser.accepts(HELP, "Print this help.");
     parser.accepts(DOCUMENT_PROVIDER,
-      "Specifiy the type of the document Provider.")
+      "Specifiy the type of the document: [Sindice]")
       .withRequiredArg().ofType(DocumentProviderType.class);
-    parser.accepts(INPUT_DIR, "Specify the document provider directory " +
+    parser.accepts(INPUT_DIR, "Specify the document directory " +
       "containing tar.gz files.")
       .withRequiredArg().ofType(File.class);
-    parser.accepts(INDEX_WRAPPER, "Specify the class name of Index Wrapper.")
+    parser.accepts(INDEX_WRAPPER, "Specify the type of index to create: " +
+    		"[Siren10].")
       .withRequiredArg().ofType(IndexWrapperType.class);
     parser.accepts(OUTPUT_DIR, "Specify the output directory where the index " +
     		"and time logs will be generated.")
@@ -84,7 +86,7 @@ public class IndexGeneratorCLI {
     else {
       parser.printHelpOn(System.err);
       throw new IllegalArgumentException("You must specify an output " +
-          "directory (--output-dir)");
+          "directory (--output)");
     }
 
     // Index wrapper
@@ -93,18 +95,21 @@ public class IndexGeneratorCLI {
     }
     else {
       parser.printHelpOn(System.err);
-      throw new IllegalArgumentException("You must specify a index wrapper" +
-          " (--index-wrapper)");
+      throw new IllegalArgumentException("You must specify a type of index" +
+          " (--index)");
     }
 
     // Input Directory
     if (opts.has(INPUT_DIR)) {
       inputDir = (File) opts.valueOf(INPUT_DIR);
+      if (!inputDir.exists()) {
+        throw new FileNotFoundException("The input directory does not exist");
+      }
     }
     else {
       parser.printHelpOn(System.err);
       throw new IllegalArgumentException("You must specify an input " +
-          "directory (--input-dir)");
+          "directory (--input)");
     }
 
     // Data Provider
@@ -113,8 +118,8 @@ public class IndexGeneratorCLI {
     }
     else {
       parser.printHelpOn(System.err);
-      throw new IllegalArgumentException("You must specify a document provider" +
-          " (--document-provider)");
+      throw new IllegalArgumentException("You must specify a type of document" +
+          " (--document)");
     }
 
     final File indexDir = new File(outputDir, "index");

@@ -28,8 +28,6 @@ package org.sindice.siren.benchmark.query.provider;
 import java.io.Closeable;
 import java.util.Iterator;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 public abstract class QueryProvider implements Iterator<Query>, Closeable {
 
   protected int nbQueries = 50;
@@ -46,7 +44,7 @@ public abstract class QueryProvider implements Iterator<Query>, Closeable {
 
   @Override
   public void remove() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
 
