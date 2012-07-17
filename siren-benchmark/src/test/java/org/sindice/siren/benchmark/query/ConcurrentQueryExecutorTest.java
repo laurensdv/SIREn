@@ -38,9 +38,9 @@ import org.sindice.siren.benchmark.MockIndexWrapper;
 import org.sindice.siren.benchmark.MockTermFreqIterator;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter;
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
-import org.sindice.siren.benchmark.query.provider.KeywordQueryProvider;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
+import org.sindice.siren.benchmark.query.provider.BooleanQuery.Occur;
+import org.sindice.siren.benchmark.query.provider.BooleanQueryProvider;
 
 public class ConcurrentQueryExecutorTest {
 
@@ -74,11 +74,11 @@ public class ConcurrentQueryExecutorTest {
   @Test
   public void testExecute() throws Exception {
     final Occur[] occurs = new Occur[] {Occur.MUST, Occur.MUST};
-    final TermGroups[] groups = new TermGroups[] {TermGroups.MEDIUM, TermGroups.LOW};
-    final KeywordQueryProvider provider = new KeywordQueryProvider(occurs, groups);
+    final TermGroup[] groups = new TermGroup[] {TermGroup.MEDIUM, TermGroup.LOW};
+    final BooleanQueryProvider provider = new BooleanQueryProvider(occurs, groups);
     final TermLexiconReader reader = new TermLexiconReader(tmpDir);
     reader.setSeed(42);
-    provider.setTermLexiconReader(reader);
+    provider.setTermLexicon(reader);
     provider.setNbQueries(4);
     final ConcurrentQueryExecutor executor = new ConcurrentQueryExecutor(new MockIndexWrapper(), provider, 2);
     executor.execute();

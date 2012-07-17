@@ -37,7 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sindice.siren.benchmark.MockTermFreqIterator;
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
 
 public class TermLexiconTest {
 
@@ -73,21 +73,21 @@ public class TermLexiconTest {
     final Set<String> high = new HashSet<String>();
     high.add("aaa"); high.add("zzz"); high.add("ccc"); high.add("jjj");
     for (int i = 0; i < 10; i++) {
-      final String term = reader.getRandomTerm(TermGroups.HIGH);
+      final String term = reader.getRandomTerm(TermGroup.HIGH);
       assertTrue("Should not contain " + term, high.contains(term));
     }
 
     final Set<String> medium = new HashSet<String>();
     medium.add("eee"); medium.add("ddd");
     for (int i = 0; i < 10; i++) {
-      final String term = reader.getRandomTerm(TermGroups.MEDIUM);
+      final String term = reader.getRandomTerm(TermGroup.MEDIUM);
       assertTrue("Should not contain " + term, medium.contains(term));
     }
 
     final Set<String> low = new HashSet<String>();
     low.add("bbb"); low.add("hhh"); low.add("ooo"); low.add("ppp");
     for (int i = 0; i < 10; i++) {
-      final String term = reader.getRandomTerm(TermGroups.LOW);
+      final String term = reader.getRandomTerm(TermGroup.LOW);
       assertTrue("Should not contain " + term, low.contains(term));
     }
 

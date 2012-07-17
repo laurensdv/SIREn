@@ -20,28 +20,39 @@
  */
 /**
  * @project siren-benchmark
- * @author Renaud Delbru [ 6 Jul 2012 ]
+ * @author Renaud Delbru [ 14 Jul 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.benchmark.query.task;
+package org.sindice.siren.benchmark.query.provider;
 
-import org.sindice.siren.benchmark.Measurement;
-import org.sindice.siren.benchmark.query.provider.Query;
+import java.io.File;
+import java.io.IOException;
 
-public abstract class SingleQueryTask extends QueryTask {
+public class EmptyQueryProvider extends PrimitiveQueryProvider {
 
-  protected final Query query;
+  @Override
+  public void setTermLexicon(final File lexiconDir) throws IOException {}
 
-  public SingleQueryTask(final Query q) {
-    this.query = q;
+  @Override
+  public boolean hasNext() {
+    return true;
   }
 
   @Override
-  public String toString() {
-    return "Single Query Task: " + query.toString();
+  public Query next() {
+    return new EmptyQuery();
   }
 
   @Override
-  public abstract Measurement call() throws Exception;
+  public void close() throws IOException {}
+
+  public static class EmptyQuery extends PrimitiveQuery {
+
+    @Override
+    public String toString() {
+      return "[]";
+    }
+
+  }
 
 }

@@ -4,6 +4,16 @@ New Features
 
 * [GH-42] JSON Analyzer
 
+Improvements 
+
+* [GH-47] Twig Query API Improvements
+
+Tasks
+
+* [GH-41] Finalise TupleScorer
+* [GH-40] Upgrade to Lucene 4.0 Alpha
+* [GH-30] Upgrade SIREn to use Lucene 4.0 and the new Flex (flexible Indexing) feature
+
 ======================= Release 0.2.3-RC1 2011-12-11 =======================
 
 New Features

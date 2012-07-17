@@ -94,19 +94,19 @@ public class NodeBooleanQuery extends NodeQuery {
   /**
    * Constructs an empty boolean query.
    *
-   * {@link SimilarityProvider#coord(int,int)} may be disabled in scoring, as
+   * {@link Similarity#coord(int,int)} may be disabled in scoring, as
    * appropriate. For example, this score factor does not make sense for most
    * automatically generated queries, like {@link WildcardQuery} and {@link
    * FuzzyQuery}.
    *
-   * @param disableCoord disables {@link SimilarityProvider#coord(int,int)} in scoring.
+   * @param disableCoord disables {@link Similarity#coord(int,int)} in scoring.
    */
   public NodeBooleanQuery(final boolean disableCoord) {
     this.disableCoord = disableCoord;
   }
 
   /**
-   * Returns true iff {@link SimilarityProvider#coord(int,int)} is disabled in
+   * Returns true iff {@link Similarity#coord(int,int)} is disabled in
    * scoring for this query instance.
    *
    * @see #NodeBooleanQuery(boolean)

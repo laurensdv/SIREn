@@ -37,7 +37,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.sindice.siren.benchmark.query.AbstractQueryExecutorCLI;
+import org.sindice.siren.benchmark.query.QueryExecutorCLI;
 import org.sindice.siren.benchmark.util.BenchmarkConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,17 +54,17 @@ public abstract class BenchmarkQueryExecutor {
     this.config = new BenchmarkConfiguration(config);
   }
 
-  public abstract AbstractQueryExecutorCLI getCLI();
+  public abstract QueryExecutorCLI getCLI();
 
   public void loadParameters() {
     // Wrapper is the only params with multiple values
-    params.put(AbstractQueryExecutorCLI.INDEX_WRAPPER, config.getListValues(AbstractQueryExecutorCLI.INDEX_WRAPPER));
-    params.put(AbstractQueryExecutorCLI.NB_QUERIES, config.getListValues(AbstractQueryExecutorCLI.NB_QUERIES));
-    params.put(AbstractQueryExecutorCLI.MULTI_QUERY, config.getListValues(AbstractQueryExecutorCLI.MULTI_QUERY));
-    params.put(AbstractQueryExecutorCLI.COLD_CACHE, config.getListValues(AbstractQueryExecutorCLI.COLD_CACHE));
-    params.put(AbstractQueryExecutorCLI.RESULTS_DIR, config.getListValues(AbstractQueryExecutorCLI.RESULTS_DIR));
-    params.put(AbstractQueryExecutorCLI.SEED, config.getListValues(AbstractQueryExecutorCLI.SEED));
-    params.put(AbstractQueryExecutorCLI.THREADS, config.getListValues(AbstractQueryExecutorCLI.THREADS));
+    params.put(QueryExecutorCLI.INDEX_WRAPPER, config.getListValues(QueryExecutorCLI.INDEX_WRAPPER));
+    params.put(QueryExecutorCLI.NB_QUERIES, config.getListValues(QueryExecutorCLI.NB_QUERIES));
+    params.put(QueryExecutorCLI.MULTI_QUERY, config.getListValues(QueryExecutorCLI.MULTI_QUERY));
+    params.put(QueryExecutorCLI.COLD_CACHE, config.getListValues(QueryExecutorCLI.COLD_CACHE));
+    params.put(QueryExecutorCLI.RESULTS_DIR, config.getListValues(QueryExecutorCLI.RESULTS_DIR));
+    params.put(QueryExecutorCLI.SEED, config.getListValues(QueryExecutorCLI.SEED));
+    params.put(QueryExecutorCLI.THREADS, config.getListValues(QueryExecutorCLI.THREADS));
   }
 
   public void execute() throws Exception {
@@ -81,10 +81,10 @@ public abstract class BenchmarkQueryExecutor {
       entry = it.next();
       if (entry.getValue().size() == 1) {
         param = "--" + entry.getKey() + " " + entry.getValue().get(0);
-        if (entry.getKey().equals(AbstractQueryExecutorCLI.RESULTS_DIR))
+        if (entry.getKey().equals(QueryExecutorCLI.RESULTS_DIR))
           args.add(param + "/" + timeStamp);
-        else if (entry.getKey().equals(AbstractQueryExecutorCLI.INDEX_WRAPPER))
-          args.add(param + " --" + AbstractQueryExecutorCLI.INDEX_DIRECTORY + " " + config.getValue((String) entry.getValue().get(0)));
+        else if (entry.getKey().equals(QueryExecutorCLI.INDEX_WRAPPER))
+          args.add(param + " --" + QueryExecutorCLI.INDEX_DIRECTORY + " " + config.getValue((String) entry.getValue().get(0)));
         else
           args.add(param);
       }
@@ -102,8 +102,8 @@ public abstract class BenchmarkQueryExecutor {
             final ArrayList<String> clone = (ArrayList<String>) cmd.clone();
             final String value = (String) listIt.next();
             param = "--" + entry.getKey() + " " + value;
-            if (entry.getKey().equals(AbstractQueryExecutorCLI.INDEX_WRAPPER))
-              clone.add(param + " --" + AbstractQueryExecutorCLI.INDEX_DIRECTORY + " " + config.getValue(value));
+            if (entry.getKey().equals(QueryExecutorCLI.INDEX_WRAPPER))
+              clone.add(param + " --" + QueryExecutorCLI.INDEX_DIRECTORY + " " + config.getValue(value));
             else
               clone.add(param);
             cmds.add(clone);

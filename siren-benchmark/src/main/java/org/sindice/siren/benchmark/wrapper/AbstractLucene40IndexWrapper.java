@@ -27,6 +27,7 @@ package org.sindice.siren.benchmark.wrapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.lucene40.Lucene40Codec;
@@ -37,6 +38,8 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
 import org.sindice.siren.benchmark.generator.lexicon.TermFreq;
 import org.sindice.siren.benchmark.generator.lexicon.TermFreqIterator;
+import org.sindice.siren.benchmark.query.provider.Query;
+import org.sindice.siren.benchmark.query.task.QueryTask;
 
 public abstract class AbstractLucene40IndexWrapper extends AbstractIndexWrapper {
 
@@ -47,6 +50,17 @@ public abstract class AbstractLucene40IndexWrapper extends AbstractIndexWrapper 
   @Override
   protected Codec initializeCodec() {
     return new Lucene40Codec();
+  }
+
+  @Override
+  public QueryTask issueQuery(final Query query) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public QueryTask issueQueries(final List<Query> queries)
+  throws IOException {
+    throw new UnsupportedOperationException();
   }
 
   @Override

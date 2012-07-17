@@ -95,6 +95,7 @@ public class IndexGenerator {
 			this.addDocument(doc);
 			this.doCommit(i + 1);
 		}
+		logger.info("Optimising index");
 		this.doForceMerge();
 	}
 
@@ -134,7 +135,7 @@ public class IndexGenerator {
 	  final long startMillis = System.currentTimeMillis();
 	  wrapper.forceMerge();
 	  optimiseTime = System.currentTimeMillis() - startMillis;
-    logger.debug("Performed optimised in {} ms", optimiseTime);
+    logger.debug("Performed optimisation in {} ms", optimiseTime);
 	}
 
 	/**
@@ -145,6 +146,9 @@ public class IndexGenerator {
 	 * @param output The output file where the commit times will be exported.
 	 */
 	public void exportCommitTimes(final File output) throws IOException {
+	  if (!output.exists()) {
+	    output.mkdirs();
+	  }
 	  final FileWriter writer = new FileWriter(new File(output, "commit.out"));
 	  for (final long time : commitTimes) {
 	    writer.append(Long.toString(time));
@@ -159,6 +163,9 @@ public class IndexGenerator {
    * @param output The output file where the optimise time will be exported.
    */
   public void exportOptimiseTime(final File output) throws IOException {
+    if (!output.exists()) {
+      output.mkdirs();
+    }
     final FileWriter writer = new FileWriter(new File(output, "optimise.out"));
     writer.append(Long.toString(optimiseTime));
     writer.close();

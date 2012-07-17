@@ -23,33 +23,31 @@
  * @author Renaud Delbru [ 6 Jul 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.benchmark.query.task;
+package org.sindice.siren.benchmark.query.provider;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
 
-import org.sindice.siren.benchmark.Measurement;
-import org.sindice.siren.benchmark.query.provider.Query;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
 
-public abstract class MultiQueryTask extends QueryTask {
+public abstract class PrimitiveQueryProvider extends QueryProvider {
 
-  protected final List<Query> queries;
+  protected TermLexiconReader reader;
 
-  public MultiQueryTask(final List<Query> queries) {
-    this.queries = queries;
-  }
+  protected int seed = 42;
 
-  public MultiQueryTask(final Query[] queries) {
-    this.queries = new ArrayList<Query>(Arrays.asList(queries));
+  public abstract void setTermLexicon(final File lexiconDir) throws IOException;
+
+  @Override
+  public void setSeed(final int seed) {
+    this.seed = seed;
   }
 
   @Override
-  public String toString() {
-    return "Multi Query Task: " + queries.size() + " - " + queries.get(0).toString();
+  public void close() throws IOException {
+    reader.close();
   }
 
-  @Override
-  public abstract Measurement call() throws Exception;
+  public static abstract class PrimitiveQuery implements Query {}
 
 }

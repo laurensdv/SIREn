@@ -20,11 +20,20 @@
  */
 /**
  * @project siren-benchmark
- * @author Renaud Delbru [ 6 Jul 2012 ]
+ * @author Renaud Delbru [ 13 Jul 2012 ]
  * @link http://renaud.delbru.fr/
  */
 package org.sindice.siren.benchmark.query.provider;
 
 public interface Query {
+
+  /**
+   * Boolean operators for a query clause.
+   */
+  public enum Occur {
+    MUST,
+    MUST_NOT,
+    SHOULD
+  };
 
 }

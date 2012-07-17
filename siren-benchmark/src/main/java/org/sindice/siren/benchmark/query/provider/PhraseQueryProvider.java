@@ -25,40 +25,76 @@
  */
 package org.sindice.siren.benchmark.query.provider;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconGenerator;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
+import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
 
-public class PhraseQueryProvider extends TermLexiconQueryProvider {
+public class PhraseQueryProvider extends PrimitiveQueryProvider {
 
-  public PhraseQueryProvider(final Occur[] occurs, final TermGroups[] groups) {
-    super(occurs, groups);
+  private final TermGroup termGroup;
+
+  private int counter = 0;
+
+  public PhraseQueryProvider(final TermGroup termGroup) {
+   this.termGroup = termGroup;
+  }
+
+  @Override
+  public void setTermLexicon(final File lexiconDir) throws IOException {
+    reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.PHRASE_SUBDIR));
+    reader.setSeed(seed);
   }
 
   @Override
   public boolean hasNext() {
-    return (queryPos < nbQueries) ? true : false;
+    return (counter < nbQueries) ? true : false;
   }
 
   @Override
-  public Query next() {
+  public PhraseQuery next() {
     final PhraseQuery pq = new PhraseQuery();
 
-    queryPos++;
-    for (final TermGroups group : groups) {
-      try {
-        pq.addPhrase(reader.getRandomTerm(group));
-      } catch (final IOException e) {
-        e.printStackTrace();
-      }
+    counter++;
+    try {
+      pq.addPhrase(reader.getRandomTerm(termGroup));
+    }
+    catch (final IOException e) {
+      e.printStackTrace();
     }
     return pq;
   }
 
-  @Override
-  public void remove() {
-    throw new UnsupportedOperationException();
+  public static class PhraseQuery extends PrimitiveQuery {
+
+    private final List<String> phrases = new ArrayList<String>();
+
+    public void addPhrase(final String phrase) {
+      final String[] words = phrase.split(" ");
+      for (final String word : words) {
+        phrases.add(word);
+      }
+    }
+
+    public List<String> getPhrases() {
+      return this.phrases;
+    }
+
+    @Override
+    public String toString() {
+      final StringBuilder builder = new StringBuilder();
+      builder.append("\"");
+      for (final String word : phrases) {
+        builder.append(word + " ");
+      }
+      builder.setLength(builder.length() - 1);
+      builder.append("\"");
+      return builder.toString();
+    }
   }
 
 }

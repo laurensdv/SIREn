@@ -47,18 +47,25 @@ public class TermLexiconGenerator {
 
   private final DocumentProvider docProvider;
   private final IndexWrapper objectIndex;
-  private final IndexWrapper objectNGramIndex;
+  private final IndexWrapper objectPhraseIndex;
   private final IndexWrapper predicateIndex;
+  private final IndexWrapper predicatePhraseIndex;
 
   private static File TMP_PATH = new File("./target/tmp-index/");
+
+  public static String OBJECT_SUBDIR = "object";
+  public static String PREDICATE_SUBDIR = "predicate";
+  public static String TERM_SUBDIR = "term";
+  public static String PHRASE_SUBDIR = "phrase";
 
   protected final Logger logger = LoggerFactory.getLogger(TermLexiconGenerator.class);
 
   public TermLexiconGenerator(final DocumentProviderType type, final File path) throws IOException {
     docProvider = DocumentProviderFactory.createDataProvider(type, path);
-    objectIndex = new StandardLucene40IndexWrapper(new File(TMP_PATH, "object"));
-    objectNGramIndex = new NGramLucene40IndexWrapper(new File(TMP_PATH, "object-ngram"));
-    predicateIndex = new StandardLucene40IndexWrapper(new File(TMP_PATH, "predicate"));
+    objectIndex = new StandardLucene40IndexWrapper(new File(new File(TMP_PATH, OBJECT_SUBDIR), TERM_SUBDIR));
+    objectPhraseIndex = new NGramLucene40IndexWrapper(new File(new File(TMP_PATH, OBJECT_SUBDIR), PHRASE_SUBDIR));
+    predicateIndex = new StandardLucene40IndexWrapper(new File(new File(TMP_PATH, PREDICATE_SUBDIR), TERM_SUBDIR));
+    predicatePhraseIndex = new NGramLucene40IndexWrapper(new File(new File(TMP_PATH, PREDICATE_SUBDIR), PHRASE_SUBDIR));
   }
 
   public void generate(final File outputDir) throws IOException {
@@ -84,26 +91,34 @@ public class TermLexiconGenerator {
       // Filter objects from json tree and index them
       doc = this.filterObject(node, doc);
       objectIndex.addDocument(doc);
-      objectNGramIndex.addDocument(doc);
+      objectPhraseIndex.addDocument(doc);
 
       // Filter predicates from json tree and index them
       doc = this.filterPredicate(node, doc);
       predicateIndex.addDocument(doc);
+      predicatePhraseIndex.addDocument(doc);
     }
 
     // Commit
     objectIndex.commit();
-    objectNGramIndex.commit();
+    objectPhraseIndex.commit();
     predicateIndex.commit();
+    predicatePhraseIndex.commit();
   }
 
   private void createLexicons(final File outputDir) throws IOException {
-    logger.info("Writing term lexicon files for objects");
-    this.createLexicon(objectIndex, new File(outputDir, "object"), "40-30-20");
-    logger.info("Writing term lexicon files for object n-grams");
-    this.createLexicon(objectNGramIndex, new File(outputDir, "object-ngram"), "40-25-25");
-    logger.info("Writing term lexicon files for predicates");
-    this.createLexicon(predicateIndex, new File(outputDir, "predicate"), "90-9-1");
+    logger.info("Writing term lexicon files for object terms");
+    this.createLexicon(objectIndex,
+      new File(new File(outputDir, OBJECT_SUBDIR), TERM_SUBDIR), "40-30-20");
+    logger.info("Writing term lexicon files for object phrases");
+    this.createLexicon(objectPhraseIndex,
+      new File(new File(outputDir, OBJECT_SUBDIR), PHRASE_SUBDIR), "40-25-25");
+    logger.info("Writing term lexicon files for predicate terms");
+    this.createLexicon(predicateIndex,
+      new File(new File(outputDir, PREDICATE_SUBDIR), TERM_SUBDIR), "90-9-1");
+    logger.info("Writing term lexicon files for predicate phrases");
+    this.createLexicon(predicatePhraseIndex,
+      new File(new File(outputDir, PREDICATE_SUBDIR), PHRASE_SUBDIR), "90-9-1");
   }
 
   private void createLexicon(final IndexWrapper indexWrapper, final File outputDir,
@@ -181,15 +196,20 @@ public class TermLexiconGenerator {
       }
       finally {
         try {
-          objectNGramIndex.close();
+          objectPhraseIndex.close();
         }
         finally {
           try {
             predicateIndex.close();
           }
           finally {
-            logger.info("Deleting indexes");
-            FileUtils.deleteDirectory(TMP_PATH);
+            try {
+              predicatePhraseIndex.close();
+            }
+            finally {
+              logger.info("Deleting indexes");
+              FileUtils.deleteDirectory(TMP_PATH);
+            }
           }
         }
       }

@@ -66,12 +66,13 @@ public class PosBlockIndexInput extends BlockIndexInput {
 
     @Override
     protected void readHeader() throws IOException {
-      logger.debug("Decode Pos header: {}", this.hashCode());
-      logger.debug("Pos header start at {}", in.getFilePointer());
+      // logger.debug("Decode Pos header: {}", this.hashCode());
+      // logger.debug("Pos header start at {}", in.getFilePointer());
+
       // read blockSize and check buffer size
       final int posBlockSize = in.readVInt();
       posBuffer = ArrayUtils.grow(posBuffer, posBlockSize);
-      logger.debug("Read Pos block size: {}", posBlockSize);
+      // logger.debug("Read Pos block size: {}", posBlockSize);
 
       // read size of each compressed data block and check buffer size
       posCompressedBufferLength = in.readVInt();
@@ -86,7 +87,7 @@ public class PosBlockIndexInput extends BlockIndexInput {
         size += posCompressedBufferLength;
       }
       this.seek(in.getFilePointer() + size);
-      logger.debug("Skip Pos data: {}", in.getFilePointer() + size);
+      // logger.debug("Skip Pos data: {}", in.getFilePointer() + size);
     }
 
     public int nextPosition() throws IOException {
@@ -98,7 +99,8 @@ public class PosBlockIndexInput extends BlockIndexInput {
     }
 
     private void decodePositions() throws IOException {
-      logger.debug("Decode Pos: {}", this.hashCode());
+      // logger.debug("Decode Pos: {}", this.hashCode());
+
       in.readBytes(posCompressedBuffer.bytes, 0, posCompressedBufferLength);
       posCompressedBuffer.offset = 0;
       posCompressedBuffer.length = posCompressedBufferLength;

@@ -215,8 +215,16 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
       twq = new TwigQuery(rootLevel, builder.getQuery());
     }
 
+    private TwigQueryBuilder(final int rootLevel) {
+      twq = new TwigQuery(rootLevel);
+    }
+
     public static TwigQueryBuilder twq(final int rootLevel, final NodeBooleanClause ... clauses) {
       return new TwigQueryBuilder(rootLevel, NodeBooleanQueryBuilder.nbq(clauses));
+    }
+
+    public static TwigQueryBuilder twq(final int rootLevel) {
+      return new TwigQueryBuilder(rootLevel);
     }
 
     public TwigQueryBuilder with(final TwigChildBuilder child) {

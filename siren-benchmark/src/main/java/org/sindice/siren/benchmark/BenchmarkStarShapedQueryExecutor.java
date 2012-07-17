@@ -28,7 +28,7 @@ package org.sindice.siren.benchmark;
 import java.io.File;
 
 import org.apache.commons.configuration.ConfigurationException;
-import org.sindice.siren.benchmark.query.AbstractQueryExecutorCLI;
+import org.sindice.siren.benchmark.query.QueryExecutorCLI;
 import org.sindice.siren.benchmark.query.StarShapedQueryExecutorCLI;
 
 public class BenchmarkStarShapedQueryExecutor extends BenchmarkQueryExecutor {
@@ -52,7 +52,7 @@ public class BenchmarkStarShapedQueryExecutor extends BenchmarkQueryExecutor {
   }
 
   @Override
-  public AbstractQueryExecutorCLI getCLI() {
+  public QueryExecutorCLI getCLI() {
     return new StarShapedQueryExecutorCLI();
   }
 

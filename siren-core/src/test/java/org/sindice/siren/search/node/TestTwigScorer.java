@@ -140,6 +140,65 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
   }
 
   @Test
+  public void testEmptyRoot() throws Exception {
+    this.addDocuments(
+      doc(token("aaa", node(1)), token("bbb", node(1,0)), token("aaa", node(2))),
+      doc(token("aaa", node(1,0)), token("bbb", node(1,0,1,0))),
+      doc(token("aaa", node(5,3,6,3)), token("bbb", node(5,3,6,3,7)))
+    );
+
+    NodeScorer scorer = this.getScorer(
+      twq(1).with(child(must("bbb")))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(1), scorer.node());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(1, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(2, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
+
+    scorer = this.getScorer(
+      twq(2).with(child(must("bbb")))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(1, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(2, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
+  }
+
+  @Test
   public void testSingleDescendant() throws Exception {
     this.addDocuments(
       doc(token("aaa", node(1,0)), token("bbb", node(1,0,1))),

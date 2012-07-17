@@ -62,7 +62,7 @@ public abstract class BlockIndexInput implements Closeable {
       else {
         fp += indexIn.readVLong();
       }
-      logger.debug("Read index {}", fp);
+      // logger.debug("Read index {}", fp);
     }
 
     public void seek(final BlockIndexInput.BlockReader other) throws IOException {
@@ -144,7 +144,7 @@ public abstract class BlockIndexInput implements Closeable {
     protected abstract void skipData() throws IOException;
 
     public void seek(final long fp) {
-      logger.debug("Set pending seek to {}", fp);
+      // logger.debug("Set pending seek to {}", fp);
       pendingFP = fp;
       seekPending = true;
     }
@@ -155,7 +155,7 @@ public abstract class BlockIndexInput implements Closeable {
     private boolean maybeSeek() throws IOException {
       if (seekPending) {
         if (pendingFP != lastBlockFP) {
-          logger.debug("Seek to {}", pendingFP);
+          // logger.debug("Seek to {}", pendingFP);
           in.seek(pendingFP);
           lastBlockFP = pendingFP;
           seekPending = false;

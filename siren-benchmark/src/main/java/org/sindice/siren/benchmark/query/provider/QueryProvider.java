@@ -28,24 +28,13 @@ package org.sindice.siren.benchmark.query.provider;
 import java.io.Closeable;
 import java.util.Iterator;
 
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroups;
-import org.sindice.siren.benchmark.query.provider.KeywordQuery.Occur;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public abstract class QueryProvider implements Iterator<Query>, Closeable {
 
   protected int nbQueries = 50;
-  protected int queryPos = 0;
 
-  protected final TermGroups[] groups;
-  protected final Occur[] occurs;
-
-  public QueryProvider (final Occur[] occurs, final TermGroups[] groups) {
-    if (occurs != null && groups != null && occurs.length != groups.length) {
-      throw new Error("occurs and groups must have the same length.");
-    }
-    this.occurs = occurs;
-    this.groups = groups;
-  }
+  public abstract void setSeed(final int seed);
 
   public void setNbQueries(final int nbQueries) {
     this.nbQueries = nbQueries;
@@ -56,19 +45,9 @@ public abstract class QueryProvider implements Iterator<Query>, Closeable {
   }
 
   @Override
-  public String toString() {
-    if (groups == null)
-      return "";
-
-    final StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < groups.length; i++) {
-      builder.append(groups[i]);
-      builder.append(":");
-      builder.append(occurs[i]);
-      builder.append("-");
-    }
-    builder.setLength(builder.length() - 1);
-    return builder.toString();
+  public void remove() {
+    throw new NotImplementedException();
   }
+
 
 }
