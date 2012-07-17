@@ -9,9 +9,6 @@ email: renaud.delbru@deri.org
 Author: Stephane Campinas
 email: stephane.campinas@deri.org
 
-Author: Nickolai Toupikov
-email: nickolai.toupikov@deri.org
-
 Author: Robert Fuller
 email: robert.fuller@deri.org
 
@@ -36,7 +33,7 @@ src/test/java/org/sindice/siren/demo/
 
 This file was written by Renaud Delbru <renaud.delbru@deri.org> for SIREn.
 
-Copyright (c) 2010, 2011
+Copyright (c) 2010, 2012
 Renaud Delbru,
 Digital Enterprise Research Institute,
 National University of Ireland, Galway.
