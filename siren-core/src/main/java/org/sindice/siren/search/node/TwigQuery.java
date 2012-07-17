@@ -158,15 +158,19 @@ public class TwigQuery extends NodeBooleanQuery {
   }
 
   /**
-   * Adds a descendant clause to the twig query.
+   * Adds a descendant clause to the twig query. The node level of the
+   * descendant is relative to the twig level.
    *
    * @throws TooManyClauses
    *           if the new number of clauses exceeds the maximum clause number
    * @see #getMaxClauseCount()
    */
   public void addDescendant(final int nodeLevel, final NodeQuery query, final NodeBooleanClause.Occur occur) {
+    if (nodeLevel <= 0) {
+      throw new IllegalArgumentException("The node level of a descendant should be superior to 0");
+    }
     // set the level constraint on the query
-    query.setLevelConstraint(nodeLevel);
+    query.setLevelConstraint(levelConstraint + nodeLevel);
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
@@ -189,9 +193,21 @@ public class TwigQuery extends NodeBooleanQuery {
 
   @Override
   public void setLevelConstraint(final int levelConstraint) {
+    // store the current level constraint before updating
+    final int oldLevelConstraint = this.levelConstraint;
+    // update level constraint
     super.setLevelConstraint(levelConstraint);
-    // keep root query synchronised with twig query
+    // update level constraint of the root
     root.setLevelConstraint(levelConstraint);
+    // update level of childs and descendants
+    NodeQuery q;
+    for (final NodeBooleanClause clause : clauses) {
+      q = clause.getQuery();
+      // compute delta between old level and descendant level
+      final int levelDelta = q.getLevelConstraint() - oldLevelConstraint;
+      // update level of descendant
+      q.setLevelConstraint(levelConstraint + levelDelta);
+    }
   }
 
   public NodeQuery getRoot() {
@@ -368,9 +384,25 @@ public class TwigQuery extends NodeBooleanQuery {
         query.setBoost(this.getBoost() * query.getBoost());
       }
 
-      // copy constraint
-      query.setNodeConstraint(lowerBound, upperBound);
-      query.setLevelConstraint(levelConstraint);
+      // copy ancestor
+      query.setAncestorPointer(ancestor);
+
+      return query;
+    }
+
+    // optimize empty root queries with only one clause and with no node constraints
+    if (root instanceof EmptyRootQuery &&
+        lowerBound == -1 && upperBound == -1 &&
+        clauses.size() == 1) {
+      // rewrite
+      NodeQuery query = (NodeQuery) clauses.get(0).getQuery().rewrite(reader);
+
+      if (this.getBoost() != 1.0f) {               // incorporate boost
+        if (query == clauses.get(0).getQuery()) {  // if rewrite was no-op
+          query = (NodeQuery) query.clone();       // then clone before boost
+        }
+        query.setBoost(this.getBoost() * query.getBoost());
+      }
 
       // copy ancestor
       query.setAncestorPointer(ancestor);
@@ -378,12 +410,33 @@ public class TwigQuery extends NodeBooleanQuery {
       return query;
     }
 
+    // optimize root query is a twig query
+    if (root instanceof TwigQuery) {
+      // clone
+      final TwigQuery clone = (TwigQuery) this.clone();
+
+      // incorporate the clauses of the twig root
+      clone.clauses.addAll(((TwigQuery) clone.root).clauses);
+      // assign the root of the twig root
+      clone.root = ((TwigQuery) clone.root).getRoot();
+      // update ancestor of descendants
+      for (final NodeBooleanClause clause : clone.clauses) {
+        clause.getQuery().setAncestorPointer(clone.root);
+      }
+
+      // copy ancestor
+      clone.setAncestorPointer(ancestor);
+
+      // rewrite after merge, and return the result
+      return clone.rewrite(reader);
+    }
+
     TwigQuery clone = null;
 
     // rewrite root
     clone = this.rewriteRoot(clone, reader);
 
-    // recursively rewrite ancestors and childs
+    // rewrite ancestors and childs
     clone = this.rewriteClauses(clone, reader);
 
     // some clauses rewrote
@@ -416,9 +469,13 @@ public class TwigQuery extends NodeBooleanQuery {
     for (int i = 0 ; i < clauses.size(); i++) {
       final NodeBooleanClause c = clauses.get(i);
       final NodeQuery query = (NodeQuery) c.getQuery().rewrite(reader);
-      if (query != c.getQuery()) {                     // clause rewrote: must clone
+      if (query != c.getQuery()) { // clause rewrote: must clone
         if (clone == null) {
           clone = (TwigQuery) this.clone();
+          // clone and set root since clone is null, i.e., root has not been rewritten
+          clone.root = (NodeQuery) this.root.clone();
+          // copy ancestor
+          clone.root.setAncestorPointer(ancestor);
         }
         // set root as ancestor
         query.setAncestorPointer(clone.root);
