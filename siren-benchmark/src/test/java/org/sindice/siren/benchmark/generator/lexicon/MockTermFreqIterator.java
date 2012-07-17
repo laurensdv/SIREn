@@ -23,13 +23,10 @@
  * @author Renaud Delbru [ 6 Jul 2012 ]
  * @link http://renaud.delbru.fr/
  */
-package org.sindice.siren.benchmark;
+package org.sindice.siren.benchmark.generator.lexicon;
 
 import java.io.IOException;
 import java.util.LinkedList;
-
-import org.sindice.siren.benchmark.generator.lexicon.TermFreq;
-import org.sindice.siren.benchmark.generator.lexicon.TermFreqIterator;
 
 public class MockTermFreqIterator extends TermFreqIterator {
 

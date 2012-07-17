@@ -28,21 +28,21 @@ package org.sindice.siren.benchmark.query.provider;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconGenerator;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
-import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
-import org.sindice.siren.benchmark.query.provider.Query.Occur;
+import org.sindice.siren.benchmark.query.provider.Query.Term;
 
 public class BooleanQueryProvider extends PrimitiveQueryProvider {
 
-  private final Map<TermGroup, Occur> clauses;
+  private final List<Term> clauses;
   private int counter = 0;
 
-  public BooleanQueryProvider(final Map<TermGroup, Occur> clauses) {
+  public BooleanQueryProvider(final List<Term> clauses) {
     this.clauses = clauses;
   }
 
@@ -62,9 +62,9 @@ public class BooleanQueryProvider extends PrimitiveQueryProvider {
     final BooleanQuery kq = new BooleanQuery();
 
     counter++;
-    for (final Entry<TermGroup, Occur> clause : clauses.entrySet()) {
+    for (final Term clause : clauses) {
       try {
-        kq.addClause(reader.getRandomTerm(clause.getKey()), clause.getValue());
+        kq.addClause(reader.getRandomTerm(clause.group), clause.occur);
       }
       catch (final IOException e) {
         e.printStackTrace();

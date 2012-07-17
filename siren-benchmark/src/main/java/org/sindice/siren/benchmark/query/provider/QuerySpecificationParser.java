@@ -28,16 +28,15 @@ package org.sindice.siren.benchmark.query.provider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconGenerator;
 import org.sindice.siren.benchmark.generator.lexicon.TermLexiconWriter.TermGroup;
 import org.sindice.siren.benchmark.query.provider.Query.Occur;
+import org.sindice.siren.benchmark.query.provider.Query.Term;
 
 /**
  * Parse query specification in JSON syntax
@@ -222,13 +221,13 @@ public class QuerySpecificationParser {
 
     private static String BOOLEAN_ATTRIBUTE = "boolean";
 
-    private final Map<TermGroup, Occur> clauses = new HashMap<TermGroup, Occur>();
+    private final List<Term> clauses = new ArrayList<Term>();
 
     public void addClause(final String clause) {
       final String[] elements = clause.trim().split(":");
       final TermGroup group = TermGroup.valueOf(elements[0]);
       final Occur occur = Occur.valueOf(elements[1]);
-      clauses.put(group, occur);
+      clauses.add(new Term(group, occur));
     }
 
     @Override

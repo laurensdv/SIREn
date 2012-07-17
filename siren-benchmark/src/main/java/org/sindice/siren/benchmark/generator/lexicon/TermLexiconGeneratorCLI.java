@@ -26,6 +26,7 @@
 package org.sindice.siren.benchmark.generator.lexicon;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import joptsimple.OptionParser;
@@ -42,9 +43,9 @@ public class TermLexiconGeneratorCLI {
   final Logger logger = LoggerFactory.getLogger(TermLexiconGeneratorCLI.class);
 
   private final String HELP                = "help";
-  private final String OUTPUT_DIR          = "output-dir";
-  private final String DOCUMENT_PROVIDER   = "document-provider";
-  private final String INPUT_DIR           = "input-dir";
+  private final String OUTPUT_DIR          = "output";
+  private final String DOCUMENT_PROVIDER   = "document";
+  private final String INPUT_DIR           = "input";
 
   private File outputDir = null;
   private File dataDir = null;
@@ -56,13 +57,12 @@ public class TermLexiconGeneratorCLI {
     parser.accepts(OUTPUT_DIR, "The directory where the lexicon files will be " +
     		  "written to.")
           .withRequiredArg().ofType(File.class);
-    parser.accepts(DOCUMENT_PROVIDER, "Specify the type of the document " +
-    		  "provider: [Sindice]")
+    parser.accepts(DOCUMENT_PROVIDER, "Specify the type of the document: " +
+    		  "[Sindice]")
           .withRequiredArg().ofType(DocumentProviderType.class);
-    parser.accepts(INPUT_DIR, "Specify the document provider directory " +
+    parser.accepts(INPUT_DIR, "Specify the document directory " +
     		  "containing tar.gz files.")
     		  .withRequiredArg().ofType(File.class);
-
   }
 
   public void parseAndExecute (final String[] cmds)
@@ -80,16 +80,19 @@ public class TermLexiconGeneratorCLI {
     else {
       parser.printHelpOn(System.err);
       throw new IllegalArgumentException("You must specify an output " +
-      		"directory (--output-dir)");
+      		"directory (--output)");
     }
     // Data Directory
     if (opts.has(INPUT_DIR)) {
       dataDir = (File) opts.valueOf(INPUT_DIR);
+      if (!dataDir.exists()) {
+        throw new FileNotFoundException("The input directory does not exist");
+      }
     }
     else {
       parser.printHelpOn(System.err);
       throw new IllegalArgumentException("You must specify an input " +
-          "directory (--input-dir)");
+          "directory (--input)");
     }
     // Data Provider
     if (opts.has(DOCUMENT_PROVIDER)) {
@@ -97,8 +100,8 @@ public class TermLexiconGeneratorCLI {
     }
     else {
       parser.printHelpOn(System.err);
-      throw new IllegalArgumentException("You must specify a document provider" +
-          " (--document-provider)");
+      throw new IllegalArgumentException("You must specify a type of document" +
+          " (--document)");
     }
 
     // Create the lexicons

@@ -98,7 +98,7 @@ public abstract class AbstractQueryExecutor implements Closeable {
    * </ol>
    * Conclusion: need at least max(30, 60, 50) = 60.
    */
-  protected static int NUMBER_MEASUREMENTS = 100;
+  protected static int NUMBER_MEASUREMENTS = 60;
 
   /**
    * Specify the confidence level to use when calculating the confidence
@@ -320,17 +320,27 @@ public abstract class AbstractQueryExecutor implements Closeable {
     * Create the directory tree if it does not exist.
     */
    protected File generateOutputFile(final File output, final String prefix) {
-     if (!output.exists()) {
-       output.mkdirs();
-       logger.info("Created output directory {}", output);
+     final String subdir = this.getQuerySpecName();
+     final File dir = new File(output, subdir);
+
+     if (!dir.exists()) {
+       dir.mkdirs();
+       logger.info("Created output directory {}", dir);
      }
-     final String filename = this.generateFilename(prefix);
-     return new File(output, filename);
+
+     final String filename = this.getFilename(prefix);
+     return new File(dir, filename);
    }
 
    /**
     * Generate the filenames that will be used to store the benchmark results.
     */
-   protected abstract String generateFilename(final String prefix);
+   protected abstract String getFilename(final String prefix);
+
+   /**
+    * Get the name of the query specification. This will be used to create a
+    * subdirectory for the query spec results.
+    */
+   protected abstract String getQuerySpecName();
 
 }

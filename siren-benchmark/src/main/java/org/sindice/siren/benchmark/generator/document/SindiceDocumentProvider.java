@@ -372,10 +372,12 @@ public class SindiceDocumentProvider extends DocumentProvider {
         return RdfJsonUtil.convertNTriplesEntity(this.getSubject(), this.sbNTriples.toString());
       }
       catch (final RDFParseException e) {
-        throw new IOException(e);
+        logger.error("Cannot recover RDF parse error. Skipped entity.", e);
+        return null;
       }
       catch (final RDFHandlerException e) {
-        throw new IOException(e);
+        logger.error("Unrecoverable RDF handler error. Skipped entity.", e);
+        return null;
       }
     }
 
