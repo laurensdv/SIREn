@@ -51,7 +51,7 @@ public class TestURIEncodingFilter {
   private final String uritype = TupleTokenizer.getTokenTypes()[TupleTokenizer.URI];
   private final String defaulttype = TypeAttribute.DEFAULT_TYPE;
 
-  private final Tokenizer _t = new TupleTokenizer(new StringReader(""), Integer.MAX_VALUE);
+  private final Tokenizer _t = new TupleTokenizer(new StringReader(""));
 
   /**
    * @throws java.lang.Exception

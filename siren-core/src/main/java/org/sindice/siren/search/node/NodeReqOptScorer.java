@@ -29,6 +29,7 @@ package org.sindice.siren.search.node;
 import java.io.IOException;
 
 import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.util.NodeUtils;
 
 /**
  * A Scorer for queries with a required part and an optional part. Delays
@@ -48,7 +49,9 @@ public class NodeReqOptScorer extends NodeScorer {
    * The optional scorer passed from the constructor, and used for boosting
    * score.
    */
-  private final NodeScorer optScorer;
+  private NodeScorer optScorer;
+
+  private boolean firstTimeOptScorer;
 
   /**
    * Construct a {@link NodeReqOptScorer}.
@@ -67,16 +70,19 @@ public class NodeReqOptScorer extends NodeScorer {
 
   @Override
   public boolean nextCandidateDocument() throws IOException {
+    firstTimeOptScorer = true;
     return reqScorer.nextCandidateDocument();
   }
 
   @Override
   public boolean nextNode() throws IOException {
+    firstTimeOptScorer = true;
     return reqScorer.nextNode();
   }
 
   @Override
   public boolean skipToCandidate(final int target) throws IOException {
+    firstTimeOptScorer = true;
     return reqScorer.skipToCandidate(target);
   }
 
@@ -91,32 +97,31 @@ public class NodeReqOptScorer extends NodeScorer {
   }
 
   @Override
-  public float score() {
-    // TODO
-    throw new UnsupportedOperationException();
-//    final float reqScore = reqScorer.score();
-//
-//    if (firstTimeOptScorer) {
-//      firstTimeOptScorer = false;
-//      // Advance to the matching cell
-//      if (optScorer.skipTo(this.doc(), this.node()) == NO_MORE_DOCS) {
-//        optScorer = null;
-//        return reqScore;
-//      }
-//    }
-//    else if (optScorer == null) {
-//      return reqScore;
-//    }
-//    else if ((optScorer.doc() < this.doc()) &&
-//             (optScorer.skipTo(this.doc()) == NO_MORE_DOCS)) {
-//      optScorer = null;
-//      return reqScore;
-//    }
-//
-//    // If the optional scorer matches the same cell, increase the score
-//    return (optScorer.doc() == this.doc() && Arrays.equals(optScorer.node(), this.node()))
-//           ? reqScore + optScorer.score()
-//           : reqScore;
+  public float scoreInNode()
+  throws IOException {
+    final float reqScore = reqScorer.score();
+  
+    if (firstTimeOptScorer) {
+      firstTimeOptScorer = false;
+      // Advance to the matching cell
+      if (!optScorer.skipToCandidate(this.doc())) {
+        optScorer = null;
+        return reqScore;
+      }
+    }
+    else if (optScorer == null) {
+      return reqScore;
+    }
+    else if (optScorer.doc() < this.doc() &&
+             !optScorer.skipToCandidate(this.doc())) {
+      optScorer = null;
+      return reqScore;
+    }
+  
+    // If the optional scorer matches the same cell, increase the score
+    return (optScorer.doc() == this.doc() && NodeUtils.compare(optScorer.node(), this.node()) == 0)
+           ? reqScore + optScorer.score()
+           : reqScore;
   }
 
   @Override

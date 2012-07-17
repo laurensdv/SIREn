@@ -43,7 +43,7 @@ public class TestURILocalnameFilter {
 
   private int MAX_LENGTH = URILocalnameFilter.DEFAULT_MAX_LENGTH;
 
-  private final Tokenizer _t = new TupleTokenizer(new StringReader(""), Integer.MAX_VALUE);
+  private final Tokenizer _t = new TupleTokenizer(new StringReader(""));
 
   public void assertNormalisesTo(final Tokenizer t, final String input,
                                 final String[] expected)

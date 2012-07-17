@@ -227,8 +227,7 @@ extends TokenFilter {
     final TupleTokenizer stream = new TupleTokenizer(new StringReader("" +
     		"<mailto:renaud.delbru@deri.org> <http://renaud.delbru.fr/rdf/foaf> " +
     		"<http://renaud.delbru.fr/>  <http://xmlns.com/foaf/0.1/workplaceHomepage> " +
-    		"<http://test.com/M%C3%B6ller>"),
-    		Integer.MAX_VALUE);
+    		"<http://test.com/M%C3%B6ller>"));
     final TokenStream result = new URILocalnameFilter(stream);
     final CharTermAttribute termAtt = result.getAttribute(CharTermAttribute.class);
     final PositionIncrementAttribute posIncrAtt = result.getAttribute(PositionIncrementAttribute.class);

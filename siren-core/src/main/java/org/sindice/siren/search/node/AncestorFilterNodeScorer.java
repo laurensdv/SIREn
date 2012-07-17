@@ -57,6 +57,12 @@ public class AncestorFilterNodeScorer extends NodeScorer {
   }
 
   @Override
+  public float scoreInNode()
+  throws IOException {
+    return scorer.scoreInNode();
+  }
+
+  @Override
   public String toString() {
     return "AncestorFilterScorer(" + weight + "," + this.doc() + "," +
       this.node() + ")";

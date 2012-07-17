@@ -108,6 +108,67 @@ public abstract class NodeScorer extends Scorer {
    */
   public abstract IntsRef node();
 
+  /**
+   * Returns the number of occurrences in the current node
+   * @return
+   * @throws IOException
+   */
+  public float termFreqInNode()
+  throws IOException {
+    throw new UnsupportedOperationException(this + " does not implement termFreqInNode()");
+  }
+
+  /**
+   * Provides a bridge to the Lucene Document oriented model.
+   * It returns the number of matches in the current document,
+   * across all nodes.
+   */
+  @Override
+  public float freq()
+  throws IOException {
+    float freq = 0;
+
+    while (this.nextNode()) {
+      freq += termFreqInNode();
+    }
+    return freq;
+  }
+
+  /**
+   * Returns the score of the current node of the current
+   * document matching the query.
+   * @return
+   * @throws IOException
+   */
+  public float scoreInNode()
+  throws IOException {
+    throw new UnsupportedOperationException(this + " does not implement scoreInNode()");
+  }
+
+  /**
+   * Returns the score of the current document matching the query.
+   * Computed as the sum of each node's score.
+   * <p>
+   * Should not be called until {@link #nextCandidateDocument()} or
+   * {@link #skipToCandidate(int)} are called for the first time.
+   * 
+   */
+  @Override
+  public float score()
+  throws IOException {
+    float score = 0;
+    while (this.nextNode()) {
+      score += scoreInNode();
+    }
+    return score;
+  }
+
+  /**
+   * Scores and collects all matching documents.
+   *
+   * @param collector
+   *          The collector to which all matching documents are passed through.
+   */
   @Override
   public void score(final Collector collector) throws IOException {
     collector.setScorer(this);
@@ -116,6 +177,33 @@ public abstract class NodeScorer extends Scorer {
         collector.collect(this.doc());
       }
     }
+  }
+
+  /**
+   * Expert: Collects matching documents in a range. Hook for optimization. Note
+   * that {@link #nextCandidateDocument()} must be called once before this method is
+   * called for the first time.
+   *
+   * @param collector
+   *          The collector to which all matching documents are passed through.
+   * @param max
+   *          Do not score documents past this.
+   * @return true if more matching documents may remain.
+   */
+  @Override
+  public boolean score(Collector collector, int max, int firstDocID)
+  throws IOException {
+    // firstDocID is ignored since nextDocument() sets 'currentDoc'
+    collector.setScorer(this);
+    while (this.doc() < max) {
+      if (this.nextNode()) {
+        collector.collect(this.doc());
+      }
+      if (!this.nextCandidateDocument()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

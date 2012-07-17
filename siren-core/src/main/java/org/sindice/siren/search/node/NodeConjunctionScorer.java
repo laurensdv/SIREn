@@ -52,11 +52,11 @@ public class NodeConjunctionScorer extends NodeScorer {
 
   private final NodeScorer[] scorers;
 
-  private final float         coord;
+  private final float        coord;
 
-  protected IntsRef             lastNode = new IntsRef(new int[] { -1 }, 0, 1);
+  protected IntsRef          lastNode     = new IntsRef(new int[] { -1 }, 0, 1);
 
-  protected int                 lastDocument = -1;
+  protected int              lastDocument = -1;
 
   public NodeConjunctionScorer(final Weight weight, final float coord,
                                final Collection<NodeScorer> scorers)
@@ -217,20 +217,19 @@ public class NodeConjunctionScorer extends NodeScorer {
   }
 
   @Override
-  public float score() throws IOException {
-//    float sum = 0.0f;
-//    for (final NodeScorer scorer : scorers) {
-//      sum += scorer.score();
-//    }
-//    return sum * coord;
-    // TODO
-    throw new UnsupportedOperationException();
+  public float scoreInNode()
+  throws IOException {
+    float sum = 0.0f;
+    for (final NodeScorer scorer : scorers) {
+      sum += scorer.scoreInNode();
+    }
+    // TODO: why is there a coord here ?
+    return sum * coord;
   }
 
   @Override
   public String toString() {
-    return "NodeConjunctionScorer(" + weight + "," + lastDocument + "," +
-      lastNode + ")";
+    return "NodeConjunctionScorer(" + weight + "," + lastDocument + "," + lastNode + ")";
   }
 
 }

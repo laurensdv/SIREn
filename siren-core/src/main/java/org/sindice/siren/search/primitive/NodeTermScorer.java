@@ -77,7 +77,17 @@ public class NodeTermScorer extends NodePositionScorer {
 
   @Override
   public float freq() throws IOException {
+    /*
+     * TODO: is termFreqInDoc usefull, since freq in the doc
+     * is computed in NodeScorer now
+     */
     return docsEnum.termFreqInDoc();
+  }
+
+  @Override
+  public float termFreqInNode()
+  throws IOException {
+    return docsEnum.termFreqInNode();
   }
 
   @Override
@@ -105,6 +115,17 @@ public class NodeTermScorer extends NodePositionScorer {
     return docsEnum.nextPosition();
   }
 
+  @Override
+  public float scoreInNode()
+  throws IOException {
+    assert this.doc() != DocsAndNodesIterator.NO_MORE_DOC;
+    return docScorer.score(docsEnum.doc(), docsEnum.termFreqInNode());
+  }
+
+  /*
+   * TODO: Check if this implementation is consistent with the default one
+   * in NodeScorer. This one doesn't iterate over the nodes!
+   */
   @Override
   public float score() throws IOException {
     assert this.doc() != DocsAndNodesIterator.NO_MORE_DOC;

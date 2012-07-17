@@ -181,8 +181,7 @@ extends TokenFilter {
   public static void main(final String[] args) throws IOException {
     final TupleTokenizer stream = new TupleTokenizer(new StringReader("" +
     		"<mailto:renaud.delbru@deri.org> <http://renaud.delbru.fr/rdf/foaf> " +
-    		"<http://renaud.delbru.fr/>  <http://xmlns.com/foaf/0.1/workplaceHomepage/>"),
-    		Integer.MAX_VALUE);
+    		"<http://renaud.delbru.fr/>  <http://xmlns.com/foaf/0.1/workplaceHomepage/>"));
     final TokenStream result = new URINormalisationFilter(stream);
     while (result.incrementToken()) {
       final CharTermAttribute termAtt = result.getAttribute(CharTermAttribute.class);

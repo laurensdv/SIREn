@@ -175,6 +175,11 @@ public class NodeDisjunctionScorerQueue {
       final HeapedScorerNode child1 = heap[i1];
       if (topHSN.doc == child1.doc && topHSN.node.intsEquals(child1.node)) {
         nrMatchersInNode++;
+        /*
+         * TODO: Is this the right place. Scorer should propose an aggregate
+         * method, that is implemented by the primitive scorer since they have
+         * access to the similarity.
+         */
         scoreInNode += child1.scorer.score();
         this.computeSumRecursive(i1);
       }
@@ -184,6 +189,11 @@ public class NodeDisjunctionScorerQueue {
       final HeapedScorerNode child2 = heap[i2];
       if (topHSN.doc == child2.doc && topHSN.node.intsEquals(child2.node)) {
         nrMatchersInNode++;
+        /*
+         * TODO: Is this the right place. Scorer should propose an aggregate
+         * method, that is implemented by the primitive scorer since they have
+         * access to the similarity.
+         */
         scoreInNode += child2.scorer.score();
         this.computeSumRecursive(i2);
       }
@@ -229,8 +239,7 @@ public class NodeDisjunctionScorerQueue {
 
       // no more doc when queue empty
       return (size > 0);
-    }
-    else {
+    } else {
       return false;
     }
   }
@@ -242,24 +251,28 @@ public class NodeDisjunctionScorerQueue {
    * @return If the least scorer has no more nodes, returns false.
    */
   public final boolean nextNodeAndAdjust() throws IOException {
-    // count number of scorers having the same document and node
-    // counting the number of scorers and then performing the iterations of
-    // all the scorers allows to avoid a node array copy (i.e., current node cache)
-    if (size > 0 && nrMatchersInNode < 0) {
-      this.countAndSumMatchers();
+    if (topHSN != null) {
+      // count number of scorers having the same document and node
+      // counting the number of scorers and then performing the iterations of
+      // all the scorers allows to avoid a node array copy (i.e., current node cache)
+      if (size > 0 && nrMatchersInNode < 0) {
+        this.countAndSumMatchers();
+      }
+
+      // Move the scorers to the next node
+      for (int i = 0; i < nrMatchersInNode; i++) {
+        topHSN.scorer.nextNode();
+        this.adjustTop();
+      }
+
+      // reset nrMatchersInNode
+      nrMatchersInNode = -1;
+
+      // if top node has sentinel value, it means that there is no more nodes
+      return this.node() != DocsAndNodesIterator.NO_MORE_NOD;
+    } else {
+      return false;
     }
-
-    // Move the scorers to the next node
-    for (int i = 0; i < nrMatchersInNode; i++) {
-      topHSN.scorer.nextNode();
-      this.adjustTop();
-    }
-
-    // reset nrMatchersInNode
-    nrMatchersInNode = -1;
-
-    // if top node has sentinel value, it means that there is no more nodes
-    return this.node() != DocsAndNodesIterator.NO_MORE_NOD;
   }
 
   /**
