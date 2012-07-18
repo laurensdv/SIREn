@@ -93,12 +93,16 @@ public class TestTwigQuery extends SirenTestCase {
     TwigQuery tq = new TwigQuery(2);
     tq.setBoost(0.5f);
 
-    // with only one clause, it must be rewritten into the descendant query
-    tq.addDescendant(2, new NodeTermQuery(new Term("field", "value")), Occur.MUST);
+    // with only one clause, it must be rewritten into an AncestorFilterQuery
+    // wrapping the descendant query
+    final NodeTermQuery ntq = new NodeTermQuery(new Term("field", "value"));
+    tq.addDescendant(2, ntq, Occur.MUST);
     NodeQuery q = (NodeQuery) tq.rewrite(null);
-    assertTrue(q instanceof NodeTermQuery);
-    assertEquals(4, q.getLevelConstraint());
+    assertTrue(q instanceof AncestorFilterQuery);
+    assertEquals(2, q.getLevelConstraint());
     assertEquals(tq.getBoost(), q.getBoost(), 0);
+    assertEquals(ntq, ((AncestorFilterQuery) q).getQuery());
+    assertEquals(q, ((AncestorFilterQuery) q).getQuery().ancestor);
     assertSame(tq.ancestor, q.ancestor);
 
     // if more than one clause, it must not be rewritten
@@ -106,12 +110,14 @@ public class TestTwigQuery extends SirenTestCase {
     q = (NodeQuery) tq.rewrite(null);
     assertSame(tq, q);
 
-    // with only one clause, but with node constraints, it must not be rewritten
+    // with only one clause and with node constraints, it must be rewritten
     tq = new TwigQuery(2);
     tq.setNodeConstraint(3);
     tq.addDescendant(2, new NodeTermQuery(new Term("field", "value")), Occur.MUST);
     q = (NodeQuery) tq.rewrite(null);
-    assertSame(tq, q);
+    assertTrue(q instanceof AncestorFilterQuery);
+    assertEquals(3, q.lowerBound);
+    assertEquals(3, q.upperBound);
   }
 
   @Test

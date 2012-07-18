@@ -36,12 +36,12 @@ import org.sindice.siren.index.DocsAndNodesIterator;
  * The level of the ancestor must be provided and used to modify the
  * {@link IntsRef#length} of the node path returned by the inner scorer.
  */
-public class AncestorFilterNodeScorer extends NodeScorer {
+public class AncestorFilterScorer extends NodeScorer {
 
   private final NodeScorer scorer;
   private final int ancestorLevel;
 
-  public AncestorFilterNodeScorer(final NodeScorer scorer, final int ancestorLevel) {
+  public AncestorFilterScorer(final NodeScorer scorer, final int ancestorLevel) {
     super(scorer.getWeight());
     this.scorer = scorer;
     this.ancestorLevel = ancestorLevel;
@@ -54,6 +54,12 @@ public class AncestorFilterNodeScorer extends NodeScorer {
   @Override
   public float score() throws IOException {
     return scorer.score();
+  }
+
+  @Override
+  public float scoreInNode()
+  throws IOException {
+    return scorer.scoreInNode();
   }
 
   @Override

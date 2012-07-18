@@ -390,22 +390,39 @@ public class TwigQuery extends NodeBooleanQuery {
       return query;
     }
 
-    // optimize empty root queries with only one clause and with no node constraints
-    if (root instanceof EmptyRootQuery &&
-        lowerBound == -1 && upperBound == -1 &&
-        clauses.size() == 1) {
-      // rewrite
+    // optimize empty root queries with only one clause
+    if (root instanceof EmptyRootQuery && clauses.size() == 1) {
+      // rewrite single clause
       NodeQuery query = (NodeQuery) clauses.get(0).getQuery().rewrite(reader);
 
-      if (this.getBoost() != 1.0f) {               // incorporate boost
-        if (query == clauses.get(0).getQuery()) {  // if rewrite was no-op
-          query = (NodeQuery) query.clone();       // then clone before boost
-        }
-        query.setBoost(this.getBoost() * query.getBoost());
+      // if rewrite was no-op then clone before other operations
+      if (query == clauses.get(0).getQuery()) {
+        query = (NodeQuery) query.clone();
       }
 
+      // if the query is an AncestorFilterQuery
+      if (query instanceof AncestorFilterQuery) {
+        final AncestorFilterQuery tmp = (AncestorFilterQuery) query;
+        // if no boost or node constraint has been set for this node
+        // then extract the wrapped query
+        if (tmp.getBoost() != 1.0f && tmp.lowerBound != -1 && tmp.upperBound != 1) {
+          query = ((AncestorFilterQuery) query).getQuery();
+        }
+      }
+
+      // wrap the rewritten query into an AncestorFilter query, so that
+      // the matching node that is returned corresponds to the twig level
+      query = new AncestorFilterQuery(query, levelConstraint);
       // copy ancestor
       query.setAncestorPointer(ancestor);
+      // copy node constraints
+      query.setNodeConstraint(lowerBound, upperBound);
+      // incorporate boost
+      if (this.getBoost() != 1.0f) {
+        query.setBoost(this.getBoost());
+      }
+      // set ancestor of wrapped query to this AncestorFilterQuery
+      ((AncestorFilterQuery) query).getQuery().setAncestorPointer(query);
 
       return query;
     }

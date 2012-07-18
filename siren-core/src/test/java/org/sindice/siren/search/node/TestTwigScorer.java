@@ -207,7 +207,7 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     );
 
     final NodeScorer scorer = this.getScorer(
-      twq(2, must("aaa")).with(desc(4, must("bbb")))
+      twq(2, must("aaa")).with(desc(2, must("bbb")))
     );
 
     assertTrue(scorer.nextCandidateDocument());
@@ -242,7 +242,7 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     );
 
     final NodeScorer scorer = this.getScorer(
-      twq(2, must("aaa")).with(desc(4, must("bbb")))
+      twq(2, must("aaa")).with(desc(2, must("bbb")))
                          .with(child(must("ccc")))
     );
 
@@ -600,8 +600,8 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     NodeScorer s = null;
     for (final ChildScorer child : childs) {
       s = (NodeScorer) child.child;
-      if (s instanceof AncestorFilterNodeScorer) {
-        s = ((AncestorFilterNodeScorer) child.child).getScorer();
+      if (s instanceof AncestorFilterScorer) {
+        s = ((AncestorFilterScorer) child.child).getScorer();
       }
       assertTrue(s instanceof NodeTermScorer);
     }
