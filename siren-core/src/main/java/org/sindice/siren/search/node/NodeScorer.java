@@ -133,4 +133,9 @@ public abstract class NodeScorer extends Scorer {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public float score() throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
 }

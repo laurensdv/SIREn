@@ -31,7 +31,6 @@ import java.io.IOException;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
 import org.sindice.siren.search.node.NodePositionScorer;
 import org.sindice.siren.search.node.NodeScorer;
@@ -76,11 +75,6 @@ public class NodeTermScorer extends NodePositionScorer {
   }
 
   @Override
-  public float freq() throws IOException {
-    return docsEnum.termFreqInDoc();
-  }
-
-  @Override
   public int pos() {
     return docsEnum.pos();
   }
@@ -103,12 +97,6 @@ public class NodeTermScorer extends NodePositionScorer {
   @Override
   public boolean nextPosition() throws IOException {
     return docsEnum.nextPosition();
-  }
-
-  @Override
-  public float score() throws IOException {
-    assert this.doc() != DocsAndNodesIterator.NO_MORE_DOC;
-    return docScorer.score(docsEnum.doc(), docsEnum.termFreqInDoc());
   }
 
   @Override

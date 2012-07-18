@@ -46,14 +46,6 @@ public abstract class DocsNodesAndPositionsEnum implements DocsAndNodesIterator,
   }
 
   /**
-   * Returns term frequency in the current document.  Do
-   * not call this before {@link #nextDoc} is first called,
-   * nor after {@link #nextDoc} returns false or
-   * {@link #doc()} returns NO_MORE_DOC.
-   **/
-  public abstract int termFreqInDoc() throws IOException;
-
-  /**
    * Returns term frequency in the current node.  Do
    * not call this before {@link #nextNode} is first called,
    * nor after {@link #nextNode} returns false or
