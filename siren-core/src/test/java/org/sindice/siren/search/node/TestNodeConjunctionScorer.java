@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.doc.DocumentScorer;
 
 public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
@@ -133,7 +134,6 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
   @Test
   public void testSkipToCandidate() throws Exception {
-
     final ArrayList<String> docs = new ArrayList<String>();
     for (int i = 0; i < 32; i++) {
       docs.add("<http://sindice.com/test/name> \"Renaud Delbru\" . ");
@@ -169,33 +169,49 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
     assertEndOfStream(scorer);
   }
 
-// TODO: To update when score methods implemented
-//  @Test
-//  public void testScoreWithTermConjunction()
-//  throws Exception {
-//    _helper.addDocumentsWithIterator(new String[] { "<http://renaud.delbru.fr/> . ",
-//                                                    "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
-//                                                    "<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
-//                                                    "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
-//                                                    "<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
-//                                                    "<http://sindice.com/test/homepage> <http://renaud.delbru.fr/> . " +
-//                                                    "<http://sindice.com/test/name> \"Renaud Delbru\" ."});
-//
-//    final NodeConjunctionScorer scorer =
-//      this.getConjunctionScorer(new String[] {"renaud", "delbru"});
-//
-//    float lastScore = 0;
-//    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
-//    lastScore = scorer.score();
-//    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
-//    assertTrue(lastScore > scorer.score());
-//    lastScore = scorer.score();
-//    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
-//    assertTrue(lastScore > scorer.score());
-//    lastScore = scorer.score();
-//    assertFalse(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
-//    assertTrue(lastScore < scorer.score());
-//    assertTrue(scorer.nextDocument() == DocIdSetIterator.NO_MORE_DOCS);
-//  }
+  /**
+   * The score increases, even though the frequency of each term remains the same.
+   * This is due to the length of the document which gets longer.
+   */
+  @Test
+  public void testScoreWithTermConjunction()
+  throws Exception {
+    final ArrayList<String> docs = new ArrayList<String>() {{
+      add("<http://renaud.delbru.fr/> . ");
+      add("<http://sindice.com/test/name> \"Renaud Delbru\" . ");
+      add("<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
+          "<http://sindice.com/test/name> \"Renaud Delbru\" . ");
+      add("<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
+          "<http://sindice.com/test/homepage> <http://renaud.delbru.fr/> . " +
+          "<http://sindice.com/test/name> \"Renaud Delbru\" .");
+    }};
+    this.addDocuments(docs);
+
+    final DocumentScorer scorer = new DocumentScorer(this.getScorer(nbq(must("renaud"), must("delbru"))));
+
+    float lastLastScore = 0;
+    float lastScore = 0;
+
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
+    lastLastScore = scorer.score();
+
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
+    lastScore = scorer.score();
+    assertTrue("doc=" + scorer.docID() + " lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore > lastScore);
+
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
+    lastLastScore = lastScore;
+    lastScore = scorer.score();
+    assertTrue("lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore > lastScore);
+    lastLastScore = scorer.score();
+
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
+    lastLastScore = lastScore;
+    lastScore = scorer.score();
+    // score() sums the score of both nodes
+    assertTrue("lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore < lastScore);
+
+    assertFalse(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
+  }
 
 }

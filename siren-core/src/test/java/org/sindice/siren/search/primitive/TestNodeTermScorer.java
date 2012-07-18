@@ -27,6 +27,8 @@
 package org.sindice.siren.search.primitive;
 
 import static org.sindice.siren.analysis.MockSirenToken.node;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
+import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuilder.ntq;
 
 import java.io.IOException;
@@ -36,6 +38,7 @@ import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.doc.DocumentScorer;
 import org.sindice.siren.search.node.NodeScorer;
 
 public class TestNodeTermScorer extends AbstractTestSirenScorer {
@@ -251,18 +254,19 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
     final NodeScorer scorer = this.getScorer(ntq("renaud"));
 
     // Invalid call
-    scorer.score();
+    scorer.scoreInNode();
   }
 
   @Test
   public void testScore() throws IOException {
     this.addDocument("\"Renaud renaud\" \"renaud\" . ");
-    final NodeScorer scorer = this.getScorer(ntq("renaud"));
+    final DocumentScorer scorer = new DocumentScorer(this.getScorer(ntq("renaud")));
 
-    assertTrue(scorer.nextCandidateDocument());
-    assertEquals(0, scorer.doc());
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
+    assertEquals(0, scorer.docID());
     assertEquals(3.0, scorer.freq(), 0.01);
-    assertFalse(scorer.score() == 0);
+    final float score = scorer.score();
+    assertFalse(score + " != " + 0, score == 0);
   }
 
 }

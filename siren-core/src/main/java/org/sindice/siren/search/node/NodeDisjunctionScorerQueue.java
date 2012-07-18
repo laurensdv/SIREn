@@ -154,7 +154,7 @@ public class NodeDisjunctionScorerQueue {
   protected void countAndSumMatchers() throws IOException {
     if (nrMatchersInNode < 0) { // count and sum not done
       nrMatchersInNode = 1; // init counter at 1 to include the top
-      scoreInNode = topHSN.scorer.score();
+      scoreInNode = topHSN.scorer.scoreInNode();
       // perform recursive traversal of the heap
       this.computeSumRecursive(1);
     }
@@ -175,7 +175,7 @@ public class NodeDisjunctionScorerQueue {
       final HeapedScorerNode child1 = heap[i1];
       if (topHSN.doc == child1.doc && topHSN.node.intsEquals(child1.node)) {
         nrMatchersInNode++;
-        scoreInNode += child1.scorer.score();
+        scoreInNode += child1.scorer.scoreInNode();
         this.computeSumRecursive(i1);
       }
     }
@@ -184,7 +184,7 @@ public class NodeDisjunctionScorerQueue {
       final HeapedScorerNode child2 = heap[i2];
       if (topHSN.doc == child2.doc && topHSN.node.intsEquals(child2.node)) {
         nrMatchersInNode++;
-        scoreInNode += child2.scorer.score();
+        scoreInNode += child2.scorer.scoreInNode();
         this.computeSumRecursive(i2);
       }
     }
@@ -241,11 +241,15 @@ public class NodeDisjunctionScorerQueue {
    *
    * @return If the least scorer has no more nodes, returns false.
    */
-  public final boolean nextNodeAndAdjust() throws IOException {
-    // Count number of scorers having the same document and node.
-    // Counting the number of scorers allows to avoid a node array copy
-    // (i.e., caching the current node) when moving forward all the matching
-    // scorers
+  public final boolean nextNodeAndAdjust()
+  throws IOException {
+    /*
+     * TODO: stecam: I had a NPE in this method with topHSN. However,
+     * I cannot reproduce it. Try to find the case it does occur.
+     */
+    // count number of scorers having the same document and node
+    // counting the number of scorers and then performing the iterations of
+    // all the scorers allows to avoid a node array copy (i.e., current node cache)
     if (size > 0 && nrMatchersInNode < 0) {
       this.countAndSumMatchers();
     }
@@ -258,7 +262,6 @@ public class NodeDisjunctionScorerQueue {
 
     // reset nrMatchersInNode
     nrMatchersInNode = -1;
-
     // if top node has sentinel value, it means that there is no more nodes
     return this.node() != DocsAndNodesIterator.NO_MORE_NOD;
   }

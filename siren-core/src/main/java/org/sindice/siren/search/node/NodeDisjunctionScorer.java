@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
 
@@ -44,14 +43,14 @@ import org.apache.lucene.util.IntsRef;
 public class NodeDisjunctionScorer extends NodeScorer {
 
   /** The number of subscorers. */
-  private final int                          nrScorers;
+  private final int                      nrScorers;
 
   /** The scorers. */
   protected final Collection<NodeScorer> scorers;
 
   /**
-   * The scorerNodeQueue contains all subscorers ordered by their current docID(),
-   * with the minimum at the top. <br>
+   * The scorerNodeQueue contains all subscorers ordered by their current
+   * docID(), with the minimum at the top. <br>
    * The scorerNodeQueue is initialized the first time nextDoc() or advance() is
    * called. <br>
    * An exhausted scorer is immediately removed from the scorerDocQueue. <br>
@@ -63,17 +62,12 @@ public class NodeDisjunctionScorer extends NodeScorer {
    * number of matching scorers, and all scorers are after the matching doc, or
    * are exhausted.
    */
-  private NodeDisjunctionScorerQueue nodeScorerQueue = null;
+  private NodeDisjunctionScorerQueue     nodeScorerQueue = null;
 
   /** The document number of the current match. */
-  private int currentDoc = -1;
+  private int                            currentDoc      = -1;
 
-  private IntsRef currentNode = new IntsRef(new int[] { -1 }, 0, 1);
-
-  /** The number of subscorers that provide the current match. */
-  protected int nrMatchers     = -1;
-
-  private final float currentScore   = Float.NaN;
+  private IntsRef                        currentNode     = new IntsRef(new int[] { -1 }, 0, 1);
 
   /**
    * Construct a {@link NodeDisjunctionScorer}.
@@ -106,48 +100,15 @@ public class NodeDisjunctionScorer extends NodeScorer {
   }
 
   /**
-   * Scores and collects all matching documents.
-   *
-   * @param collector
-   *          The collector to which all matching documents are passed through.
+   * Returns the score of the current node matching the query. Initially
+   * invalid, until {@link #nextCandidateDocument()} is called the first time.
+   * @throws IOException 
    */
   @Override
-  public void score(final Collector collector) throws IOException {
-    throw new UnsupportedOperationException();
-
-// TODO
-//    collector.setScorer(this);
-//    while (this.nextDocument()) {
-//      collector.collect(currentDoc);
-//    }
-  }
-
-  /**
-   * Expert: Collects matching documents in a range. Hook for optimization. Note
-   * that {@link #nextDocument()} must be called once before this method is
-   * called for the first time.
-   *
-   * @param collector
-   *          The collector to which all matching documents are passed through.
-   * @param max
-   *          Do not score documents past this.
-   * @return true if more matching documents may remain.
-   */
-  @Override
-  public boolean score(final Collector collector, final int max, final int firstDocID)
+  public float scoreInNode()
   throws IOException {
-    throw new UnsupportedOperationException();
-
-// TODO
-//    // firstDocID is ignored since nextDocument() sets 'currentDoc'
-//    collector.setScorer(this);
-//    while (currentDoc < max) {
-//      collector.collect(currentDoc);
-//      if (!this.nextDocument()) {
-//        return false;
-//      }
-//    }
-//    return true;
+    nodeScorerQueue.countAndSumMatchers();
+    return nodeScorerQueue.scoreInNode();
   }
 
   @Override
@@ -171,22 +132,15 @@ public class NodeDisjunctionScorer extends NodeScorer {
   }
 
   /**
-   * Returns the score of the current document matching the query. Initially
-   * invalid, until {@link #nextDocument()} is called the first time.
-   */
-  @Override
-  public float score() {
-    // TODO
-    throw new UnsupportedOperationException();
-  }
-
-  /**
    * Returns the number of subscorers matching the current document. Initially
    * invalid, until {@link #nextDocument()} is called the first time.
+   * @throws IOException 
    */
-  public int nrMatchers() {
-    // TODO
-    throw new UnsupportedOperationException();
+  public int nrMatchers()
+  throws IOException {
+    // update the number of matched scorers
+    nodeScorerQueue.countAndSumMatchers();
+    return nodeScorerQueue.nrMatchersInNode();
   }
 
   @Override

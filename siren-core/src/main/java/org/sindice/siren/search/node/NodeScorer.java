@@ -32,6 +32,7 @@ import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.search.doc.DocumentScorer;
 
 /**
  * The abstract {@link Scorer} class that defines the interface for iterating
@@ -71,8 +72,7 @@ public abstract class NodeScorer extends Scorer {
    *
    * @return false if there is no more node for the current entity or if
    * {@link #nextCandidateDocument()} or {@link #skipToCandidate(int)} were not
-   * called
-   * yet.
+   * called yet.
    */
   public abstract boolean nextNode() throws IOException;
 
@@ -108,14 +108,38 @@ public abstract class NodeScorer extends Scorer {
    */
   public abstract IntsRef node();
 
+  /**
+   * Returns the number of occurrences in the current node
+   */
+  public float termFreqInNode() throws IOException {
+    throw new UnsupportedOperationException(this + " does not implement termFreqInNode()");
+  }
+
+  /**
+   * Returns the score of the current node of the current
+   * document matching the query.
+   */
+  public float scoreInNode() throws IOException {
+    throw new UnsupportedOperationException(this + " does not implement scoreInNode()");
+  }
+
+  /**
+   * Methods implemented in {@link DocumentScorer}
+   */
   @Override
   public void score(final Collector collector) throws IOException {
-    collector.setScorer(this);
-    while (this.nextCandidateDocument()) {
-      if (this.nextNode()) {
-        collector.collect(this.doc());
-      }
-    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean score(final Collector collector, final int max, final int firstDocID)
+  throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public float freq() throws IOException {
+    throw new UnsupportedOperationException();
   }
 
   @Override

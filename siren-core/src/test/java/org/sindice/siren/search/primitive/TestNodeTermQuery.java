@@ -70,8 +70,6 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     this.addDocument("\"Delbru\" \"Renaud\" . ");
     this.addDocument("\"Delbru\" . \"Renaud\" . ");
 
-    System.out.println(searcher.getIndexReader().maxDoc());
-
     Query query = ntq("renaud").level(1).getQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);

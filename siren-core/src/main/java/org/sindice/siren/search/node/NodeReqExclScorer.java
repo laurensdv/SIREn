@@ -35,7 +35,7 @@ import org.sindice.siren.util.NodeUtils;
  * A Scorer for queries within a node with a required subscorer and an excluding
  * (prohibited) subscorer.
  * <p>
- * Only ndoes matching the required subscorer and not matching the prohibited
+ * Only nodes matching the required subscorer and not matching the prohibited
  * subscorer are kept.
  * <p>
  * Code taken from {@link ReqExclScorer} and adapted for the Siren use
@@ -181,12 +181,10 @@ public class NodeReqExclScorer extends NodeScorer {
   }
 
   @Override
-  public float score()
+  public float scoreInNode()
   throws IOException {
-    // TODO
-    throw new UnsupportedOperationException();
-//    return reqScorer.score(); // reqScorer may be null when next() or skipTo()
-//                              // already return false
+    return reqScorer.scoreInNode(); // reqScorer may be null when next() or skipTo()
+                                    // already return false
   }
 
   @Override

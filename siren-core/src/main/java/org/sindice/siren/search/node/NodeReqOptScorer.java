@@ -29,6 +29,7 @@ package org.sindice.siren.search.node;
 import java.io.IOException;
 
 import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.util.NodeUtils;
 
 /**
  * A Scorer for queries with a required part and an optional part. Delays
@@ -48,7 +49,7 @@ public class NodeReqOptScorer extends NodeScorer {
    * The optional scorer passed from the constructor, and used for boosting
    * score.
    */
-  private final NodeScorer optScorer;
+  private NodeScorer optScorer;
 
   /**
    * Construct a {@link NodeReqOptScorer}.
@@ -91,32 +92,34 @@ public class NodeReqOptScorer extends NodeScorer {
   }
 
   @Override
-  public float score() {
-    // TODO
-    throw new UnsupportedOperationException();
-//    final float reqScore = reqScorer.score();
-//
-//    if (firstTimeOptScorer) {
-//      firstTimeOptScorer = false;
-//      // Advance to the matching cell
-//      if (optScorer.skipTo(this.doc(), this.node()) == NO_MORE_DOCS) {
-//        optScorer = null;
-//        return reqScore;
-//      }
-//    }
-//    else if (optScorer == null) {
-//      return reqScore;
-//    }
-//    else if ((optScorer.doc() < this.doc()) &&
-//             (optScorer.skipTo(this.doc()) == NO_MORE_DOCS)) {
-//      optScorer = null;
-//      return reqScore;
-//    }
-//
-//    // If the optional scorer matches the same cell, increase the score
-//    return (optScorer.doc() == this.doc() && Arrays.equals(optScorer.node(), this.node()))
-//           ? reqScore + optScorer.score()
-//           : reqScore;
+  public float scoreInNode()
+  throws IOException {
+    final float reqScore = reqScorer.scoreInNode();
+    final int doc = this.doc();
+  
+    if (optScorer == null) {
+      return reqScore;
+    } else if (optScorer.doc() < doc && // if it is the first call, optScorer.doc() returns -1
+               !optScorer.skipToCandidate(doc)) {
+      optScorer = null;
+      return reqScore;
+    }
+
+    final IntsRef reqNode = this.node();
+    /*
+     * the optional scorer can be in a node that is before the one where
+     * the required scorer is in.
+     */
+    int cmp = 1;
+    while ((cmp = NodeUtils.compare(optScorer.node(), reqNode)) < 0) {
+      if (!optScorer.nextNode()) {
+        return reqScore;
+      }
+    }
+    // If the optional scorer matches the same node, increase the score
+    return (optScorer.doc() == doc && cmp == 0)
+           ? reqScore + optScorer.scoreInNode()
+           : reqScore;
   }
 
   @Override

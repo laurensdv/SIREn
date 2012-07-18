@@ -52,7 +52,7 @@ import org.sindice.siren.analysis.TupleTokenizer;
  * <li> the decoded URI </li>
  * </ul>
  * <p>
- * This filter is to be applied on a token of type {@link TupleTokenizer.URI} only.
+ * This filter is to be applied on a token of type {@link TupleTokenizer.URIValidator} only.
  */
 public class URIEncodingFilter extends TokenFilter {
 

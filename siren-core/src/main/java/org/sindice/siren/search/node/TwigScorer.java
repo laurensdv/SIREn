@@ -42,7 +42,7 @@ import org.sindice.siren.search.node.TwigQuery.TwigWeight;
  * must perform the following:
  * <ul>
  * <li> The descendant scorers are filtered so that they return potential common
- * ancestors. Such a filtering is performed by {@link AncestorFilterNodeScorer}.
+ * ancestors. Such a filtering is performed by {@link AncestorFilterScorer}.
  * <li> The root scorer is added as a required clause into the boolean query.
  * </ul>
  */
@@ -116,7 +116,7 @@ public class TwigScorer extends NodeBooleanScorer {
                                                           final int ancestorLevel) {
     final ArrayList<NodeScorer> filteredScorers = new ArrayList<NodeScorer>();
     for (final NodeScorer scorer : scorers) {
-      filteredScorers.add(new AncestorFilterNodeScorer(scorer, ancestorLevel));
+      filteredScorers.add(new AncestorFilterScorer(scorer, ancestorLevel));
     }
     return filteredScorers;
   }

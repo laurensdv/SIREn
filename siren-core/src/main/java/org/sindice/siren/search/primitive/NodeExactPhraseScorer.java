@@ -90,6 +90,4 @@ class NodeExactPhraseScorer extends NodePhraseScorer {
     return this.nextPhrase();
   }
 
-
-
 }

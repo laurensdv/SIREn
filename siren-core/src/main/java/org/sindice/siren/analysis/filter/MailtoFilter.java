@@ -43,7 +43,7 @@ import org.sindice.siren.analysis.TupleTokenizer;
  * <li>mailto:test@test.fr</li> (at the same position as the last one)
  * </ul>
  * <p>
- * This filter is to be applied on a token of type {@link TupleTokenizer.URI} only.
+ * This filter is to be applied on a token of type {@link TupleTokenizer.URIValidator} only.
  */
 public class MailtoFilter extends TokenFilter {
 

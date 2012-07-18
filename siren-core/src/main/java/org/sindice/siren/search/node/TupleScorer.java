@@ -40,7 +40,7 @@ import org.sindice.siren.search.node.TupleQuery.TupleWeight;
  * The {@link TupleScorer} subclasses the {@link NodeBooleanScorer}. A tuple
  * query is rewritten into a pure boolean query. To achieve this, the scorers
  * are filtered so that they return potential common ancestors. Such a filtering
- * is performed by {@link AncestorFilterNodeScorer}.
+ * is performed by {@link AncestorFilterScorer}.
  */
 public class TupleScorer extends NodeBooleanScorer {
 
@@ -78,7 +78,7 @@ public class TupleScorer extends NodeBooleanScorer {
                                                           final int ancestorLevel) {
     final ArrayList<NodeScorer> filteredScorers = new ArrayList<NodeScorer>();
     for (final NodeScorer scorer : scorers) {
-      filteredScorers.add(new AncestorFilterNodeScorer(scorer, ancestorLevel));
+      filteredScorers.add(new AncestorFilterScorer(scorer, ancestorLevel));
     }
     return filteredScorers;
   }

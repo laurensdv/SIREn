@@ -136,7 +136,7 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
 
   private TokenStream getTupleTokenStream(final String input) {
     final Reader reader = new StringReader(input);
-    final TupleTokenizer tokenizer = new TupleTokenizer(reader, Integer.MAX_VALUE);
+    final TupleTokenizer tokenizer = new TupleTokenizer(reader);
     TokenStream stream = new DatatypeAnalyzerFilter(TEST_VERSION_CURRENT, tokenizer,
       new WhitespaceAnalyzer(TEST_VERSION_CURRENT),
       new AnyURIAnalyzer(TEST_VERSION_CURRENT));

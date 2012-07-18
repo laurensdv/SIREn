@@ -31,12 +31,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery.NodeBooleanWeight;
+import org.sindice.siren.util.ArrayUtils;
+import org.sindice.siren.util.NodeUtils;
 
 /**
  * A scorer that matches a boolean combination of node scorers.
@@ -99,26 +100,25 @@ public class NodeBooleanScorer extends NodeScorer {
   throws IOException {
     return new NodeDisjunctionScorer(this.getWeight(), scorers) {
 
-      private final int lastScoredDoc = -1;
+      private int     lastScoredDoc  = -1;
 
       // Save the score of lastScoredDoc, so that we don't compute it more than
-      // once in score().
-      private final float lastDocScore = Float.NaN;
+      // once in score() per document.
+      private float   lastNodeScore  = Float.NaN;
 
       @Override
-      public float score() {
-        // TODO
-        throw new UnsupportedOperationException();
-//        final int doc = this.doc();
-//        if (doc >= lastScoredDoc) {
-//          if (doc > lastScoredDoc) {
-//            lastDocScore = super.score();
-//            lastScoredDoc = doc;
-//          }
-//          coordinator.nrMatchers += super.nrMatchers;
-//        }
-//        return lastDocScore;
+      public float scoreInNode()
+      throws IOException {
+        final int doc = this.doc();
+
+        if (doc >= lastScoredDoc) {
+          lastNodeScore = super.scoreInNode();
+          lastScoredDoc = doc;
+          coordinator.nrMatchers += super.nrMatchers();
+        }
+        return lastNodeScore;
       }
+
     };
   }
 
@@ -132,29 +132,26 @@ public class NodeBooleanScorer extends NodeScorer {
       disableCoord ? 1.0f : ((NodeBooleanWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
                    requiredScorers) {
 
-      private final int lastScoredDoc = -1;
+      private int     lastScoredDoc  = -1;
 
       // Save the score of lastScoredDoc, so that we don't compute it more than
       // once in score().
-      private final float lastDocScore = Float.NaN;
+      private float   lastNodeScore  = Float.NaN;
 
       @Override
-      public float score() throws IOException {
-        // TODO
-        throw new UnsupportedOperationException();
-//        final int doc = this.doc();
-//        if (doc >= lastScoredDoc) {
-//          if (doc > lastScoredDoc) {
-//            lastDocScore = super.score();
-//            lastScoredDoc = doc;
-//          }
-//          coordinator.nrMatchers += requiredNrMatchers;
-//        }
-//        // All scorers match, so defaultSimilarity super.score() always has 1 as
-//        // the coordination factor.
-//        // Therefore the sum of the scores of the requiredScorers
-//        // is used as score.
-//        return lastDocScore;
+      public float scoreInNode() throws IOException {
+        final int doc = this.doc();
+
+        if (doc >= lastScoredDoc) {
+          lastNodeScore = super.scoreInNode();
+          lastScoredDoc = doc;
+          coordinator.nrMatchers += requiredNrMatchers;
+        }
+        // All scorers match, so defaultSimilarity super.score() always has 1 as
+        // the coordination factor.
+        // Therefore the sum of the scores of the requiredScorers
+        // is used as score.
+        return lastNodeScore;
       }
     };
   }
@@ -218,41 +215,14 @@ public class NodeBooleanScorer extends NodeScorer {
                                : new NodeDisjunctionScorer(weight, prohibitedScorers)));
   }
 
-  /**
-   * Expert: Collects matching documents in a range. <br>
-   * Note that {@link #nextDocument()} must be called once before this method is called
-   * for the first time.
-   *
-   * @param hc
-   *          The collector to which all matching documents are passed through
-   *          {@link HitCollector#collect(int, float)}.
-   * @param max
-   *          Do not score documents past this.
-   * @return true if more matching documents may remain.
-   */
-  @Override
-  public boolean score(final Collector collector, final int max, final int firstDocID)
-  throws IOException {
-    // TODO
-    throw new UnsupportedOperationException();
-
-//    int doc = firstDocID;
-//    collector.setScorer(this);
-//    while (doc < max) {
-//      collector.collect(doc);
-//      countingSumScorer.nextDocument();
-//      doc = countingSumScorer.doc();
-//    }
-//    return doc != NO_MORE_DOCS;
-  }
-
   @Override
   public int doc() {
     return countingSumScorer.doc();
   }
 
   @Override
-  public float freq() {
+  public float termFreqInNode()
+  throws IOException {
     return coordinator.nrMatchers;
   }
 
@@ -272,10 +242,15 @@ public class NodeBooleanScorer extends NodeScorer {
   }
 
   @Override
-  public float score()
+  public float scoreInNode()
   throws IOException {
     coordinator.nrMatchers = 0;
-    final float sum = countingSumScorer.score();
+    final float sum = countingSumScorer.scoreInNode();
+    /*
+     * TODO: the score is weighted by the number of matched scorer.
+     * Is this the right place to do it ? Shouldn't it be done inside
+     * the similarity implementation ?
+     */
     return sum * coordinator.coordFactors[coordinator.nrMatchers];
   }
 
@@ -324,11 +299,11 @@ public class NodeBooleanScorer extends NodeScorer {
 
     private final NodeScorer scorer;
 
-    private final int   lastScoredDoc = -1;
+    private int     lastScoredDoc  = -1;
 
-    // Save the score of lastScoredDoc, so that we don't compute it more than
+    // Save the score of lastScoredNode, so that we don't compute it more than
     // once in score().
-    private final float lastDocScore = Float.NaN;
+    private float   lastNodeScore  = Float.NaN;
 
     SingleMatchScorer(final NodeScorer scorer) {
       super(scorer.getWeight());
@@ -336,18 +311,16 @@ public class NodeBooleanScorer extends NodeScorer {
     }
 
     @Override
-    public float score() throws IOException {
-      // TODO
-      throw new UnsupportedOperationException();
-//      final int doc = this.doc();
-//      if (doc >= lastScoredDoc) {
-//        if (doc > lastScoredDoc) {
-//          lastDocScore = scorer.score();
-//          lastScoredDoc = doc;
-//        }
-//        coordinator.nrMatchers++;
-//      }
-//      return lastDocScore;
+    public float scoreInNode()
+    throws IOException {
+      final int doc = this.doc();
+
+      if (doc >= lastScoredDoc) {
+        lastNodeScore = scorer.scoreInNode();
+        lastScoredDoc = doc;
+        coordinator.nrMatchers++;
+      }
+      return lastNodeScore;
     }
 
     @Override

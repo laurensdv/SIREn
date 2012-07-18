@@ -106,10 +106,10 @@ public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
     assertEquals(0, scorer.doc());
     assertTrue(scorer.nextNode());
     assertEquals(node(0,0), scorer.node());
-    assertEquals(1.0f, scorer.freq(), 0);
+    assertEquals(1.0f, scorer.termFreqInNode(), 0);
     assertTrue(scorer.nextNode());
     assertEquals(node(0,1), scorer.node());
-    assertEquals(2.0f, scorer.freq(), 0);
+    assertEquals(2.0f, scorer.termFreqInNode(), 0);
 
     assertFalse(scorer.nextNode());
     assertFalse(scorer.nextCandidateDocument());
@@ -121,7 +121,7 @@ public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
     assertEquals(0, scorer.doc());
     assertTrue(scorer.nextNode());
     assertEquals(node(0,1), scorer.node());
-    assertEquals(2.0f, scorer.freq(), 0);
+    assertEquals(2.0f, scorer.termFreqInNode(), 0);
 
     assertFalse(scorer.nextNode());
     assertFalse(scorer.nextCandidateDocument());
