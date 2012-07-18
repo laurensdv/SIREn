@@ -42,6 +42,10 @@ import org.apache.lucene.util.IntsRef;
  */
 public abstract class NodeScorer extends Scorer {
 
+  private int   lastDoc = -1;
+  private float score;
+  private int   freq;
+
   protected NodeScorer(final Weight weight) {
     super(weight);
   }
@@ -126,11 +130,7 @@ public abstract class NodeScorer extends Scorer {
   @Override
   public float freq()
   throws IOException {
-    float freq = 0;
-
-    while (this.nextNode()) {
-      freq += termFreqInNode();
-    }
+    computeScoreAndFreq();
     return freq;
   }
 
@@ -156,11 +156,28 @@ public abstract class NodeScorer extends Scorer {
   @Override
   public float score()
   throws IOException {
-    float score = 0;
-    while (this.nextNode()) {
-      score += scoreInNode();
-    }
+    computeScoreAndFreq();
     return score;
+  }
+
+  /**
+   * Compute the score and the frequency of the current document
+   * @throws IOException
+   */
+  private void computeScoreAndFreq()
+  throws IOException {
+    final int doc = doc();
+
+    if (doc != lastDoc) {
+      lastDoc = doc;
+      score = 0;
+      freq = 0;
+
+      while (this.nextNode()) {
+        score += scoreInNode();
+        freq += termFreqInNode();
+      }
+    }
   }
 
   /**

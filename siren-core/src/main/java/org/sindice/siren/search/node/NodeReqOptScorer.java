@@ -51,8 +51,6 @@ public class NodeReqOptScorer extends NodeScorer {
    */
   private NodeScorer optScorer;
 
-  private boolean firstTimeOptScorer;
-
   /**
    * Construct a {@link NodeReqOptScorer}.
    *
@@ -70,19 +68,16 @@ public class NodeReqOptScorer extends NodeScorer {
 
   @Override
   public boolean nextCandidateDocument() throws IOException {
-    firstTimeOptScorer = true;
     return reqScorer.nextCandidateDocument();
   }
 
   @Override
   public boolean nextNode() throws IOException {
-    firstTimeOptScorer = true;
     return reqScorer.nextNode();
   }
 
   @Override
   public boolean skipToCandidate(final int target) throws IOException {
-    firstTimeOptScorer = true;
     return reqScorer.skipToCandidate(target);
   }
 
@@ -99,28 +94,31 @@ public class NodeReqOptScorer extends NodeScorer {
   @Override
   public float scoreInNode()
   throws IOException {
-    final float reqScore = reqScorer.score();
+    final float reqScore = reqScorer.scoreInNode();
+    final int doc = this.doc();
   
-    if (firstTimeOptScorer) {
-      firstTimeOptScorer = false;
-      // Advance to the matching cell
-      if (!optScorer.skipToCandidate(this.doc())) {
-        optScorer = null;
-        return reqScore;
-      }
-    }
-    else if (optScorer == null) {
+    if (optScorer == null) {
       return reqScore;
-    }
-    else if (optScorer.doc() < this.doc() &&
-             !optScorer.skipToCandidate(this.doc())) {
+    } else if (optScorer.doc() < doc && // if it is the first call, optScorer.doc() returns -1
+               !optScorer.skipToCandidate(doc)) {
       optScorer = null;
       return reqScore;
     }
-  
-    // If the optional scorer matches the same cell, increase the score
-    return (optScorer.doc() == this.doc() && NodeUtils.compare(optScorer.node(), this.node()) == 0)
-           ? reqScore + optScorer.score()
+
+    final IntsRef reqNode = this.node();
+    /*
+     * the optional scorer can be in a node that is before the one where
+     * the required scorer is in.
+     */
+    int cmp = 1;
+    while ((cmp = NodeUtils.compare(optScorer.node(), reqNode)) < 0) {
+      if (!optScorer.nextNode()) {
+        return reqScore;
+      }
+    }
+    // If the optional scorer matches the same node, increase the score
+    return (optScorer.doc() == doc && cmp == 0)
+           ? reqScore + optScorer.scoreInNode()
            : reqScore;
   }
 

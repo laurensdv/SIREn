@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
 
@@ -70,11 +69,6 @@ public class NodeDisjunctionScorer extends NodeScorer {
 
   private IntsRef                        currentNode     = new IntsRef(new int[] { -1 }, 0, 1);
 
-  /** The number of subscorers that provide the current match. */
-  protected int                          nrMatchers      = -1;
-
-  private float                          currentScore    = Float.NaN;
-
   /**
    * Construct a {@link NodeDisjunctionScorer}.
    *
@@ -108,10 +102,13 @@ public class NodeDisjunctionScorer extends NodeScorer {
   /**
    * Returns the score of the current node matching the query. Initially
    * invalid, until {@link #nextCandidateDocument()} is called the first time.
+   * @throws IOException 
    */
   @Override
-  public float scoreInNode() {
-    return currentScore;
+  public float scoreInNode()
+  throws IOException {
+    nodeScorerQueue.countAndSumMatchers();
+    return nodeScorerQueue.scoreInNode();
   }
 
   @Override
@@ -124,12 +121,6 @@ public class NodeDisjunctionScorer extends NodeScorer {
 
     currentDoc = nodeScorerQueue.doc();
     currentNode = nodeScorerQueue.node();
-    if (more) {
-      // update the number of matched scorers
-      nodeScorerQueue.countAndSumMatchers();
-      nrMatchers = nodeScorerQueue.nrMatchersInNode();
-      currentScore = nodeScorerQueue.scoreInNode();
-    }
     return more;
   }
 
@@ -137,21 +128,19 @@ public class NodeDisjunctionScorer extends NodeScorer {
   public boolean nextNode() throws IOException {
     final boolean more = nodeScorerQueue.nextNodeAndAdjust();
     currentNode = nodeScorerQueue.node();
-    if (more) {
-      // update the number of matched scorers
-      nodeScorerQueue.countAndSumMatchers();
-      nrMatchers = nodeScorerQueue.nrMatchersInNode();
-      currentScore = nodeScorerQueue.scoreInNode();
-    }
     return more;
   }
 
   /**
    * Returns the number of subscorers matching the current document. Initially
    * invalid, until {@link #nextDocument()} is called the first time.
+   * @throws IOException 
    */
-  public int nrMatchers() {
-    return nrMatchers;
+  public int nrMatchers()
+  throws IOException {
+    // update the number of matched scorers
+    nodeScorerQueue.countAndSumMatchers();
+    return nodeScorerQueue.nrMatchersInNode();
   }
 
   @Override
@@ -159,12 +148,6 @@ public class NodeDisjunctionScorer extends NodeScorer {
     final boolean more = nodeScorerQueue.skipToCandidateAndAdjustElsePop(target);
     currentDoc = nodeScorerQueue.doc();
     currentNode = nodeScorerQueue.node();
-    if (more) {
-      // update the number of matched scorers
-      nodeScorerQueue.countAndSumMatchers();
-      nrMatchers = nodeScorerQueue.nrMatchersInNode();
-      currentScore = nodeScorerQueue.scoreInNode();
-    }
     return more;
   }
 

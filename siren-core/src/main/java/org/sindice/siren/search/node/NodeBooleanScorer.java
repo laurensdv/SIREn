@@ -101,29 +101,24 @@ public class NodeBooleanScorer extends NodeScorer {
     return new NodeDisjunctionScorer(this.getWeight(), scorers) {
 
       private int     lastScoredDoc  = -1;
-      private IntsRef lastScoredNode = new IntsRef();
 
       // Save the score of lastScoredDoc, so that we don't compute it more than
-      // once in score().
+      // once in score() per document.
       private float   lastNodeScore  = Float.NaN;
 
       @Override
-      public float scoreInNode() {
-        final IntsRef node = this.node();
+      public float scoreInNode()
+      throws IOException {
         final int doc = this.doc();
 
         if (doc >= lastScoredDoc) {
-          if (NodeUtils.compare(node, lastScoredNode) > 0) {
-            lastNodeScore = super.scoreInNode();
-            lastScoredDoc = doc;
-            ArrayUtils.grow(lastScoredNode, node.length);
-            System.arraycopy(node.ints, node.offset, lastScoredNode.ints, lastScoredNode.offset, node.length);
-            lastScoredNode.length = node.length;
-          }
+          lastNodeScore = super.scoreInNode();
+          lastScoredDoc = doc;
           coordinator.nrMatchers += super.nrMatchers();
         }
         return lastNodeScore;
       }
+
     };
   }
 
@@ -138,7 +133,6 @@ public class NodeBooleanScorer extends NodeScorer {
                    requiredScorers) {
 
       private int     lastScoredDoc  = -1;
-      private IntsRef lastScoredNode = new IntsRef();
 
       // Save the score of lastScoredDoc, so that we don't compute it more than
       // once in score().
@@ -146,17 +140,11 @@ public class NodeBooleanScorer extends NodeScorer {
 
       @Override
       public float scoreInNode() throws IOException {
-        final IntsRef node = this.node();
         final int doc = this.doc();
 
         if (doc >= lastScoredDoc) {
-          if (NodeUtils.compare(node, lastScoredNode) > 0) {
-            lastNodeScore = super.scoreInNode();
-            lastScoredDoc = doc;
-            ArrayUtils.grow(lastScoredNode, node.length);
-            System.arraycopy(node.ints, node.offset, lastScoredNode.ints, lastScoredNode.offset, node.length);
-            lastScoredNode.length = node.length;
-          }
+          lastNodeScore = super.scoreInNode();
+          lastScoredDoc = doc;
           coordinator.nrMatchers += requiredNrMatchers;
         }
         // All scorers match, so defaultSimilarity super.score() always has 1 as
@@ -312,7 +300,6 @@ public class NodeBooleanScorer extends NodeScorer {
     private final NodeScorer scorer;
 
     private int     lastScoredDoc  = -1;
-    private IntsRef lastScoredNode = new IntsRef();
 
     // Save the score of lastScoredNode, so that we don't compute it more than
     // once in score().
@@ -326,17 +313,11 @@ public class NodeBooleanScorer extends NodeScorer {
     @Override
     public float scoreInNode()
     throws IOException {
-      final IntsRef node = this.node();
       final int doc = this.doc();
 
       if (doc >= lastScoredDoc) {
-        if (NodeUtils.compare(node, lastScoredNode) > 0) {
-          lastNodeScore = super.score();
-          lastScoredDoc = doc;
-          ArrayUtils.grow(lastScoredNode, node.length);
-          System.arraycopy(node.ints, node.offset, lastScoredNode.ints, lastScoredNode.offset, node.length);
-          lastScoredNode.length = node.length;
-        }
+        lastNodeScore = scorer.scoreInNode();
+        lastScoredDoc = doc;
         coordinator.nrMatchers++;
       }
       return lastNodeScore;

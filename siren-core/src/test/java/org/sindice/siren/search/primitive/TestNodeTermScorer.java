@@ -251,7 +251,7 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
     final NodeScorer scorer = this.getScorer(ntq("renaud"));
 
     // Invalid call
-    scorer.score();
+    scorer.scoreInNode();
   }
 
   @Test
@@ -262,7 +262,8 @@ public class TestNodeTermScorer extends AbstractTestSirenScorer {
     assertTrue(scorer.nextCandidateDocument());
     assertEquals(0, scorer.doc());
     assertEquals(3.0, scorer.freq(), 0.01);
-    assertFalse(scorer.score() == 0);
+    final float score = scorer.score();
+    assertFalse(score + " != " + 0, score == 0);
   }
 
 }

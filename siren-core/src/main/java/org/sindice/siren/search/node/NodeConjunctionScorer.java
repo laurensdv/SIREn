@@ -58,6 +58,8 @@ public class NodeConjunctionScorer extends NodeScorer {
 
   protected int              lastDocument = -1;
 
+  private float              curNodeScore = -1;
+
   public NodeConjunctionScorer(final Weight weight, final float coord,
                                final Collection<NodeScorer> scorers)
   throws IOException {
@@ -148,6 +150,9 @@ public class NodeConjunctionScorer extends NodeScorer {
 
   @Override
   public boolean skipToCandidate(final int target) throws IOException {
+    // reset the score computation
+    curNodeScore = -1;
+
     if (lastDocument == DocsAndNodesIterator.NO_MORE_DOC) {
       return false;
     }
@@ -172,6 +177,9 @@ public class NodeConjunctionScorer extends NodeScorer {
 
   @Override
   public boolean nextCandidateDocument() throws IOException {
+    // reset the score computation
+    curNodeScore = -1;
+
     if (lastDocument == DocsAndNodesIterator.NO_MORE_DOC) {
       return false;
     }
@@ -194,6 +202,8 @@ public class NodeConjunctionScorer extends NodeScorer {
     NodeScorer lastScorer = scorers[scorers.length - 1];
     NodeScorer firstScorer = scorers[first];
 
+    // reset the score computation
+    curNodeScore = -1;
     // scan forward in last
     if (lastNode == DocsAndNodesIterator.NO_MORE_NOD || !lastScorer.nextNode()) {
       lastNode = DocsAndNodesIterator.NO_MORE_NOD;
@@ -219,12 +229,15 @@ public class NodeConjunctionScorer extends NodeScorer {
   @Override
   public float scoreInNode()
   throws IOException {
-    float sum = 0.0f;
-    for (final NodeScorer scorer : scorers) {
-      sum += scorer.scoreInNode();
+    if (curNodeScore == -1) {
+      curNodeScore = 0;
+      for (final NodeScorer scorer : scorers) {
+        curNodeScore += scorer.scoreInNode();
+      }
+      // TODO: why is there a coord here ?
+      curNodeScore *= coord;
     }
-    // TODO: why is there a coord here ?
-    return sum * coord;
+    return curNodeScore;
   }
 
   @Override
