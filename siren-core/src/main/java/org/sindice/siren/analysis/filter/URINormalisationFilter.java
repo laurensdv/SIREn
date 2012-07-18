@@ -179,7 +179,7 @@ extends TokenFilter {
    * For testing purpose
    */
   public static void main(final String[] args) throws IOException {
-    final TupleTokenizer stream = new TupleTokenizer(new StringReader("" +
+    final TupleTokenizer stream = new TupleTokenizer(new StringReader(
       "<mailto:renaud.delbru@deri.org> <http://renaud.delbru.fr/rdf/foaf> " +
       "<http://renaud.delbru.fr/>  <http://xmlns.com/foaf/0.1/workplaceHomepage/>"));
     final TokenStream result = new URINormalisationFilter(stream);

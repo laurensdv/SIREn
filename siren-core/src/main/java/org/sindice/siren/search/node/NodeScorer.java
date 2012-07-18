@@ -126,6 +126,12 @@ public abstract class NodeScorer extends Scorer {
   /**
    * Methods implemented in {@link DocumentScorer}
    */
+
+  @Override
+  public float score() throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
   @Override
   public void score(final Collector collector) throws IOException {
     throw new UnsupportedOperationException();
@@ -154,11 +160,6 @@ public abstract class NodeScorer extends Scorer {
 
   @Override
   public int advance(final int target) throws IOException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public float score() throws IOException {
     throw new UnsupportedOperationException();
   }
 
