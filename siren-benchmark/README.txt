@@ -28,7 +28,11 @@ execution of the four scripts. You might have to check the JAVA_HOME variable
 and change it accordingly with your environment. You can also modify the 
 JAVA_PARAM variable for tuning the parameters of the Java Virtual Machine.
 
-TODO: Copy flush-fs-cache
+To enable the benchmark platform to flush the OS cache before each query
+execution (on Linux only), you have to copy the flush-fs-cache script located in
+'./src/main/resources/' to 'usr/sbin/'
+
+$ sudo cp ./src/main/resources/flush-fs-cache /usr/sbin/
 
 INSTRUCTIONS
 ============
@@ -105,6 +109,9 @@ index and term lexicon
 
 $ ./scripts/query --index Siren10 --input /tmp/sindice-index-20/ 
   --lexicon /tmp/sindice-lexicon-20/
+
+To enable the benchmark platform to flush the OS cache before each query 
+execution, you have to execute this command with sudo.
 
 The benchmark platform executes each query specification in a separate JVM for 
 minimising bias in the measurements.

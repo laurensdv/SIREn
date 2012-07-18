@@ -50,7 +50,7 @@ public class SirenQueryConverter {
   }
 
   private TwigQuery visitTreeQuery(final TreeQuery treeQuery) {
-    final TwigQuery root = this.visitTreeRoot(treeQuery.getRootAttributeQueries());
+    final TwigQuery root = this.visitRootAttributes(treeQuery.getRootAttributeQueries());
     final TwigQuery twig = new TwigQuery(root);
 
     for (final TreeQuery ancestor : treeQuery.getAncestorQueries()) {
@@ -60,7 +60,7 @@ public class SirenQueryConverter {
     return twig;
   }
 
-  private TwigQuery visitTreeRoot(final List<AttributeQuery> rootAttrQueries) {
+  private TwigQuery visitRootAttributes(final List<AttributeQuery> rootAttrQueries) {
     final TwigQuery twig = new TwigQuery();
 
     for (final AttributeQuery attrQuery : rootAttrQueries) {

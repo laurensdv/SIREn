@@ -225,7 +225,7 @@ public abstract class AbstractQueryExecutor implements Closeable {
    protected abstract void flushWrapperCache() throws IOException;
 
    /** command to flush system fs caches */
-   private static final String FLUSH_FS_CACHE_COMMAND = "sudo /usr/sbin/flush-fs-cache.sh";
+   private static final String FLUSH_FS_CACHE_COMMAND = "sudo /usr/sbin/flush-fs-cache";
 
    /**
     * Flush the OS filesystem cache.
@@ -236,7 +236,7 @@ public abstract class AbstractQueryExecutor implements Closeable {
        final Process flush = Runtime.getRuntime().exec(FLUSH_FS_CACHE_COMMAND);
        if (flush.waitFor() != 0) {
          logger.error("Could not flush system filesystem caches, ignoring!");
-         logger.error("Subsequent queries now may influence each others performance!");
+         logger.error("Previous query execution may influence performance!");
        } else {
          //wait some
          try {

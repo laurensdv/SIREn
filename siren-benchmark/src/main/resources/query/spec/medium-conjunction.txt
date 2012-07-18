@@ -1,0 +1,9 @@
+{
+
+  "root" : [
+      {
+         "value" : { "boolean" : ["MEDIUM:MUST", "MEDIUM:MUST"] }
+      }
+    ]
+
+}
