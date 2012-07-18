@@ -58,17 +58,16 @@ public abstract class SirenTestCase extends LuceneTestCase {
 
   public static final String DEFAULT_TEST_FIELD = "content";
 
-  public static Analyzer newTupleAnalyzer(final boolean delta) {
+  public static Analyzer newTupleAnalyzer() {
     final AnyURIAnalyzer uriAnalyzer = new AnyURIAnalyzer(TEST_VERSION_CURRENT);
     uriAnalyzer.setUriNormalisation(URINormalisation.FULL);
     final TupleAnalyzer analyzer = new TupleAnalyzer(TEST_VERSION_CURRENT,
       new StandardAnalyzer(TEST_VERSION_CURRENT), uriAnalyzer);
-    analyzer.setDeltaPayload(delta);
     return analyzer;
   }
 
-  public static Analyzer newMockAnalyzer(final boolean delta) {
-    return new MockSirenAnalyzer(delta);
+  public static Analyzer newMockAnalyzer() {
+    return new MockSirenAnalyzer();
   }
 
   private FieldType newFieldType() {

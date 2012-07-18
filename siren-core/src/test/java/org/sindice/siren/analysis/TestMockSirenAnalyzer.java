@@ -63,7 +63,7 @@ public class TestMockSirenAnalyzer {
   @Test
   public void testMockSirenAnalyzer() throws IOException {
     final MockSirenDocument doc = doc(token("aaa", node(1)), token("aaa", node(1,0)), token("aaa", node(1)));
-    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer(false);
+    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer();
     final TokenStream ts = analyzer.tokenStream("", new MockSirenReader(doc));
 
     assertTrue(ts.incrementToken());

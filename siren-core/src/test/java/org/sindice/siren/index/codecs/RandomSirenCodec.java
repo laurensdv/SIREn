@@ -32,8 +32,6 @@ import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.codecs.lucene40.Lucene40Codec;
 import org.apache.lucene.codecs.lucene40.Lucene40PostingsFormat;
-import org.apache.lucene.util._TestUtil;
-import org.sindice.siren.index.codecs.siren02.Siren02PostingsFormat;
 import org.sindice.siren.index.codecs.siren10.Siren10PostingsFormat;
 import org.sindice.siren.util.SirenTestCase;
 import org.slf4j.Logger;
@@ -49,7 +47,7 @@ public class RandomSirenCodec extends Lucene40Codec {
   private static final int[] BLOCK_SIZES = new int[] {1, 2, 16, 32, 64, 128, 256, 512, 1024};
 
   public enum PostingsFormatType {
-    RANDOM, SIREN_02, SIREN_10
+    RANDOM, SIREN_10
   }
 
   protected static final Logger logger = LoggerFactory.getLogger(RandomSirenCodec.class);
@@ -90,9 +88,6 @@ public class RandomSirenCodec extends Lucene40Codec {
       case RANDOM:
         return this.newRandomPostingsFormat();
 
-      case SIREN_02:
-        return this.newSiren02PostingsFormat();
-
       case SIREN_10:
         return this.newSiren10PostingsFormat();
 
@@ -101,24 +96,16 @@ public class RandomSirenCodec extends Lucene40Codec {
     }
   }
 
-  private PostingsFormat newSiren02PostingsFormat() {
-    final int minItemsPerBlock = _TestUtil.nextInt(random, 2, 100);
-    final int maxItemsPerBlock = 2*(Math.max(2, minItemsPerBlock-1)) + random.nextInt(100);
-    return new Siren02PostingsFormat(minItemsPerBlock, maxItemsPerBlock);
-  }
-
   private PostingsFormat newSiren10PostingsFormat() {
     final int blockSize = this.newRandomBlockSize();
     return new Siren10PostingsFormat(blockSize);
   }
 
   private PostingsFormat newRandomPostingsFormat() {
-    final int i = random.nextInt(2);
+    final int i = random.nextInt(1);
     switch (i) {
-      case 0:
-        return this.newSiren02PostingsFormat();
 
-      case 1:
+      case 0:
         return this.newSiren10PostingsFormat();
 
       default:

@@ -41,7 +41,6 @@ import org.sindice.siren.analysis.MockSirenAnalyzer;
 import org.sindice.siren.analysis.MockSirenDocument;
 import org.sindice.siren.index.codecs.RandomSirenCodec;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.index.codecs.siren02.Siren02PostingsFormat;
 
 public abstract class BasicSirenTestCase extends SirenTestCase {
 
@@ -193,16 +192,10 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
     final PostingsFormat format = codec.getPostingsFormatForField(SirenTestCase.DEFAULT_TEST_FIELD);
     switch (analyzerType) {
       case MOCK:
-        if (format instanceof Siren02PostingsFormat) {
-          return new MockSirenAnalyzer(true);
-        }
-        return new MockSirenAnalyzer(false);
+        return new MockSirenAnalyzer();
 
       case TUPLE:
-        if (format instanceof Siren02PostingsFormat) {
-          return SirenTestCase.newTupleAnalyzer(true);
-        }
-        return SirenTestCase.newTupleAnalyzer(false);
+        return SirenTestCase.newTupleAnalyzer();
 
       default:
         throw new InvalidParameterException();

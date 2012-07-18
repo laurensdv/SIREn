@@ -48,7 +48,7 @@ public class TupleAnalyzer extends Analyzer {
   private Analyzer stringAnalyzer;
   private Analyzer anyURIAnalyzer;
 
-  private boolean deltaPayload = true;
+  private boolean deltaPayload = false;
 
   private final Version matchVersion;
 
