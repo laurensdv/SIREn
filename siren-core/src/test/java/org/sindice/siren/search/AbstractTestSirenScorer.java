@@ -36,6 +36,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.sindice.siren.index.DocsAndNodesIterator;
+import org.sindice.siren.search.doc.DocumentQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery;
@@ -50,7 +51,7 @@ import org.sindice.siren.util.BasicSirenTestCase;
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
   protected NodeScorer getScorer(final NodeQueryBuilder builder) throws IOException {
-    return this.getScorer(builder.getQuery());
+    return this.getScorer(builder.getNodeQuery());
   }
 
   protected NodeScorer getScorer(final Query query) throws IOException {
@@ -65,16 +66,18 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
   public static abstract class NodeQueryBuilder {
 
     public NodeQueryBuilder bound(final int lowerBound, final int upperBound) {
-      this.getQuery().setNodeConstraint(lowerBound, upperBound);
+      this.getNodeQuery().setNodeConstraint(lowerBound, upperBound);
       return this;
     }
 
     public NodeQueryBuilder level(final int level) {
-      this.getQuery().setLevelConstraint(level);
+      this.getNodeQuery().setLevelConstraint(level);
       return this;
     }
 
-    public abstract NodeQuery getQuery();
+    public abstract NodeQuery getNodeQuery();
+
+    public abstract Query getDocumentQuery();
 
   }
 
@@ -92,8 +95,13 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     @Override
-    public NodeQuery getQuery() {
+    public NodeQuery getNodeQuery() {
       return ntq;
+    }
+
+    @Override
+    public Query getDocumentQuery() {
+      return new DocumentQuery(ntq);
     }
 
   }
@@ -122,8 +130,13 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     @Override
-    public NodeQuery getQuery() {
+    public NodeQuery getNodeQuery() {
       return npq;
+    }
+
+    @Override
+    public Query getDocumentQuery() {
+      return new DocumentQuery(npq);
     }
 
   }
@@ -131,7 +144,7 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
   public static class NodeBooleanClauseBuilder {
 
     public static NodeBooleanClause must(final NodeQueryBuilder builder) {
-      return new NodeBooleanClause(builder.getQuery(), Occur.MUST);
+      return new NodeBooleanClause(builder.getNodeQuery(), Occur.MUST);
     }
 
     public static NodeBooleanClause must(final String term) {
@@ -147,7 +160,7 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     public static NodeBooleanClause should(final NodeQueryBuilder builder) {
-      return new NodeBooleanClause(builder.getQuery(), Occur.SHOULD);
+      return new NodeBooleanClause(builder.getNodeQuery(), Occur.SHOULD);
     }
 
     public static NodeBooleanClause should(final String term) {
@@ -163,7 +176,7 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     public static NodeBooleanClause not(final NodeQueryBuilder builder) {
-      return new NodeBooleanClause(builder.getQuery(), Occur.MUST_NOT);
+      return new NodeBooleanClause(builder.getNodeQuery(), Occur.MUST_NOT);
     }
 
     public static NodeBooleanClause not(final String term) {
@@ -196,13 +209,18 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     @Override
-    public NodeQuery getQuery() {
+    public NodeQuery getNodeQuery() {
       return nbq;
     }
 
     @Override
     public NodeBooleanQueryBuilder bound(final int lowerBound, final int upperBound) {
       return (NodeBooleanQueryBuilder) super.bound(lowerBound, upperBound);
+    }
+
+    @Override
+    public Query getDocumentQuery() {
+      return new DocumentQuery(nbq);
     }
 
   }
@@ -212,7 +230,7 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     protected TwigQuery twq;
 
     private TwigQueryBuilder(final int rootLevel, final NodeQueryBuilder builder) {
-      twq = new TwigQuery(rootLevel, builder.getQuery());
+      twq = new TwigQuery(rootLevel, builder.getNodeQuery());
     }
 
     private TwigQueryBuilder(final int rootLevel) {
@@ -258,8 +276,13 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     @Override
-    public NodeQuery getQuery() {
+    public NodeQuery getNodeQuery() {
       return twq;
+    }
+
+    @Override
+    public Query getDocumentQuery() {
+      return new DocumentQuery(twq);
     }
 
   }
@@ -336,8 +359,13 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     }
 
     @Override
-    public NodeQuery getQuery() {
+    public NodeQuery getNodeQuery() {
       return tq;
+    }
+
+    @Override
+    public Query getDocumentQuery() {
+      return new DocumentQuery(tq);
     }
 
   }

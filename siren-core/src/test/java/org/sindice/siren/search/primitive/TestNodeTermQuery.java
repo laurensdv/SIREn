@@ -55,11 +55,11 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     this.addDocument("\"Renaud Delbru\" . ");
     this.addDocument("\"Renaud\" . ");
 
-    Query query = ntq("renaud").getQuery();
+    Query query = ntq("renaud").getDocumentQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(2, hits.totalHits);
 
-    query = ntq("delbru").getQuery();
+    query = ntq("delbru").getDocumentQuery();
     hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
   }
@@ -70,11 +70,11 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     this.addDocument("\"Delbru\" \"Renaud\" . ");
     this.addDocument("\"Delbru\" . \"Renaud\" . ");
 
-    Query query = ntq("renaud").level(1).getQuery();
+    Query query = ntq("renaud").level(1).getDocumentQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);
 
-    query = ntq("renaud").bound(0,0).getQuery();
+    query = ntq("renaud").bound(0,0).getDocumentQuery();
     hits = searcher.search(query, 100);
     assertEquals(2, hits.totalHits);
   }
@@ -89,11 +89,11 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
     this.addDocumentNoNorms("\"Renaud Delbru\" . ");
     this.addDocumentNoNorms("\"Renaud\" . ");
 
-    Query query = ntq("renaud").getQuery();
+    Query query = ntq("renaud").getDocumentQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(2, hits.totalHits);
 
-    query = ntq("delbru").getQuery();
+    query = ntq("delbru").getDocumentQuery();
     hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
   }
@@ -105,7 +105,7 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
   public void testSimpleDontMatch() throws Exception {
     this.addDocument("\"Renaud Delbru\" . ");
 
-    final Query query = ntq("nomatch").getQuery();
+    final Query query = ntq("nomatch").getDocumentQuery();
     final TopDocs hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);
   }
@@ -114,7 +114,7 @@ public class TestNodeTermQuery extends BasicSirenTestCase {
   public void testExplain() throws IOException {
     this.addDocumentNoNorms("<http://renaud.delbru.fr/rdf/foaf#me> <http://xmlns.com/foaf/0.1/name> \"Renaud Delbru\" . ");
 
-    final Query query = ntq("renaud").getQuery();
+    final Query query = ntq("renaud").getDocumentQuery();
     final Weight w = searcher.createNormalizedWeight(query);
     assertTrue(searcher.getTopReaderContext() instanceof AtomicReaderContext);
     final AtomicReaderContext context = (AtomicReaderContext) searcher.getTopReaderContext();

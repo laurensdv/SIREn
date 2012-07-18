@@ -99,7 +99,7 @@ public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
   public void testMultipleOccurrences() throws Exception {
     this.addDocument("<http://renaud.delbru.fr/> \"renaud delbru delbru renaud renaud delbru\" . ");
 
-    NodeQuery q = npq("renaud", "delbru").getQuery();
+    NodeQuery q = npq("renaud", "delbru").getNodeQuery();
     NodePhraseScorer scorer = (NodePhraseScorer) this.getScorer(q);
 
     assertTrue(scorer.nextCandidateDocument());
@@ -114,7 +114,7 @@ public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
     assertFalse(scorer.nextNode());
     assertFalse(scorer.nextCandidateDocument());
 
-    q = npq("renaud", "", "delbru").getQuery();
+    q = npq("renaud", "", "delbru").getNodeQuery();
     scorer = (NodePhraseScorer) this.getScorer(q);
 
     assertTrue(scorer.nextCandidateDocument());

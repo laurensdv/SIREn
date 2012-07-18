@@ -56,11 +56,11 @@ public class TestSirenTupleQuery extends AbstractTestSirenScorer {
   public void testEquality() throws Exception {
     final NodeQuery query1 = tuple().optional(
       nbq(should("value1")), nbq(should("value2"))
-    ).getQuery();
+    ).getNodeQuery();
 
     final NodeQuery query2 = tuple().optional(
       nbq(should("value1")), nbq(should("value2"))
-    ).getQuery();
+    ).getNodeQuery();
 
     assertEquals(query1, query2);
   }
@@ -70,27 +70,27 @@ public class TestSirenTupleQuery extends AbstractTestSirenScorer {
     this.addDocument("\"aaa ccc\" \"bbb ccc\" . \"aaa bbb\" \"ccc eee\" . ");
 
     // {[aaa]}
-    NodeQuery query = tuple().optional(nbq(should("aaa"))).getQuery();
+    NodeQuery query = tuple().optional(nbq(should("aaa"))).getNodeQuery();
     TopDocs hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
 
     // {[ccc]}
-    query = tuple().optional(nbq(should("ccc"))).getQuery();
+    query = tuple().optional(nbq(should("ccc"))).getNodeQuery();
     hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
 
     // {[+ccc +aaa]}
-    query = tuple().optional(nbq(must("aaa"), must("ccc"))).getQuery();
+    query = tuple().optional(nbq(must("aaa"), must("ccc"))).getNodeQuery();
     hits = searcher.search(query, 100);
     assertEquals(1, hits.totalHits);
 
     // {[ddd]}
-    query = tuple().optional(nbq(should("ddd"))).getQuery();
+    query = tuple().optional(nbq(should("ddd"))).getNodeQuery();
     hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);
 
     // {[+bbb +eee]}
-    query = tuple().optional(nbq(must("bbb"), must("eee"))).getQuery();
+    query = tuple().optional(nbq(must("bbb"), must("eee"))).getNodeQuery();
     hits = searcher.search(query, 100);
     assertEquals(0, hits.totalHits);
   }
