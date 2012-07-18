@@ -62,7 +62,7 @@ public class TestVariableIntCodec extends CodecTestCase {
       if (writer.isFull()) {
         writer.flush();
       }
-      writer.write(i, random().nextInt(10) + 1);
+      writer.write(i);
     }
 
     writer.flush(); // flush remaining data
@@ -94,7 +94,8 @@ public class TestVariableIntCodec extends CodecTestCase {
       if (writer.isFull()) {
         writer.flush();
       }
-      writer.write(i, random().nextInt(10) + 1);
+      writer.write(i);
+      writer.writeNodeFreq(random().nextInt(10) + 1);
     }
 
     writer.flush(); // flush remaining data
@@ -110,7 +111,7 @@ public class TestVariableIntCodec extends CodecTestCase {
         reader.nextBlock();
       }
       assertEquals(i, reader.nextDocument());
-      final int frq = reader.nextFreq();
+      final int frq = reader.nextNodeFreq();
       assertTrue(frq > 0);
       assertTrue(frq <= 10);
     }
@@ -132,7 +133,8 @@ public class TestVariableIntCodec extends CodecTestCase {
       if (writer.isFull()) {
         writer.flush();
       }
-      writer.write(value, value);
+      writer.write(value);
+      writer.writeNodeFreq(value);
     }
 
     writer.flush(); // flush remaining data
@@ -148,14 +150,10 @@ public class TestVariableIntCodec extends CodecTestCase {
         reader.nextBlock();
       }
       assertEquals(value, reader.nextDocument());
-      assertEquals(value, reader.nextFreq());
+      assertEquals(value, reader.nextNodeFreq());
     }
 
     in.close();
-
-//    final VIntBlockCompressor compressor = new VIntBlockCompressor();
-//    final BytesRef output = new BytesRef(compressor.maxCompressedValueSize() * values.length);
-//    compressor.compress(values, output);
   }
 
   @Test

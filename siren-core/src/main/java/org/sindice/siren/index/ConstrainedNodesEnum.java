@@ -79,11 +79,6 @@ public abstract class ConstrainedNodesEnum extends DocsNodesAndPositionsEnum {
   }
 
   @Override
-  public int termFreqInDoc() throws IOException {
-    return docsEnum.termFreqInDoc();
-  }
-
-  @Override
   public int termFreqInNode() throws IOException {
     return docsEnum.termFreqInNode();
   }

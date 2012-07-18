@@ -134,11 +134,6 @@ extends DocsNodesAndPositionsEnum {
   }
 
   @Override
-  public int termFreqInDoc() throws IOException {
-    return current.termFreqInDoc();
-  }
-
-  @Override
   public int termFreqInNode() throws IOException {
     return current.termFreqInNode();
   }

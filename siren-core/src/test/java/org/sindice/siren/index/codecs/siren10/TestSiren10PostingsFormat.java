@@ -65,16 +65,16 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(docsEnum instanceof Siren10DocsEnum);
     final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
-    assertEquals(0, e.termFreqInDoc());
+    assertEquals(0, e.nodeFreqInDoc());
     assertTrue(e.nextDocument());
     assertEquals(0, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextDocument());
     assertEquals(1, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
     assertTrue(e.nextDocument());
     assertEquals(2, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
 
     assertFalse(e.nextDocument());
     assertEquals(DocsAndNodesIterator.NO_MORE_DOC, e.doc());
@@ -99,17 +99,17 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     // first skip in skiplist is at 512
     assertTrue(e.skipTo(502));
     assertEquals(502, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
 
     // must have used the second skip
     assertTrue(e.skipTo(1624));
     assertEquals(1624, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
 
     // no other skip, must have used the linear scan
     assertTrue(e.skipTo(2000));
     assertEquals(2000, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
 
     assertFalse(e.skipTo(256323));
 
@@ -128,12 +128,12 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(docsEnum instanceof Siren10DocsEnum);
     final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
-    assertEquals(0, e.termFreqInDoc());
+    assertEquals(0, e.nodeFreqInDoc());
     assertEquals(node(-1), e.node());
 
     assertTrue(e.nextDocument());
     assertEquals(0, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(1), e.node());
     assertTrue(e.nextNode());
@@ -143,7 +143,7 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
 
     assertTrue(e.nextDocument());
     assertEquals(1, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(1,0), e.node());
     assertFalse(e.nextNode());
@@ -151,7 +151,7 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
 
     assertTrue(e.nextDocument());
     assertEquals(2, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(5,3,6,3), e.node());
     assertFalse(e.nextNode());
@@ -174,12 +174,12 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(docsEnum instanceof Siren10DocsEnum);
     final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
-    assertEquals(0, e.termFreqInDoc());
+    assertEquals(0, e.nodeFreqInDoc());
 
     // skip to 2 using linear scan. Node should be also be skipped.
     assertTrue(e.skipTo(2));
     assertEquals(2, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(5,3,6,3), e.node());
     assertFalse(e.nextNode());
@@ -206,7 +206,7 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     // first skip in skiplist is at 512
     assertTrue(e.skipTo(502));
     assertEquals(502, e.doc());
-    assertEquals(1, e.termFreqInDoc());
+    assertEquals(1, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(5,3,6,3), e.node());
     assertFalse(e.nextNode());
@@ -215,14 +215,14 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(e.nextDocument());
     assertTrue(e.nextDocument());
     assertEquals(504, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(1), e.node());
 
     // must have used the second skip
     assertTrue(e.skipTo(1624));
     assertEquals(1624, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(1), e.node());
     assertTrue(e.nextNode());
@@ -232,7 +232,7 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     // no other skip, must have used the linear scan
     assertTrue(e.skipTo(2000));
     assertEquals(2000, e.doc());
-    assertEquals(2, e.termFreqInDoc());
+    assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(node(1), e.node());
     assertTrue(e.nextNode());
@@ -256,13 +256,12 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertTrue(docsEnum instanceof Siren10DocsEnum);
     final Siren10DocsNodesAndPositionsEnum e = ((Siren10DocsEnum) docsEnum).getDocsNodesAndPositionsEnum();
     assertEquals(-1, e.doc());
-    assertEquals(0, e.termFreqInDoc());
+    assertEquals(0, e.nodeFreqInDoc());
     assertEquals(node(-1), e.node());
     assertEquals(-1, e.pos());
 
     assertTrue(e.nextDocument());
     assertEquals(0, e.doc());
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
 
     assertTrue(e.nextNode());
@@ -285,7 +284,6 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
 
     assertTrue(e.nextDocument());
     assertEquals(2, e.doc());
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(1, e.nodeFreqInDoc());
 
     assertTrue(e.nextNode());
@@ -317,41 +315,34 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     assertEquals(-1, e.doc());
 
     // freqs should be set to 0 at the beginning
-    assertEquals(0, e.termFreqInDoc());
     assertEquals(0, e.nodeFreqInDoc());
     assertEquals(0, e.termFreqInNode());
 
-    // termFreqInDoc and termFreqInNode should be set after calling nextDocument
+    // nodeFreqInDoc should be set after calling nextDocument
     assertTrue(e.nextDocument());
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
     // termFreqInNode should be set to 0
     assertEquals(0, e.termFreqInNode());
     // calling termFreqInNode should not change the freq settings
     assertEquals(2, e.nodeFreqInDoc());
-    assertEquals(2, e.termFreqInDoc());
 
     // termFreqInNode should be set after calling nextNode
     assertTrue(e.nextNode());
-    // termFreqInDoc and nodeFreqInDoc should not have changed of settings
-    assertEquals(2, e.termFreqInDoc());
+    // nodeFreqInDoc and nodeFreqInDoc should not have changed of settings
     assertEquals(2, e.nodeFreqInDoc());
     // termFreqInNode should be set to 1
     assertEquals(1, e.termFreqInNode());
     // calling termFreqInNode should not change the freqs settings
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
 
     // calling nextPosition should not change freqs settings
     assertTrue(e.nextPosition());
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
     assertEquals(1, e.termFreqInNode());
 
-    // partially scanned position should not have consequences on termFreqInNode
+    // partially scanned position should not have consequences on nodeFreqInDoc
     // settings
     assertTrue(e.nextDocument());
-    assertEquals(3, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(2, e.termFreqInNode());
@@ -381,7 +372,6 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
 
     assertTrue(e.nextDocument());
     assertEquals(0, e.doc());
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(1, e.termFreqInNode());
@@ -394,7 +384,6 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
 
     assertTrue(e.nextDocument());
     assertEquals(1, e.doc());
-    assertEquals(2, e.termFreqInDoc());
     assertEquals(2, e.nodeFreqInDoc());
     assertTrue(e.nextNode());
     assertEquals(1, e.termFreqInNode());
@@ -451,7 +440,6 @@ public class TestSiren10PostingsFormat extends BasicSirenTestCase {
     for (int i = 0; i < 1000; i++) {
       assertTrue(e.nextDocument());
       assertEquals(i, e.doc());
-      assertEquals(2, e.termFreqInDoc());
       assertEquals(2, e.nodeFreqInDoc());
     }
   }

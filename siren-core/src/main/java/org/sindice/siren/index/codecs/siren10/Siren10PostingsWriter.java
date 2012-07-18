@@ -221,6 +221,9 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
   /**
    * Adds a new doc in this term. If this returns null
    * then we just skip consuming positions.
+   * <p>
+   * {@code termDocFreq} parameter is ignored as term frequency in document is
+   * not used.
    */
   @Override
   public void startDoc(final int docID, final int termDocFreq)
@@ -239,7 +242,7 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
       posWriter.flush(); // flush pos block to synchronise it with doc block
     }
 
-    docWriter.write(docID, termDocFreq);
+    docWriter.write(docID);
 
     // reset current node for delta computation
     nodWriter.resetCurrentNode();
@@ -460,9 +463,7 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
       final int doc = postingsEnum.doc();
       visitedDocs.set(doc);
 
-      final int freq = postingsEnum.termFreqInDoc();
-      this.startDoc(doc, freq);
-      totTF += freq;
+      this.startDoc(doc, -1);
 
       final int nodeFreq = postingsEnum.nodeFreqInDoc();
       docWriter.writeNodeFreq(nodeFreq);
@@ -480,6 +481,7 @@ public class Siren10PostingsWriter extends PostingsWriterBase {
         while (postingsEnum.nextPosition()) {
           final int position = postingsEnum.pos();
           posWriter.write(position);
+          totTF++;
         }
       }
       df++;

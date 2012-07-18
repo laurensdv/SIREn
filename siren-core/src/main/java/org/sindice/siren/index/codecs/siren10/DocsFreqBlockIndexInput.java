@@ -58,19 +58,15 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
     protected int blockSize;
 
     IntsRef docBuffer = new IntsRef();
-    IntsRef freqBuffer = new IntsRef();
     IntsRef nodFreqBuffer = new IntsRef();
 
     boolean docsReadPending = true;
-    boolean freqsReadPending = true;
     boolean nodFreqsReadPending = true;
 
     int docCompressedBufferLength;
-    int freqCompressedBufferLength;
     int nodFreqCompressedBufferLength;
 
     BytesRef docCompressedBuffer = new BytesRef();
-    BytesRef freqCompressedBuffer = new BytesRef();
     BytesRef nodFreqCompressedBuffer = new BytesRef();
 
     int firstDocId, lastDocId;
@@ -100,17 +96,12 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
       // read blockSize and check buffer size
       blockSize = in.readVInt();
       docBuffer = ArrayUtils.grow(docBuffer, blockSize);
-      freqBuffer = ArrayUtils.grow(freqBuffer, blockSize);
       nodFreqBuffer = ArrayUtils.grow(nodFreqBuffer, blockSize);
 
       // read size of each compressed data block and check buffer size
       docCompressedBufferLength = in.readVInt();
       docCompressedBuffer = ArrayUtils.grow(docCompressedBuffer, docCompressedBufferLength);
       docsReadPending = true;
-
-      freqCompressedBufferLength = in.readVInt();
-      freqCompressedBuffer = ArrayUtils.grow(freqCompressedBuffer, freqCompressedBufferLength);
-      freqsReadPending = true;
 
       nodFreqCompressedBufferLength = in.readVInt();
       nodFreqCompressedBuffer = ArrayUtils.grow(nodFreqCompressedBuffer, nodFreqCompressedBufferLength);
@@ -131,7 +122,6 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
     @Override
     protected void skipData() {
       int size = docCompressedBufferLength;
-      size += freqCompressedBufferLength;
       size += nodFreqCompressedBufferLength;
 
       this.seek(dataBlockOffset + size);
@@ -150,22 +140,10 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
       docsReadPending = false;
     }
 
-    private void decodeFreqs() throws IOException {
-      // logger.debug("Decode Freqs block: {}", this.hashCode());
-
-      in.seek(dataBlockOffset + docCompressedBufferLength); // skip to freq data block
-      in.readBytes(freqCompressedBuffer.bytes, 0, freqCompressedBufferLength);
-      freqCompressedBuffer.offset = 0;
-      freqCompressedBuffer.length = freqCompressedBufferLength;
-      freqDecompressor.decompress(freqCompressedBuffer, freqBuffer);
-
-      freqsReadPending = false;
-    }
-
     private void decodeNodeFreqs() throws IOException {
       // logger.debug("Decode Node Freqs block: {}", this.hashCode());
 
-      in.seek(dataBlockOffset + docCompressedBufferLength + freqCompressedBufferLength); // skip to node freq data block
+      in.seek(dataBlockOffset + docCompressedBufferLength); // skip to node freq data block
       in.readBytes(nodFreqCompressedBuffer.bytes, 0, nodFreqCompressedBufferLength);
       nodFreqCompressedBuffer.offset = 0;
       nodFreqCompressedBuffer.length = nodFreqCompressedBufferLength;
@@ -194,14 +172,6 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
       return currentDocId;
     }
 
-    public int nextFreq() throws IOException {
-      if (freqsReadPending) {
-        this.decodeFreqs();
-      }
-      // Increment freq
-      return freqBuffer.ints[freqBuffer.offset++] + 1;
-    }
-
     public int nextNodeFreq() throws IOException {
       if (nodFreqsReadPending) {
         this.decodeNodeFreqs();
@@ -218,15 +188,12 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
     @Override
     protected void initBlock() {
       docBuffer.offset = docBuffer.length = 0;
-      freqBuffer.offset = freqBuffer.length = 0;
       nodFreqBuffer.offset = nodFreqBuffer.length = 0;
 
       docsReadPending = true;
-      freqsReadPending = true;
       nodFreqsReadPending = true;
 
       docCompressedBufferLength = 0;
-      freqCompressedBufferLength = 0;
       nodFreqCompressedBufferLength = 0;
 
       dataBlockOffset = -1;

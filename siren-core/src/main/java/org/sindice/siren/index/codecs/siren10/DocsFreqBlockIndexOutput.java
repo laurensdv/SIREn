@@ -58,7 +58,6 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
   public class DocsFreqBlockWriter extends BlockWriter {
 
     final IntsRef docBuffer;
-    final IntsRef freqBuffer;
     final IntsRef nodFreqBuffer;
 
     int firstDocId, lastDocId = 0;
@@ -66,12 +65,10 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
     PosBlockIndexOutput.Index posBlockIndex;
 
     BytesRef docCompressedBuffer;
-    BytesRef freqCompressedBuffer;
     BytesRef nodFreqCompressedBuffer;
 
     public DocsFreqBlockWriter() {
       docBuffer = new IntsRef(maxBlockSize);
-      freqBuffer = new IntsRef(maxBlockSize);
       nodFreqBuffer = new IntsRef(maxBlockSize);
 
       // determine max size of compressed buffer to avoid overflow
@@ -81,7 +78,6 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
 
       size = freqCompressor.maxCompressedValueSize() * maxBlockSize;
       size += freqCompressor.getHeaderSize();
-      freqCompressedBuffer = new BytesRef(size);
       nodFreqCompressedBuffer = new BytesRef(size);
     }
 
@@ -104,7 +100,7 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
     /**
      * Called one value at a time.
      */
-    public void write(final int docId, final int freq) throws IOException {
+    public void write(final int docId) throws IOException {
       int delta;
 
       // compute delta - first value in the block is always 0
@@ -118,8 +114,6 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
       }
       docBuffer.ints[docBuffer.offset++] = delta;
       lastDocId = docId;
-      // substract 1 from freq
-      freqBuffer.ints[freqBuffer.offset++] = freq - 1;
     }
 
     public void writeNodeFreq(final int nodeFreqInDoc) {
@@ -140,11 +134,10 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
     @Override
     protected void compress() {
       // Flip buffer before compression
-      docBuffer.length = freqBuffer.length = nodFreqBuffer.length = docBuffer.offset;
-      docBuffer.offset = freqBuffer.offset = nodFreqBuffer.offset = 0;
+      docBuffer.length = nodFreqBuffer.length = docBuffer.offset;
+      docBuffer.offset = nodFreqBuffer.offset = 0;
 
       docCompressor.compress(docBuffer, docCompressedBuffer);
-      freqCompressor.compress(freqBuffer, freqCompressedBuffer);
       freqCompressor.compress(nodFreqBuffer, nodFreqCompressedBuffer);
     }
 
@@ -160,8 +153,6 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
       // write size of each compressed data block
       out.writeVInt(docCompressedBuffer.length);
       // logger.debug("docCompressedBuffer.length: {}", docCompressedBuffer.length);
-      out.writeVInt(freqCompressedBuffer.length);
-      // logger.debug("freqCompressedBuffer.length: {}", freqCompressedBuffer.length);
       out.writeVInt(nodFreqCompressedBuffer.length);
       // logger.debug("nodFreqCompressedBuffer.length: {}", nodFreqCompressedBuffer.length);
 
@@ -181,7 +172,6 @@ public class DocsFreqBlockIndexOutput extends BlockIndexOutput {
     @Override
     protected void writeData() throws IOException {
       out.writeBytes(docCompressedBuffer.bytes, docCompressedBuffer.length);
-      out.writeBytes(freqCompressedBuffer.bytes, freqCompressedBuffer.length);
       out.writeBytes(nodFreqCompressedBuffer.bytes, nodFreqCompressedBuffer.length);
     }
 

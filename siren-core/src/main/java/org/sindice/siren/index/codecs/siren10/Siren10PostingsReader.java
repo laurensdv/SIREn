@@ -26,6 +26,7 @@
 package org.sindice.siren.index.codecs.siren10;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
 import org.apache.lucene.codecs.BlockTermState;
 import org.apache.lucene.codecs.CodecUtil;
@@ -46,9 +47,7 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
-import org.sindice.siren.analysis.filter.VIntPayloadCodec;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.index.PositionsIterator;
 import org.sindice.siren.index.SirenDocsEnum;
 import org.sindice.siren.index.codecs.block.BlockIndexInput;
 import org.sindice.siren.search.node.NodeScorer;
@@ -304,6 +303,9 @@ public class Siren10PostingsReader extends PostingsReaderBase {
    * internal mechanism, especially with {@link CheckIndex}.
    * </ul>
    * <p>
+   * This implementation is very inefficient and should not be used outside
+   * unit tests.
+   * <p>
    * Positions in {@link DocsNodesAndPositionsEnum} are local to a node.
    * This implementation emulates {@link #nextPosition()} by scaling
    * up positions with a position gap that are relative to the node.
@@ -324,6 +326,8 @@ public class Siren10PostingsReader extends PostingsReaderBase {
   class Siren10DocsEnum extends SirenDocsEnum {
 
     private final Siren10DocsNodesAndPositionsEnum docEnum;
+
+    private final LinkedList<Integer> positions = new LinkedList<Integer>();
 
     Siren10DocsEnum() throws IOException {
       docEnum = new Siren10DocsNodesAndPositionsEnum();
@@ -348,7 +352,21 @@ public class Siren10PostingsReader extends PostingsReaderBase {
 
     @Override
     public int freq() throws IOException {
-      return docEnum.termFreqInDoc();
+      // clear position cache
+      positions.clear();
+
+      int freq = 0;
+      while (docEnum.nextNode()) {
+        while (docEnum.nextPosition()) {
+          freq++;
+          // cache position
+          // scale up position based on node hashcode
+          // multiply the hashcode by prime (31) to ensure that the last element
+          // of the node path is scaled up
+          positions.add((docEnum.node().hashCode() * 31) + docEnum.pos());
+        }
+      }
+      return freq;
     }
 
     @Override
@@ -364,21 +382,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
 
     @Override
     public int nextPosition() throws IOException {
-      while (!docEnum.nextPosition()) { // while no more pos
-        if (!docEnum.nextNode()) { // move to next node
-          break; // if no more node, break loop
-        }
-      }
-      final int pos = docEnum.pos();
-      if (pos == PositionsIterator.NO_MORE_POS) {
-        return pos;
-      }
-      else {
-        // scale up position based on node hashcode
-        // multiply the hashcode by prime (31) to ensure that the last element
-        // of the node path is scaled up
-        return (docEnum.node().hashCode() * 31) + pos;
-      }
+      return positions.poll();
     }
 
     @Override
@@ -391,16 +395,14 @@ public class Siren10PostingsReader extends PostingsReaderBase {
       throw new UnsupportedOperationException();
     }
 
-    private final VIntPayloadCodec sirenPayload = new VIntPayloadCodec();
-
     @Override
     public BytesRef getPayload() throws IOException {
-      return sirenPayload.encode(docEnum.node(), docEnum.pos());
+      return null;
     }
 
     @Override
     public boolean hasPayload() {
-      return true;
+      return false;
     }
 
   }
@@ -412,7 +414,6 @@ public class Siren10PostingsReader extends PostingsReaderBase {
 
     int doc = -1;
     int docCount;
-    int termFreqInDoc = 0;
     int nodFreq = 0;
     int termFreqInNode = 0;
     IntsRef node = new IntsRef(new int[] { -1 }, 0, 1);;
@@ -421,7 +422,6 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     // flag to know if nextNode() has been called
     boolean termFreqInNodeReadPending = false;
 
-    private int pendingTermFreqInDocCount;
     private int pendingNodFreqCount;
     private int pendingNodCount;
     private int pendingTermFreqInNodeCount;
@@ -495,7 +495,6 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     }
 
     private void resetPendingCounters() {
-      pendingTermFreqInDocCount = 0;
       pendingNodFreqCount = 0;
       pendingNodCount = 0;
       pendingTermFreqInNodeCount = 0;
@@ -509,7 +508,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
      * Reset the freqs to 0 and the current node and position to -1.
      */
     private void resetFreqNodAndPos() {
-      termFreqInDoc = nodFreq = termFreqInNode = 0; // lazy load of freq
+      nodFreq = termFreqInNode = 0; // lazy load of freq
       node = UNSET_NODE;
       pos = -1;
     }
@@ -541,8 +540,7 @@ public class Siren10PostingsReader extends PostingsReaderBase {
         doc = docReader.nextDocument();
         this.resetFreqNodAndPos(); // reset freqs, node and pos
         termFreqInNodeReadPending = false; // reset flag
-        // increment freq and node pending counters
-        pendingTermFreqInDocCount++;
+        // increment node freq pending counters
         pendingNodFreqCount++;
       } while (liveDocs != null && !liveDocs.get(doc));
 
@@ -665,18 +663,6 @@ public class Siren10PostingsReader extends PostingsReaderBase {
     @Override
     public int pos() {
       return pos;
-    }
-
-    @Override
-    public int termFreqInDoc() throws IOException {
-      if (termFreqInDoc == 0) {
-        // scan over any freqs that were ignored during doc iteration
-        while (pendingTermFreqInDocCount > 0) {
-          termFreqInDoc = docReader.nextFreq();
-          pendingTermFreqInDocCount--;
-        }
-      }
-      return termFreqInDoc;
     }
 
     @Override
