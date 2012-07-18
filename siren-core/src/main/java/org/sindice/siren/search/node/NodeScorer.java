@@ -32,6 +32,7 @@ import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.IntsRef;
+import org.sindice.siren.search.doc.DocumentScorer;
 
 /**
  * The abstract {@link Scorer} class that defines the interface for iterating
@@ -41,10 +42,6 @@ import org.apache.lucene.util.IntsRef;
  * {@link #advance(int)} for compatibility with {@link Scorer} if needed.
  */
 public abstract class NodeScorer extends Scorer {
-
-  private int   lastDoc = -1;
-  private float score;
-  private int   freq;
 
   protected NodeScorer(final Weight weight) {
     super(weight);
@@ -123,18 +120,6 @@ public abstract class NodeScorer extends Scorer {
   }
 
   /**
-   * Provides a bridge to the Lucene Document oriented model.
-   * It returns the number of matches in the current document,
-   * across all nodes.
-   */
-  @Override
-  public float freq()
-  throws IOException {
-    computeScoreAndFreq();
-    return freq;
-  }
-
-  /**
    * Returns the score of the current node of the current
    * document matching the query.
    * @return
@@ -146,81 +131,30 @@ public abstract class NodeScorer extends Scorer {
   }
 
   /**
-   * Returns the score of the current document matching the query.
-   * Computed as the sum of each node's score.
-   * <p>
-   * Should not be called until {@link #nextCandidateDocument()} or
-   * {@link #skipToCandidate(int)} are called for the first time.
-   * 
+   * Methods implemented in {@link DocumentScorer} 
    */
-  @Override
-  public float score()
-  throws IOException {
-    computeScoreAndFreq();
-    return score;
-  }
 
-  /**
-   * Compute the score and the frequency of the current document
-   * @throws IOException
-   */
-  private void computeScoreAndFreq()
-  throws IOException {
-    final int doc = doc();
-
-    if (doc != lastDoc) {
-      lastDoc = doc;
-      score = 0;
-      freq = 0;
-
-      while (this.nextNode()) {
-        score += scoreInNode();
-        freq += termFreqInNode();
-      }
-    }
-  }
-
-  /**
-   * Scores and collects all matching documents.
-   *
-   * @param collector
-   *          The collector to which all matching documents are passed through.
-   */
   @Override
   public void score(final Collector collector) throws IOException {
-    collector.setScorer(this);
-    while (this.nextCandidateDocument()) {
-      if (this.nextNode()) {
-        collector.collect(this.doc());
-      }
-    }
+    throw new UnsupportedOperationException();
   }
 
-  /**
-   * Expert: Collects matching documents in a range. Hook for optimization. Note
-   * that {@link #nextCandidateDocument()} must be called once before this method is
-   * called for the first time.
-   *
-   * @param collector
-   *          The collector to which all matching documents are passed through.
-   * @param max
-   *          Do not score documents past this.
-   * @return true if more matching documents may remain.
-   */
   @Override
   public boolean score(Collector collector, int max, int firstDocID)
   throws IOException {
-    // firstDocID is ignored since nextDocument() sets 'currentDoc'
-    collector.setScorer(this);
-    while (this.doc() < max) {
-      if (this.nextNode()) {
-        collector.collect(this.doc());
-      }
-      if (!this.nextCandidateDocument()) {
-        return false;
-      }
-    }
-    return true;
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public float score()
+  throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public float freq()
+  throws IOException {
+    throw new UnsupportedOperationException();
   }
 
   @Override

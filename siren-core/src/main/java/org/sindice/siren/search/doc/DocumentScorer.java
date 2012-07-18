@@ -25,21 +25,28 @@
 package org.sindice.siren.search.doc;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
+import org.sindice.siren.search.node.NodeScorer;
 
 /**
- * The abstract {@link Scorer} class that defines the interface for iterating
+ * The {@link Scorer} class that defines the interface for iterating
  * over an ordered list of documents matching a query.
  * <p>
  * This class provides a bridge between the SIREn and the Lucene APIs.
  */
-public abstract class DocumentScorer extends Scorer {
+public class DocumentScorer extends Scorer {
 
-  protected DocumentScorer(final Weight weight) {
-    super(weight);
+  private int              lastDoc = -1;
+  private float            score;
+  private int              freq;
+  private final NodeScorer scorer;
+
+  public DocumentScorer(NodeScorer scorer) {
+    super(scorer.getWeight());
+    this.scorer = scorer;
   }
 
   /**
@@ -50,7 +57,7 @@ public abstract class DocumentScorer extends Scorer {
    */
   @Override
   public void score(final Collector collector) throws IOException {
-    collector.setScorer(this);
+    collector.setScorer(scorer);
     while (this.nextDoc() != NO_MORE_DOCS) {
       collector.collect(this.docID());
     }
@@ -71,14 +78,76 @@ public abstract class DocumentScorer extends Scorer {
   public boolean score(Collector collector, int max, int firstDocID)
   throws IOException {
     // firstDocID is ignored since nextDocument() sets 'currentDoc'
-    collector.setScorer(this);
+    collector.setScorer(scorer);
     while (this.docID() < max) {
-        collector.collect(this.docID());
+      collector.collect(this.docID());
       if (this.nextDoc() == NO_MORE_DOCS) {
         return false;
       }
     }
     return true;
+  }
+
+  @Override
+  public int docID() {
+    return scorer.doc();
+  }
+
+  @Override
+  public int advance(int target)
+  throws IOException {
+    if (scorer.skipToCandidate(target)) {
+      return docID();
+    }
+    return NO_MORE_DOCS;
+  }
+
+  @Override
+  public int nextDoc()
+  throws IOException {
+    if (scorer.nextCandidateDocument()) {
+      return docID();
+    }
+    return NO_MORE_DOCS;
+  }
+
+  @Override
+  public float score()
+  throws IOException {
+    computeScoreAndFreq();
+    return score;
+  }
+
+  @Override
+  public float freq()
+  throws IOException {
+    computeScoreAndFreq();
+    return freq;
+  }
+
+  @Override
+  public Collection<ChildScorer> getChildren() {
+    return scorer.getChildren();
+  }
+
+  /**
+   * Compute the score and the frequency of the current document
+   * @throws IOException
+   */
+  private void computeScoreAndFreq()
+  throws IOException {
+    final int doc = docID();
+
+    if (doc != lastDoc) {
+      lastDoc = doc;
+      score = 0;
+      freq = 0;
+
+      while (scorer.nextNode()) {
+        score += scorer.scoreInNode();
+        freq += scorer.termFreqInNode();
+      }
+    }
   }
 
 }

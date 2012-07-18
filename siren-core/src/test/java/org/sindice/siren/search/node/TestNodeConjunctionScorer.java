@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
+import org.sindice.siren.search.doc.DocumentScorer;
 
 public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
 
@@ -169,7 +170,7 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
   }
 
   /**
-   * The score incresases, even though the frequency of each term remains the same.
+   * The score increases, even though the frequency of each term remains the same.
    * This is due to the length of the document which gets longer.
    */
   @Test
@@ -186,31 +187,31 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
     }};
     this.addDocuments(docs);
 
-    final NodeScorer scorer = this.getScorer(nbq(must("renaud"), must("delbru")));
+    final DocumentScorer scorer = new DocumentScorer(this.getScorer(nbq(must("renaud"), must("delbru"))));
 
     float lastLastScore = 0;
     float lastScore = 0;
 
-    assertTrue(scorer.nextCandidateDocument());
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
     lastLastScore = scorer.score();
 
-    assertTrue(scorer.nextCandidateDocument());
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
     lastScore = scorer.score();
-    assertTrue("doc=" + scorer.doc() + " lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore > lastScore);
+    assertTrue("doc=" + scorer.docID() + " lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore > lastScore);
 
-    assertTrue(scorer.nextCandidateDocument());
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
     lastLastScore = lastScore;
     lastScore = scorer.score();
     assertTrue("lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore > lastScore);
     lastLastScore = scorer.score();
 
-    assertTrue(scorer.nextCandidateDocument());
+    assertTrue(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
     lastLastScore = lastScore;
     lastScore = scorer.score();
     // score() sums the score of both nodes
     assertTrue("lastScore=" + lastLastScore + " score=" + lastScore, lastLastScore < lastScore);
 
-    assertFalse(scorer.nextCandidateDocument());
+    assertFalse(scorer.nextDoc() != DocsAndNodesIterator.NO_MORE_DOC);
   }
 
 }
