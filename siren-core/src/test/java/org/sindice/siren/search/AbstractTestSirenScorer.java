@@ -40,12 +40,12 @@ import org.sindice.siren.search.doc.DocumentQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodePhraseQuery;
 import org.sindice.siren.search.node.NodeQuery;
 import org.sindice.siren.search.node.NodeScorer;
+import org.sindice.siren.search.node.NodeTermQuery;
 import org.sindice.siren.search.node.TupleQuery;
 import org.sindice.siren.search.node.TwigQuery;
-import org.sindice.siren.search.primitive.NodePhraseQuery;
-import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {

@@ -40,7 +40,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
-import org.sindice.siren.search.primitive.NodeTermQuery;
 
 public class TestBooleanQuery extends LuceneTestCase {
 

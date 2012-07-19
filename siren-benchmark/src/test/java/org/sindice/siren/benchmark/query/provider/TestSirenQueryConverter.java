@@ -36,9 +36,9 @@ import org.junit.Test;
 import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.TreeQuerySpecification;
 import org.sindice.siren.benchmark.query.provider.TreeQueryProvider.TreeQuery;
 import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodePhraseQuery;
 import org.sindice.siren.search.node.TwigQuery;
 import org.sindice.siren.search.node.TwigQuery.EmptyRootQuery;
-import org.sindice.siren.search.primitive.NodePhraseQuery;
 
 public class TestSirenQueryConverter {
 

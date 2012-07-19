@@ -41,7 +41,6 @@ import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
-import org.sindice.siren.search.primitive.NodeTermQuery;
 
 
 public class TestSirenTupleQuery extends AbstractTestSirenScorer {

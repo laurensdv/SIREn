@@ -43,7 +43,6 @@ import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
-import org.sindice.siren.search.primitive.NodeTermScorer;
 
 public class TestTwigScorer extends AbstractTestSirenScorer {
 

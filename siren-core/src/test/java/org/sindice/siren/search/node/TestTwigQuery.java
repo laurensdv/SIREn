@@ -30,7 +30,6 @@ import java.io.IOException;
 import org.apache.lucene.index.Term;
 import org.junit.Test;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
-import org.sindice.siren.search.primitive.NodeTermQuery;
 import org.sindice.siren.util.SirenTestCase;
 
 public class TestTwigQuery extends SirenTestCase {

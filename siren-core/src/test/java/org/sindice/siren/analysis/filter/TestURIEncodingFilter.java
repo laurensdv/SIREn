@@ -49,7 +49,6 @@ import org.sindice.siren.analysis.TupleTokenizer;
 public class TestURIEncodingFilter {
 
   private final String uritype = TupleTokenizer.getTokenTypes()[TupleTokenizer.URI];
-  private final String defaulttype = TypeAttribute.DEFAULT_TYPE;
 
   private final Tokenizer _t = new TupleTokenizer(new StringReader(""));
 

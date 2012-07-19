@@ -38,10 +38,10 @@ import org.sindice.siren.benchmark.query.provider.Query.Occur;
 import org.sindice.siren.benchmark.query.provider.TreeQueryProvider.TreeQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodePhraseQuery;
 import org.sindice.siren.search.node.NodeQuery;
+import org.sindice.siren.search.node.NodeTermQuery;
 import org.sindice.siren.search.node.TwigQuery;
-import org.sindice.siren.search.primitive.NodePhraseQuery;
-import org.sindice.siren.search.primitive.NodeTermQuery;
 
 public class SirenQueryConverter {
 

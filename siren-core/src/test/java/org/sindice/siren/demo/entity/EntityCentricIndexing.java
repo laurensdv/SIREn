@@ -52,9 +52,9 @@ import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.NodePhraseQuery;
+import org.sindice.siren.search.node.NodeTermQuery;
 import org.sindice.siren.search.node.TupleQuery;
-import org.sindice.siren.search.primitive.NodeTermQuery;
-import org.sindice.siren.search.primitive.NodePhraseQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.search.tuple.SirenTupleClause;
 
