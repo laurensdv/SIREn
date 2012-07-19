@@ -44,7 +44,7 @@ import org.apache.lucene.util.ToStringUtils;
  * MultiNodeTermQuery#CONSTANT_SCORE_AUTO_REWRITE_DEFAULT}
  * rewrite method.
  *
- * Code taken from {@link PrefixQuery} and adapted for SIREn.
+ * <p> Code taken from {@link PrefixQuery} and adapted for SIREn.
  **/
 public class NodePrefixQuery extends MultiNodeTermQuery {
 
