@@ -90,8 +90,6 @@ import org.apache.lucene.util.ToStringUtils;
  **/
 public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTermQuery {
 
-  private static final long serialVersionUID = 4836211972429767278L;
-
   private NodeNumericRangeQuery(final String field, final int precisionStep,
                                  final NumericType dataType,
                                  final T min, final T max,
@@ -291,7 +289,7 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
   }
 
   @Override
-  @SuppressWarnings({"unchecked","rawtypes"})
+  @SuppressWarnings({"rawtypes"})
   public final boolean equals(final Object o) {
     if (o==this) return true;
     if (!super.equals(o))
