@@ -315,7 +315,6 @@ public final class XSDPrimitiveTypeParser {
      *
      * @param c
      * @param decimal
-     * @return
      */
     private static int accumulateIntegerDecimal(final int c, final int decimal) {
       if (c >= '0' && c <= '9') {
@@ -337,7 +336,6 @@ public final class XSDPrimitiveTypeParser {
      *
      * @param c
      * @param decimal
-     * @return
      */
     private static long accumulateLongDecimal(final int c, final long decimal) {
       if (c >= '0' && c <= '9') {

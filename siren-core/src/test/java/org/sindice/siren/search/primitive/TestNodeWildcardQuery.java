@@ -25,6 +25,8 @@
  */
 package org.sindice.siren.search.primitive;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
+
 import java.io.IOException;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
@@ -41,6 +43,7 @@ import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 /**
@@ -143,7 +146,7 @@ public class TestNodeWildcardQuery extends BasicSirenTestCase {
    * preserved.
    */
   public void testPrefixTerm() throws IOException {
-    this.addDocument("<prefix> <prefixx>");
+    this.addDocuments("<prefix>", "<prefixx>");
 
     MultiNodeTermQuery wq = new NodeWildcardQuery(new Term(DEFAULT_TEST_FIELD, "prefix*"));
     this.assertMatches(searcher, wq, 2);
@@ -179,7 +182,7 @@ public class TestNodeWildcardQuery extends BasicSirenTestCase {
    * Tests Wildcard queries with an asterisk.
    */
   public void testAsterisk() throws IOException {
-    this.addDocument("<metal> <metals>");
+    this.addDocuments("<metal>", "<metals>");
 
     final NodePrimitiveQuery query1 = new NodeTermQuery(new Term(DEFAULT_TEST_FIELD, "metal"));
     final NodePrimitiveQuery query2 = new NodeWildcardQuery(new Term(DEFAULT_TEST_FIELD, "metal*"));
@@ -216,7 +219,7 @@ public class TestNodeWildcardQuery extends BasicSirenTestCase {
    * @throws IOException if an error occurs
    */
   public void testQuestionmark() throws IOException {
-    this.addDocument("<metal> <metals> <mXtals> <mXtXls>");
+    this.addDocuments("<metal>", "<metals>", "<mXtals>", "<mXtXls>");
 
     final NodePrimitiveQuery query1 = new NodeWildcardQuery(new Term(DEFAULT_TEST_FIELD, "m?tal"));
     final NodePrimitiveQuery query2 = new NodeWildcardQuery(new Term(DEFAULT_TEST_FIELD, "metal?"));
@@ -233,9 +236,9 @@ public class TestNodeWildcardQuery extends BasicSirenTestCase {
     this.assertMatches(searcher, query6, 1); // Query: 'meta??' matches 'metals' not 'metal'
   }
 
-  private void assertMatches(final IndexSearcher searcher, final Query q, final int expectedMatches)
+  private void assertMatches(final IndexSearcher searcher, final NodeQuery q, final int expectedMatches)
   throws IOException {
-    final ScoreDoc[] result = searcher.search(q, null, 1000).scoreDocs;
+    final ScoreDoc[] result = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals(expectedMatches, result.length);
   }
 

@@ -117,7 +117,6 @@ public class URIEncodingFilter extends TokenFilter {
   /**
    * look for the class of the given charset
    * @param csn
-   * @return
    * @throws UnsupportedCharsetException
    */
   private Charset lookupCharset(final String csn)
@@ -132,7 +131,6 @@ public class URIEncodingFilter extends TokenFilter {
    * Return the decimal value of an hexadecimal number. If it is not hexadecimal,
    * a negative value is returned.
    * @param c
-   * @return
    */
   private int hexaToInt(final char c) {
     switch (c) {
@@ -193,7 +191,6 @@ public class URIEncodingFilter extends TokenFilter {
    * Return the decimal value of an hexadecimal number, multiplied by 16.
    * If it is not hexadecimal, a negative value is returned.
    * @param c
-   * @return
    */
   private int hexaToInt2(final char c) {
     switch (c) {

@@ -36,7 +36,6 @@ public class CSV2Tabular {
    * Convert an array of lines in CSV format into tuples. Use a comma ',' as
    * field separator. Consider all values as a Literal.
    * @param tuples
-   * @return
    */
   public static String convert(String[] tuples) {
     return convert(null, tuples);
@@ -47,7 +46,6 @@ public class CSV2Tabular {
    * a Literal.
    * @param tuples
    * @param sep
-   * @return
    */
   public static String convert(String[] tuples, char sep) {
     return convert(null, tuples, sep);
@@ -58,7 +56,6 @@ public class CSV2Tabular {
    * field separator.
    * @param config
    * @param tuples
-   * @return
    */
   public static String convert(HashMap<Integer, String> config,
                                String[] tuples) {
@@ -77,7 +74,6 @@ public class CSV2Tabular {
    * @param config the fields' type. The index of fields starts at 0.
    * @param tuples the array of String in CSV format
    * @param sep the field separator
-   * @return
    */
   public static String convert(HashMap<Integer, String> config,
                                String[] tuples,
@@ -106,7 +102,6 @@ public class CSV2Tabular {
    * Return the datatype of this field.
    * @param config
    * @param pos
-   * @return
    */
   private static String getFieldType(HashMap<Integer, String> config, int pos) {
     if (config != null && config.containsKey(pos)) {

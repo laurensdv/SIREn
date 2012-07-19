@@ -27,12 +27,17 @@ package org.sindice.siren.search.doc;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Bits;
 import org.sindice.siren.search.node.NodeQuery;
+import org.sindice.siren.search.node.NodeScorer;
 
 /**
  * Abstract class for SIREn's document queries
@@ -41,6 +46,50 @@ public class DocumentQuery extends Query {
 
   private final NodeQuery nodeQuery;
 
+  protected class DocumentWeight extends Weight {
+
+    private final Weight weight;
+
+    public DocumentWeight(Weight weight) {
+      this.weight = weight;
+    }
+
+    @Override
+    public Explanation explain(AtomicReaderContext context, int doc)
+    throws IOException {
+      final DocumentScorer dScorer = (DocumentScorer) this.scorer(context, true, false, context.reader().getLiveDocs());
+      return dScorer.getWeight().explain(context, doc);
+    }
+
+    @Override
+    public Query getQuery() {
+      return nodeQuery;
+    }
+
+    @Override
+    public float getValueForNormalization()
+    throws IOException {
+      return weight.getValueForNormalization();
+    }
+
+    @Override
+    public void normalize(float norm, float topLevelBoost) {
+      weight.normalize(norm, topLevelBoost);
+    }
+
+    @Override
+    public Scorer scorer(AtomicReaderContext context,
+                         boolean scoreDocsInOrder,
+                         boolean topScorer,
+                         Bits acceptDocs)
+    throws IOException {
+      final NodeScorer nodeScorer = (NodeScorer) weight.scorer(context, scoreDocsInOrder, topScorer, acceptDocs);
+      return nodeScorer == null ? null // no match
+                                : new DocumentScorer(nodeScorer);
+    }
+
+  }
+
   public DocumentQuery(NodeQuery nq) {
     this.nodeQuery = nq;
   }
@@ -48,13 +97,16 @@ public class DocumentQuery extends Query {
   @Override
   public Weight createWeight(IndexSearcher searcher)
   throws IOException {
-    return nodeQuery.createWeight(searcher);
+    return new DocumentWeight(nodeQuery.createWeight(searcher));
   }
 
   @Override
   public Query rewrite(IndexReader reader)
   throws IOException {
-    return nodeQuery.rewrite(reader);
+    final Query rewroteQuery = nodeQuery.rewrite(reader);
+
+    return nodeQuery == rewroteQuery ? this
+                                 : new DocumentQuery((NodeQuery) rewroteQuery);
   }
 
   @Override
@@ -64,7 +116,8 @@ public class DocumentQuery extends Query {
 
   @Override
   public String toString(String field) {
-    return nodeQuery.toString(field);
+    return "documentQuery(" + nodeQuery.toString(field) + ")";
   }
 
+  
 }

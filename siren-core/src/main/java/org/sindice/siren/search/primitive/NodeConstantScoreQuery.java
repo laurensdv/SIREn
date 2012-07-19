@@ -41,7 +41,6 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ToStringUtils;
-import org.sindice.siren.search.node.NodePositionScorer;
 import org.sindice.siren.search.node.NodeQuery;
 import org.sindice.siren.search.node.NodeScorer;
 
@@ -160,8 +159,7 @@ public class NodeConstantScoreQuery extends NodePrimitiveQuery {
 //      } else {
 
       assert query != null && innerWeight != null;
-      final NodePositionScorer scorer = (NodePositionScorer) innerWeight.scorer(context,
-        scoreDocsInOrder, topScorer, acceptDocs);
+      final NodeScorer scorer = (NodeScorer) innerWeight.scorer(context, scoreDocsInOrder, topScorer, acceptDocs);
 
 //      }
 

@@ -124,7 +124,7 @@ class NodeConstantScoreAutoRewrite extends NodeTermCollectingRewrite<NodeBoolean
           1, 1.0f, col.array.termState[pos]);
       }
       // Strip scores
-      final Query result = new ConstantScoreQuery(bq);
+      final Query result = new NodeConstantScoreQuery(bq);
       result.setBoost(query.getBoost());
       return result;
     }

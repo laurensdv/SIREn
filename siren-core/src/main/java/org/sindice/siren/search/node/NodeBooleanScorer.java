@@ -36,8 +36,6 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery.NodeBooleanWeight;
-import org.sindice.siren.util.ArrayUtils;
-import org.sindice.siren.util.NodeUtils;
 
 /**
  * A scorer that matches a boolean combination of node scorers.

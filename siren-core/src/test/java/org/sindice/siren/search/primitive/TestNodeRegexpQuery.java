@@ -25,6 +25,8 @@
  */
 package org.sindice.siren.search.primitive;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
+
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -67,7 +69,7 @@ public class TestNodeRegexpQuery extends BasicSirenTestCase {
 
   private int regexQueryNrHits(final String regex) throws IOException {
     final NodeRegexpQuery query = new NodeRegexpQuery(this.newTerm(regex));
-    return searcher.search(query, 5).totalHits;
+    return searcher.search(dq(query), 5).totalHits;
   }
 
   public void testRegex1() throws IOException {
@@ -108,7 +110,7 @@ public class TestNodeRegexpQuery extends BasicSirenTestCase {
     };
     final NodeRegexpQuery query = new NodeRegexpQuery(this.newTerm("<quickBrown>"),
       RegExp.ALL, myProvider);
-    assertEquals(1, searcher.search(query, 5).totalHits);
+    assertEquals(1, searcher.search(dq(query), 5).totalHits);
   }
 
   /**

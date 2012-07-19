@@ -286,6 +286,7 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(1,0), scorer.node());
+    final float d1score10 = scorer.scoreInNode();
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
@@ -300,6 +301,8 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(1,0), scorer.node());
+    final float d0score10 = scorer.scoreInNode();
+    assertTrue(d1score10 + " > " + d0score10, d1score10 > d0score10);
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
@@ -332,7 +335,6 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertEndOfStream(scorer);
-
   }
 
   @Test
@@ -357,6 +359,7 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(1,0), scorer.node());
+    final float d1score10 = scorer.scoreInNode();
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
@@ -371,6 +374,8 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(1,0), scorer.node());
+    final float d0score10 = scorer.scoreInNode();
+    assertTrue(d1score10 + " > " + d0score10, d1score10 > d0score10);
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
@@ -522,10 +527,11 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
   public void testNestedTwig() throws Exception {
     this.addDocuments(
       doc(token("aaa", node(1,0)), token("bbb", node(1,0,1)), token("ccc", node(1,0,1,0)),
-                                   token("eee", node(1,0,4)), token("fff", node(1,0,4,1)))
+                                   token("eee", node(1,0,4)), token("fff", node(1,0,4,1)),
+                                   token("ggg", node(1,0,4,1)), token("hhh", node(1,0,1)))
     );
 
-    final NodeScorer scorer = this.getScorer(
+    NodeScorer scorer = this.getScorer(
       twq(2, must("aaa")).with(child(must(
                                 twq(3, must("bbb")).with(child(must("ccc")))
                                )))
@@ -539,11 +545,75 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(1,0), scorer.node());
+    final float s0 = scorer.scoreInNode();
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
     assertEndOfStream(scorer);
 
+    scorer = this.getScorer(
+      twq(2, must("aaa")).with(child(must(
+                                twq(3, must("bbb"), must("hhh")).with(child(must("ccc")))
+                               )))
+                         .with(child(must(
+                                twq(3, must("eee")).with(child(must("fff")))
+                               )))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(1,0), scorer.node());
+    final float s1 = scorer.scoreInNode();
+    assertTrue(s1 + " > " + s0, s1 > s0);
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
+
+    scorer = this.getScorer(
+      twq(2, must("aaa")).with(child(must(
+                                twq(3, must("bbb")).with(child(must("ccc")))
+                               )))
+                         .with(child(must(
+                                twq(3, must("eee")).with(child(must("fff"), must("ggg")))
+                               )))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(1,0), scorer.node());
+    final float s2 = scorer.scoreInNode();
+    assertTrue(s2 + " > " + s0, s2 > s0);
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
+
+    scorer = this.getScorer(
+      twq(2, must("aaa")).with(child(must(
+                                twq(3, must("bbb"), must("hhh")).with(child(must("ccc")))
+                               )))
+                         .with(child(must(
+                                twq(3, must("eee")).with(child(must("fff"), must("ggg")))
+                               )))
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(1,0), scorer.node());
+    final float s3 = scorer.scoreInNode();
+    assertTrue(s3 + " > " + s0, s3 > s1);
+    assertTrue(s3 + " > " + s2, s3 > s2);
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
   }
 
   @Test

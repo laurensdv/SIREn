@@ -63,7 +63,6 @@ public class JsonGenerator {
   /**
    * Create a random Json document with random values
    * @param nbNodes
-   * @return
    */
   public String getRandomJson(int nbNodes) {
     // init
@@ -95,7 +94,6 @@ public class JsonGenerator {
 
   /**
    * Return the next element of the json document
-   * @return
    */
   private String getNextNode() {
     final int popState;
@@ -268,7 +266,6 @@ public class JsonGenerator {
 
   /**
    * Return a sequence of whitespace characters
-   * @return
    */
   private String getWhitespace() {
     final int nWS = rand.nextInt(5);
@@ -331,7 +328,6 @@ public class JsonGenerator {
   /**
    * Add a string value to an object entry
    * @param val
-   * @return
    */
   private String doValString(String val) {
     images.add(val);
@@ -349,7 +345,6 @@ public class JsonGenerator {
 
   /**
    * Returns a random value type
-   * @return
    */
   public String getRandomValue() {
     valueType = rand.nextInt(5);

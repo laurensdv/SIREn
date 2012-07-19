@@ -25,6 +25,8 @@
  */
 package org.sindice.siren.search.primitive;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
+
 import java.io.IOException;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
@@ -57,22 +59,22 @@ public class TestNodePrefixQuery extends BasicSirenTestCase {
     this.addDocument("</computers/mac>");
     this.addDocument("</computers/windows>");
 
-    NodePrefixQuery query = new NodePrefixQuery(new Term("category", "/computers"));
-    ScoreDoc[] hits = searcher.search(query, null, 1000).scoreDocs;
+    NodePrefixQuery query = new NodePrefixQuery(new Term(DEFAULT_TEST_FIELD, "/computers"));
+    ScoreDoc[] hits = searcher.search(dq(query), null, 1000).scoreDocs;
     assertEquals("All documents in /computers category and below", 3, hits.length);
 
-    query = new NodePrefixQuery(new Term("category", "/computers/mac"));
-    hits = searcher.search(query, null, 1000).scoreDocs;
+    query = new NodePrefixQuery(new Term(DEFAULT_TEST_FIELD, "/computers/mac"));
+    hits = searcher.search(dq(query), null, 1000).scoreDocs;
     assertEquals("One in /computers/mac", 1, hits.length);
 
-    query = new NodePrefixQuery(new Term("category", "/computers"));
+    query = new NodePrefixQuery(new Term(DEFAULT_TEST_FIELD, "/computers"));
     query.setNodeConstraint(0);
-    hits = searcher.search(query, null, 1000).scoreDocs;
+    hits = searcher.search(dq(query), null, 1000).scoreDocs;
     assertEquals("No documents in /computers category and below in node 0", 0, hits.length);
 
-    query = new NodePrefixQuery(new Term("category", "/computers"));
+    query = new NodePrefixQuery(new Term(DEFAULT_TEST_FIELD, "/computers"));
     query.setNodeConstraint(2);
-    hits = searcher.search(query, null, 1000).scoreDocs;
+    hits = searcher.search(dq(query), null, 1000).scoreDocs;
     assertEquals("All documents in /computers category and below in node 2", 3, hits.length);
   }
 

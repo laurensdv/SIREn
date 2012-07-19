@@ -57,7 +57,7 @@ public class DocumentScorer extends Scorer {
    */
   @Override
   public void score(final Collector collector) throws IOException {
-    collector.setScorer(scorer);
+    collector.setScorer(this);
     while (this.nextDoc() != NO_MORE_DOCS) {
       collector.collect(this.docID());
     }
@@ -78,7 +78,7 @@ public class DocumentScorer extends Scorer {
   public boolean score(Collector collector, int max, int firstDocID)
   throws IOException {
     // firstDocID is ignored since nextDocument() sets 'currentDoc'
-    collector.setScorer(scorer);
+    collector.setScorer(this);
     while (this.docID() < max) {
       collector.collect(this.docID());
       if (this.nextDoc() == NO_MORE_DOCS) {
@@ -96,8 +96,10 @@ public class DocumentScorer extends Scorer {
   @Override
   public int advance(int target)
   throws IOException {
-    if (scorer.skipToCandidate(target)) {
-      return docID();
+    while (scorer.skipToCandidate(target)) {
+      if (scorer.nextNode()) { // check if there is at least 1 node that matches the query
+        return docID();
+      }
     }
     return NO_MORE_DOCS;
   }
@@ -105,8 +107,10 @@ public class DocumentScorer extends Scorer {
   @Override
   public int nextDoc()
   throws IOException {
-    if (scorer.nextCandidateDocument()) {
-      return docID();
+    while (scorer.nextCandidateDocument()) {
+      if (scorer.nextNode()) { // check if there is at least 1 node that matches the query
+        return docID();
+      }
     }
     return NO_MORE_DOCS;
   }
@@ -118,6 +122,13 @@ public class DocumentScorer extends Scorer {
     return score;
   }
 
+  /**
+   * Returns number of matches for the current document. This returns a float
+   * (not int) because SloppyPhraseScorer discounts its freq according to how
+   * "sloppy" the match was.
+   * <p>
+   * Only valid after calling {@link #nextDoc()} or {@link #advance(int)}
+   */
   @Override
   public float freq()
   throws IOException {
@@ -143,10 +154,10 @@ public class DocumentScorer extends Scorer {
       score = 0;
       freq = 0;
 
-      while (scorer.nextNode()) {
+      do { // nextNode() was already called in nextDoc() or in advance()
         score += scorer.scoreInNode();
         freq += scorer.termFreqInNode();
-      }
+      } while (scorer.nextNode());
     }
   }
 

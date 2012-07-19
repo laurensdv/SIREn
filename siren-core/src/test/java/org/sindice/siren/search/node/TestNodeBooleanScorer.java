@@ -251,4 +251,46 @@ public class TestNodeBooleanScorer extends AbstractTestSirenScorer {
     assertEndOfStream(scorer);
   }
 
+  @Test
+  public void testSingleMatchScore() throws Exception {
+    this.addDocuments(
+      "\"ccc bbb\" \"aaa bbb\" . "
+    );
+
+    NodeScorer scorer = this.getScorer(
+      nbq(
+        must(nbq(should("aaa")))
+      )
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(0,1), scorer.node());
+    final float d0score01 = scorer.scoreInNode();
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertEndOfStream(scorer);
+
+    scorer = this.getScorer(
+      nbq(
+        must(nbq(must("ccc")))
+      )
+    );
+
+    assertTrue(scorer.nextCandidateDocument());
+    assertEquals(0, scorer.doc());
+    assertEquals(node(-1), scorer.node());
+    assertTrue(scorer.nextNode());
+    assertEquals(node(0,0), scorer.node());
+    final float d0score00 = scorer.scoreInNode();
+    assertFalse(scorer.nextNode());
+    assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
+
+    assertTrue(d0score01 + " == " + d0score00, d0score01 == d0score00);
+    assertEndOfStream(scorer);
+  }
+
 }

@@ -99,7 +99,6 @@ public final class SirenNumericTokenStream extends TokenStream {
 
   /**
    * Create a char array from an integer
-   * @return
    */
   private char[] init() {
     int pstep = precisionStep;

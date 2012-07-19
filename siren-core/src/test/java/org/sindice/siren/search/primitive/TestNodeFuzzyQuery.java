@@ -20,6 +20,8 @@
  */
 package org.sindice.siren.search.primitive;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +40,7 @@ import org.junit.Test;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
+import org.sindice.siren.search.doc.DocumentQuery;
 import org.sindice.siren.search.primitive.MultiNodeTermQuery.TopTermsBoostOnlyNodeBooleanQueryRewrite;
 import org.sindice.siren.util.BasicSirenTestCase;
 
@@ -66,32 +69,32 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
     this.addDocument("<bbbbb>");
     this.addDocument("<ddddd>");
 
-    NodeFuzzyQuery query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    DocumentQuery query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 0));
     ScoreDoc[] hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
 
     // same with prefix
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 1);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 1));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 2);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 2));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 3);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 3));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 4);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 4));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(2, hits.length);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 5);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 5));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 6);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 6));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
 
     // test scoring
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "bbbbb"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "bbbbb"), NodeFuzzyQuery.defaultMaxEdits, 0));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals("3 documents should match", 3, hits.length);
     List<Integer> order = Arrays.asList(5,4,3);
@@ -101,7 +104,7 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
 
     // test pq size by supplying maxExpansions=2
     // This query would normally return 3 documents, because 3 terms match (see above):
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "bbbbb"), NodeFuzzyQuery.defaultMaxEdits, 0, 2, false);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "bbbbb"), NodeFuzzyQuery.defaultMaxEdits, 0, 2, false));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals("only 2 documents should match", 2, hits.length);
     order = Arrays.asList(5,4);
@@ -110,15 +113,15 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
     }
 
     // not similar enough:
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "xxxxx"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "xxxxx"), NodeFuzzyQuery.defaultMaxEdits, 0));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(0, hits.length);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaccc"), NodeFuzzyQuery.defaultMaxEdits, 0);   // edit distance to "aaaaa" = 3
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaccc"), NodeFuzzyQuery.defaultMaxEdits, 0));   // edit distance to "aaaaa" = 3
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(0, hits.length);
 
     // query identical to a word in the index:
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaaa"), NodeFuzzyQuery.defaultMaxEdits, 0));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
     assertEquals(0, hits[0].doc);
@@ -127,7 +130,7 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
     assertEquals(2, hits[2].doc);
 
     // query similar to a word in the index:
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 0));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
     assertEquals(0, hits[0].doc);
@@ -135,63 +138,63 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
     assertEquals(2, hits[2].doc);
 
     // now with prefix
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 1);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 1));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
     assertEquals(0, hits[0].doc);
     assertEquals(1, hits[1].doc);
     assertEquals(2, hits[2].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 2);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 2));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
     assertEquals(0, hits[0].doc);
     assertEquals(1, hits[1].doc);
     assertEquals(2, hits[2].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 3);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 3));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(3, hits.length);
     assertEquals(0, hits[0].doc);
     assertEquals(1, hits[1].doc);
     assertEquals(2, hits[2].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 4);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 4));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(2, hits.length);
     assertEquals(0, hits[0].doc);
     assertEquals(1, hits[1].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 5);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "aaaac"), NodeFuzzyQuery.defaultMaxEdits, 5));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(0, hits.length);
 
 
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 0));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
     assertEquals(6, hits[0].doc);
 
     // now with prefix
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 1);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 1));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
     assertEquals(6, hits[0].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 2);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 2));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
     assertEquals(6, hits[0].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 3);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 3));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
     assertEquals(6, hits[0].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 4);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 4));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(1, hits.length);
     assertEquals(6, hits[0].doc);
-    query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 5);
+    query = dq(new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 5));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(0, hits.length);
 
 
     // different field = no match:
-    query = new NodeFuzzyQuery(new Term("anotherfield", "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 0);
+    query = dq(new NodeFuzzyQuery(new Term("anotherfield", "ddddX"), NodeFuzzyQuery.defaultMaxEdits, 0));
     hits = searcher.search(query, null, 1000).scoreDocs;
     assertEquals(0, hits.length);
   }
@@ -210,7 +213,7 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
     this.addDocument("<e123456>");
 
     final Directory directory2 = newDirectory();
-    final RandomIndexWriter writer2 = new RandomIndexWriter(random(), directory2);
+    final RandomIndexWriter writer2 = this.newRandomIndexWriter(directory2, analyzer, codec);
     this.addDocument(writer2, "<a123456>");
     this.addDocument(writer2, "<b123456>");
     this.addDocument(writer2, "<b123456>");
@@ -242,7 +245,7 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
 
     final NodeFuzzyQuery query = new NodeFuzzyQuery(new Term(DEFAULT_TEST_FIELD, "Lucene"));
     query.setRewriteMethod(new MultiNodeTermQuery.TopTermsBoostOnlyNodeBooleanQueryRewrite(50));
-    final ScoreDoc[] hits = searcher.search(query, null, 1000).scoreDocs;
+    final ScoreDoc[] hits = searcher.search(dq(query), null, 1000).scoreDocs;
     assertEquals(3, hits.length);
   }
 

@@ -182,8 +182,9 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
     q.countAndSumMatchers();
     // there must be 3 matchers
     assertEquals(3, q.nrMatchersInNode());
-    // TODO: why is it zero
-    assertEquals(s1.score() + s2.score() + s3.score(), q.scoreInNode(), 0f);
+    final float scoreInNode = q.scoreInNode();
+    assertEquals(s1.scoreInNode() + s2.scoreInNode() + s3.scoreInNode(), scoreInNode, 0f);
+    assertTrue(scoreInNode != 0);
   }
 
   @Test

@@ -50,6 +50,10 @@ import org.sindice.siren.util.BasicSirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
+  public static DocumentQuery dq(NodeQuery nq) {
+    return new DocumentQuery(nq);
+  }
+
   protected NodeScorer getScorer(final NodeQueryBuilder builder) throws IOException {
     return this.getScorer(builder.getNodeQuery());
   }
@@ -126,7 +130,16 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
      * gap.
      */
     public static NodePhraseQueryBuilder npq(final String ... terms) {
-      return new NodePhraseQueryBuilder(DEFAULT_TEST_FIELD, terms);
+      return npq(DEFAULT_TEST_FIELD, terms);
+    }
+
+    /**
+     * If term is equal to an empty string, this is considered as a position
+     * gap.
+     * The field value is passed as an argument
+     */
+    public static NodePhraseQueryBuilder npq(final String field, final String[] terms) {
+      return new NodePhraseQueryBuilder(field, terms);
     }
 
     @Override

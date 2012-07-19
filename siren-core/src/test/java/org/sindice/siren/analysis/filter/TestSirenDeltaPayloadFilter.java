@@ -147,7 +147,7 @@ public class TestSirenDeltaPayloadFilter extends LuceneTestCase {
 
   private TokenStream getSirenTokenStream(final MockSirenDocument doc)
   throws IOException {
-    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer(true);
+    final MockSirenAnalyzer analyzer = new MockSirenAnalyzer();
     return analyzer.tokenStream("", new MockSirenReader(doc));
   }
 

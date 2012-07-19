@@ -135,8 +135,9 @@ abstract class NodePhraseScorer extends NodeScorer {
   }
 
   @Override
-  public float score() throws IOException {
-    throw new UnsupportedOperationException();
+  public float scoreInNode()
+  throws IOException {
+    return conjunctionScorer.scoreInNode();
   }
 
 }
