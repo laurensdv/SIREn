@@ -51,8 +51,6 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected Analyzer analyzer;
   protected RandomSirenCodec codec;
 
-  private AnalyzerType analyzerType;
-
   public enum AnalyzerType {
     MOCK, TUPLE
   }
@@ -109,8 +107,7 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected void setPostingsFormat(final PostingsFormatType format)
   throws IOException {
     codec = new RandomSirenCodec(random(), format);
-    if (analyzerType != null) {
-      analyzer = this.initAnalyzer(analyzerType, codec);
+    if (analyzer != null) {
       this.close();
       this.init();
     }
@@ -123,8 +120,7 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected void setPostingsFormat(final PostingsFormat format)
   throws IOException {
     codec = new RandomSirenCodec(random(), format);
-    if (analyzerType != null) {
-      analyzer = this.initAnalyzer(analyzerType, codec);
+    if (analyzer != null) {
       this.close();
       this.init();
     }
@@ -134,9 +130,19 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
    * Set a new analyzer for a single test
    */
   protected void setAnalyzer(final AnalyzerType analyzerType) throws IOException {
-    this.analyzerType = analyzerType;
+    this.analyzer = this.initAnalyzer(analyzerType);
     if (codec != null) {
-      analyzer = this.initAnalyzer(analyzerType, codec);
+      this.close();
+      this.init();
+    }
+  }
+
+  /**
+   * Set a new analyzer for a single test
+   */
+  protected void setAnalyzer(final Analyzer analyzer) throws IOException {
+    this.analyzer = analyzer;
+    if (codec != null) {
       this.close();
       this.init();
     }
@@ -188,8 +194,7 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
     this.refreshReaderAndSearcher();
   }
 
-  private Analyzer initAnalyzer(final AnalyzerType analyzerType, final RandomSirenCodec codec) {
-    final PostingsFormat format = codec.getPostingsFormatForField(SirenTestCase.DEFAULT_TEST_FIELD);
+  private Analyzer initAnalyzer(final AnalyzerType analyzerType) {
     switch (analyzerType) {
       case MOCK:
         return new MockSirenAnalyzer();

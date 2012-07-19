@@ -48,9 +48,9 @@ import org.sindice.siren.analysis.DoubleNumericAnalyzer;
 import org.sindice.siren.analysis.LongNumericAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.primitive.SirenMultiTermQuery;
-import org.sindice.siren.search.primitive.SirenNumericRangeQuery;
-import org.sindice.siren.search.primitive.SirenTermRangeQuery;
+import org.sindice.siren.search.primitive.MultiNodeTermQuery;
+import org.sindice.siren.search.primitive.NodeNumericRangeQuery;
+import org.sindice.siren.search.primitive.NodeTermRangeQuery;
 import org.sindice.siren.search.tuple.SirenCellQuery;
 import org.sindice.siren.util.XSDDatatype;
 
@@ -156,7 +156,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
     final String field="field"+precisionStep;
     final int count=3000;
     final long lower=(distance*3/2)+startOffset, upper=lower + count*distance + (distance/3);
-    final SirenNumericRangeQuery<Long> q = SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, true);
+    final NodeNumericRangeQuery<Long> q = NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, true);
     final SirenCellQuery cq = new SirenCellQuery(q);
     cq.setConstraint(2);
 
@@ -166,7 +166,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
     q.clearTotalNumberOfTerms();
 
     type = " (constant score boolean rewrite)";
-    q.setRewriteMethod(SirenMultiTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
+    q.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
     topDocs = searcher.search(cq, null, noDocs, Sort.INDEXORDER);
     terms = q.getTotalNumberOfTerms();
 
@@ -203,11 +203,11 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
 
   @Test
   public void testOneMatchQuery() throws Exception {
-    final SirenNumericRangeQuery<Long> q = SirenNumericRangeQuery.newLongRange("ascfield8", 8, 1000L, 1000L, true, true);
+    final NodeNumericRangeQuery<Long> q = NodeNumericRangeQuery.newLongRange("ascfield8", 8, 1000L, 1000L, true, true);
     final SirenCellQuery cq = new SirenCellQuery(q);
     cq.setConstraint(2);
 
-    assertSame(SirenMultiTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE, q.getRewriteMethod());
+    assertSame(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE, q.getRewriteMethod());
     final TopDocs topDocs = searcher.search(cq, noDocs);
     final ScoreDoc[] sd = topDocs.scoreDocs;
     assertNotNull(sd);
@@ -219,7 +219,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
     final int count=3000;
     final long upper=(count-1)*distance + (distance/3) + startOffset;
 
-    SirenNumericRangeQuery<Long> q=SirenNumericRangeQuery.newLongRange(field, precisionStep, null, upper, true, true);
+    NodeNumericRangeQuery<Long> q=NodeNumericRangeQuery.newLongRange(field, precisionStep, null, upper, true, true);
     SirenCellQuery cq = new SirenCellQuery(q);
     cq.setConstraint(2);
     TopDocs topDocs = searcher.search(cq, null, noDocs, Sort.INDEXORDER);
@@ -232,7 +232,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
     doc=searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc", (count-1)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
 
-    q=SirenNumericRangeQuery.newLongRange(field, precisionStep, null, upper, false, true);
+    q=NodeNumericRangeQuery.newLongRange(field, precisionStep, null, upper, false, true);
     cq = new SirenCellQuery(q);
     cq.setConstraint(2);
     topDocs = searcher.search(cq, null, noDocs, Sort.INDEXORDER);
@@ -270,7 +270,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
     final int count=3000;
     final long lower=(count-1)*distance + (distance/3) +startOffset;
 
-    SirenNumericRangeQuery<Long> q=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, null, true, true);
+    NodeNumericRangeQuery<Long> q=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, null, true, true);
     SirenCellQuery cq = new SirenCellQuery(q);
     cq.setConstraint(2);
     TopDocs topDocs = searcher.search(q, null, noDocs, Sort.INDEXORDER);
@@ -283,7 +283,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
     doc=searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc", (noDocs-1)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
 
-    q=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, null, true, false);
+    q=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, null, true, false);
     cq = new SirenCellQuery(q);
     cq.setConstraint(2);
     topDocs = searcher.search(q, null, noDocs, Sort.INDEXORDER);
@@ -328,32 +328,32 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
       }
       final String prefix = DataType.LONG.name() + precisionStep;
       // test inclusive range
-      SirenNumericRangeQuery<Long> tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, true);
-      SirenTermRangeQuery cq=new SirenTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), true, true);
+      NodeNumericRangeQuery<Long> tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, true);
+      NodeTermRangeQuery cq=new NodeTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), true, true);
       TopDocs tTopDocs = searcher.search(tq, 1);
       TopDocs cTopDocs = searcher.search(cq, 1);
       assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       termCountT += tq.getTotalNumberOfTerms();
       termCountC += cq.getTotalNumberOfTerms();
       // test exclusive range
-      tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, false);
-      cq=new SirenTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), false, false);
+      tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, false);
+      cq=new NodeTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), false, false);
       tTopDocs = searcher.search(tq, 1);
       cTopDocs = searcher.search(cq, 1);
       assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       termCountT += tq.getTotalNumberOfTerms();
       termCountC += cq.getTotalNumberOfTerms();
       // test left exclusive range
-      tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, true);
-      cq=new SirenTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), false, true);
+      tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, true);
+      cq=new NodeTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), false, true);
       tTopDocs = searcher.search(tq, 1);
       cTopDocs = searcher.search(cq, 1);
       assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       termCountT += tq.getTotalNumberOfTerms();
       termCountC += cq.getTotalNumberOfTerms();
       // test right exclusive range
-      tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, false);
-      cq=new SirenTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), true, false);
+      tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, false);
+      cq=new NodeTermRangeQuery(field, prefix + NumericUtils.longToPrefixCoded(lower), prefix + NumericUtils.longToPrefixCoded(upper), true, false);
       tTopDocs = searcher.search(tq, 1);
       cTopDocs = searcher.search(cq, 1);
       assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
@@ -405,19 +405,19 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
         final long a=lower; lower=upper; upper=a;
       }
       // test inclusive range
-      Query tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, true);
+      Query tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, true);
       TopDocs tTopDocs = searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to inclusive range length", upper-lower+1, tTopDocs.totalHits );
       // test exclusive range
-      tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, false);
+      tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, false);
       tTopDocs = searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to exclusive range length", Math.max(upper-lower-1, 0), tTopDocs.totalHits );
       // test left exclusive range
-      tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, true);
+      tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, false, true);
       tTopDocs = searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to half exclusive range length", upper-lower, tTopDocs.totalHits );
       // test right exclusive range
-      tq=SirenNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, false);
+      tq=NodeNumericRangeQuery.newLongRange(field, precisionStep, lower, upper, true, false);
       tTopDocs = searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to half exclusive range length", upper-lower, tTopDocs.totalHits );
     }
@@ -451,7 +451,7 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
 //    final Query tq=SirenNumericRangeQuery.newDoubleRange(field, precisionStep,
 //      NumericUtils.sortableLongToDouble(lower), NumericUtils.sortableLongToDouble(upper), true, true);
     
-    final Query tq=SirenNumericRangeQuery.newDoubleRange(field, precisionStep,
+    final Query tq=NodeNumericRangeQuery.newDoubleRange(field, precisionStep,
       lower, upper, true, true);
     final TopDocs tTopDocs = searcher.search(tq, 1);
     assertEquals("Returned count of range query must be equal to inclusive range length", upper-lower+1, tTopDocs.totalHits );
@@ -479,36 +479,36 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
 
   @Test
   public void testEqualsAndHash() throws Exception {
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test1", 4, 10L, 20L, true, true));
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test2", 4, 10L, 20L, false, true));
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test3", 4, 10L, 20L, true, false));
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test4", 4, 10L, 20L, false, false));
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test5", 4, 10L, null, true, true));
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test6", 4, null, 20L, true, true));
-    QueryUtils.checkHashEquals(SirenNumericRangeQuery.newLongRange("test7", 4, null, null, true, true));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test1", 4, 10L, 20L, true, true));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test2", 4, 10L, 20L, false, true));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test3", 4, 10L, 20L, true, false));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test4", 4, 10L, 20L, false, false));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test5", 4, 10L, null, true, true));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test6", 4, null, 20L, true, true));
+    QueryUtils.checkHashEquals(NodeNumericRangeQuery.newLongRange("test7", 4, null, null, true, true));
     QueryUtils.checkEqual(
-      SirenNumericRangeQuery.newLongRange("test8", 4, 10L, 20L, true, true),
-      SirenNumericRangeQuery.newLongRange("test8", 4, 10L, 20L, true, true)
+      NodeNumericRangeQuery.newLongRange("test8", 4, 10L, 20L, true, true),
+      NodeNumericRangeQuery.newLongRange("test8", 4, 10L, 20L, true, true)
     );
     QueryUtils.checkUnequal(
-      SirenNumericRangeQuery.newLongRange("test9", 4, 10L, 20L, true, true),
-      SirenNumericRangeQuery.newLongRange("test9", 8, 10L, 20L, true, true)
+      NodeNumericRangeQuery.newLongRange("test9", 4, 10L, 20L, true, true),
+      NodeNumericRangeQuery.newLongRange("test9", 8, 10L, 20L, true, true)
     );
     QueryUtils.checkUnequal(
-      SirenNumericRangeQuery.newLongRange("test10a", 4, 10L, 20L, true, true),
-      SirenNumericRangeQuery.newLongRange("test10b", 4, 10L, 20L, true, true)
+      NodeNumericRangeQuery.newLongRange("test10a", 4, 10L, 20L, true, true),
+      NodeNumericRangeQuery.newLongRange("test10b", 4, 10L, 20L, true, true)
     );
     QueryUtils.checkUnequal(
-      SirenNumericRangeQuery.newLongRange("test11", 4, 10L, 20L, true, true),
-      SirenNumericRangeQuery.newLongRange("test11", 4, 20L, 10L, true, true)
+      NodeNumericRangeQuery.newLongRange("test11", 4, 10L, 20L, true, true),
+      NodeNumericRangeQuery.newLongRange("test11", 4, 20L, 10L, true, true)
     );
     QueryUtils.checkUnequal(
-      SirenNumericRangeQuery.newLongRange("test12", 4, 10L, 20L, true, true),
-      SirenNumericRangeQuery.newLongRange("test12", 4, 10L, 20L, false, true)
+      NodeNumericRangeQuery.newLongRange("test12", 4, 10L, 20L, true, true),
+      NodeNumericRangeQuery.newLongRange("test12", 4, 10L, 20L, false, true)
     );
     QueryUtils.checkUnequal(
-      SirenNumericRangeQuery.newLongRange("test13", 4, 10L, 20L, true, true),
-      SirenNumericRangeQuery.newFloatRange("test13", 4, 10f, 20f, true, true)
+      NodeNumericRangeQuery.newLongRange("test13", 4, 10L, 20L, true, true),
+      NodeNumericRangeQuery.newFloatRange("test13", 4, 10f, 20f, true, true)
     );
      // difference to int range is tested in TestSirenNumericRangeQuery32
   }
