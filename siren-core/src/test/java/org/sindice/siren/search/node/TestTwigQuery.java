@@ -54,8 +54,8 @@ public class TestTwigQuery extends SirenTestCase {
     // level of descendant node must have been updated
     assertEquals(4, tq1.clauses().get(0).getQuery().getLevelConstraint());
 
-    final TwigQuery tq3 = new TwigQuery(3, tq2);
-    // level of tq3 must have been updated
+    new TwigQuery(3, tq2);
+    // level of tq2 must have been updated
     assertEquals(3, tq2.getLevelConstraint());
     // level of tq1 must have been updated
     assertEquals(4, tq1.getLevelConstraint());

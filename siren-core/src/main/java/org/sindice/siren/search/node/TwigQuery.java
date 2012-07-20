@@ -46,6 +46,7 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ToStringUtils;
+import org.sindice.siren.search.node.NodeBooleanQuery.TooManyClauses;
 import org.sindice.siren.search.node.TwigQuery.EmptyRootQuery.EmptyRootScorer;
 
 /**
@@ -54,9 +55,36 @@ import org.sindice.siren.search.node.TwigQuery.EmptyRootQuery.EmptyRootScorer;
  * <p>
  * Code taken from {@link BooleanQuery} and adapted for the Siren use case.
  */
-public class TwigQuery extends NodeBooleanQuery {
+public class TwigQuery extends NodeQuery {
 
   private NodeQuery root;
+
+  private static int maxClauseCount = 1024;
+
+  /**
+   * Return the maximum number of clauses permitted, 1024 by default. Attempts
+   * to add more than the permitted number of clauses cause
+   * {@link TooManyClauses} to be thrown.
+   *
+   * @see #setMaxClauseCount(int)
+   */
+  public static int getMaxClauseCount() {
+    return maxClauseCount;
+  }
+
+  /**
+   * Set the maximum number of clauses permitted per {@link TwigQuery}. Default value
+   * is 1024.
+   */
+  public static void setMaxClauseCount(final int maxClauseCount) {
+    if (maxClauseCount < 1)
+      throw new IllegalArgumentException("maxClauseCount must be >= 1");
+    TwigQuery.maxClauseCount = maxClauseCount;
+  }
+
+  protected ArrayList<NodeBooleanClause> clauses = new ArrayList<NodeBooleanClause>();
+
+  protected boolean   disableCoord;
 
   /**
    * Constructs an empty twig query.
@@ -70,7 +98,7 @@ public class TwigQuery extends NodeBooleanQuery {
    * scoring.
    */
   public TwigQuery(final int rootLevel, final NodeQuery root, final boolean disableCoord) {
-    super(disableCoord);
+    this.disableCoord = disableCoord;
     this.root = root;
     // copy the root node constraint, if any
     final int[] constraint = root.getNodeConstraint();
@@ -131,14 +159,28 @@ public class TwigQuery extends NodeBooleanQuery {
     this(1, new EmptyRootQuery());
   }
 
-  @Override
-  public void add(final NodeQuery query, final NodeBooleanClause.Occur occur) {
-    throw new UnsupportedOperationException("addChild or addDescendant must be called instead");
+  /**
+   * Returns true iff {@link Similarity#coord(int,int)} is disabled in
+   * scoring for this query instance.
+   *
+   * @see #NodeBooleanQuery(boolean)
+   */
+  public boolean isCoordDisabled() {
+    return disableCoord;
   }
 
-  @Override
-  public void add(final NodeBooleanClause clause) {
-    throw new UnsupportedOperationException("addChild or addDescendant must be called instead");
+  /**
+   * Adds a clause to a twig query.
+   *
+   * @throws TooManyClauses
+   *           if the new number of clauses exceeds the maximum clause number
+   * @see #getMaxClauseCount()
+   */
+  protected void add(final NodeBooleanClause clause) {
+    if (clauses.size() >= maxClauseCount) {
+      throw new TooManyClauses();
+    }
+    clauses.add(clause);
   }
 
   /**
@@ -154,7 +196,7 @@ public class TwigQuery extends NodeBooleanQuery {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
-    super.add(new NodeBooleanClause(query, occur));
+    this.add(new NodeBooleanClause(query, occur));
   }
 
   /**
@@ -165,7 +207,8 @@ public class TwigQuery extends NodeBooleanQuery {
    *           if the new number of clauses exceeds the maximum clause number
    * @see #getMaxClauseCount()
    */
-  public void addDescendant(final int nodeLevel, final NodeQuery query, final NodeBooleanClause.Occur occur) {
+  public void addDescendant(final int nodeLevel, final NodeQuery query,
+                            final NodeBooleanClause.Occur occur) {
     if (nodeLevel <= 0) {
       throw new IllegalArgumentException("The node level of a descendant should be superior to 0");
     }
@@ -174,7 +217,7 @@ public class TwigQuery extends NodeBooleanQuery {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
-    super.add(new NodeBooleanClause(query, occur));
+    this.add(new NodeBooleanClause(query, occur));
   }
 
   @Override
@@ -210,49 +253,101 @@ public class TwigQuery extends NodeBooleanQuery {
     }
   }
 
+  /**
+   * Return the root of this query
+   */
   public NodeQuery getRoot() {
     return root;
+  }
+
+  /**
+   * Returns the set of ancestor clauses in this query.
+   */
+  public NodeBooleanClause[] getClauses() {
+    return clauses.toArray(new NodeBooleanClause[clauses.size()]);
+  }
+
+  /**
+   * Returns the list of ancestor clauses in this query.
+   */
+  public List<NodeBooleanClause> clauses() {
+    return clauses;
+  }
+
+  /**
+   * Returns an iterator on the clauses in this query. It implements the
+   * {@link Iterable} interface to make it possible to do:
+   * <pre>for (SirenBooleanClause clause : booleanQuery) {}</pre>
+   */
+  public final Iterator<NodeBooleanClause> iterator() {
+    return this.clauses().iterator();
   }
 
   /**
    * Expert: the Weight for {@link TwigQuery}, used to
    * normalize, score and explain these queries.
    */
-  protected class TwigWeight extends NodeBooleanWeight {
+  protected class TwigWeight extends Weight {
 
+    /** The Similarity implementation. */
+    protected Similarity similarity;
     protected Weight rootWeight;
+    protected ArrayList<Weight> ancestorWeights;
+    protected int maxCoord;  // num optional + num required
+    private final boolean disableCoord;
 
     public TwigWeight(final IndexSearcher searcher, final boolean disableCoord)
     throws IOException {
-      super(searcher, disableCoord);
+      this.similarity = searcher.getSimilarity();
+      this.disableCoord = disableCoord;
       rootWeight = root.createWeight(searcher);
     }
 
-    @Override
     protected void initWeights(final IndexSearcher searcher) throws IOException {
-      weights = new ArrayList<Weight>(clauses.size());
+      ancestorWeights = new ArrayList<Weight>(clauses.size());
       for (int i = 0; i < clauses.size(); i++) {
         final NodeBooleanClause c = clauses.get(i);
         final NodeQuery q = c.getQuery();
-        weights.add(q.createWeight(searcher));
+        ancestorWeights.add(q.createWeight(searcher));
         if (!c.isProhibited()) maxCoord++;
       }
     }
 
     @Override
     public float getValueForNormalization() throws IOException {
-      float sum = super.getValueForNormalization();
+      float sum = 0.0f;
+      for (int i = 0; i < ancestorWeights.size(); i++) {
+        // call sumOfSquaredWeights for all clauses in case of side effects
+        final float s = ancestorWeights.get(i).getValueForNormalization(); // sum sub weights
+        if (!clauses.get(i).isProhibited()) {
+        // only add to sum for non-prohibited clauses
+          sum += s;
+        }
+      }
+
       // incorporate root weight
-      sum += rootWeight.getValueForNormalization() * TwigQuery.this.getBoost() * TwigQuery.this.getBoost();
+      sum += rootWeight.getValueForNormalization();
+
+      // boost each weight
+      sum *= TwigQuery.this.getBoost() * TwigQuery.this.getBoost();
+
       return sum;
     }
 
     @Override
     public void normalize(final float norm, float topLevelBoost) {
-      super.normalize(norm, topLevelBoost);
-      // Normalise root weight
+      // incorporate boost
       topLevelBoost *= TwigQuery.this.getBoost();
+      for (final Weight w : ancestorWeights) {
+        // normalize all clauses, (even if prohibited in case of side affects)
+        w.normalize(norm, topLevelBoost);
+      }
+      // Normalise root weight
       rootWeight.normalize(norm, topLevelBoost);
+    }
+
+    public float coord(final int overlap, final int maxOverlap) {
+      return similarity.coord(overlap, maxOverlap);
     }
 
     // TODO: Add root node in the explanation
@@ -265,7 +360,7 @@ public class TwigQuery extends NodeBooleanQuery {
       float sum = 0.0f;
       boolean fail = false;
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
-      for (final Weight w : weights) {
+      for (final Weight w : ancestorWeights) {
         final NodeBooleanClause c = cIter.next();
         if (w.scorer(context, true, true, context.reader().getLiveDocs()) == null) {
           if (c.isRequired()) {
@@ -336,7 +431,7 @@ public class TwigQuery extends NodeBooleanQuery {
       final List<NodeScorer> prohibited = new ArrayList<NodeScorer>();
       final List<NodeScorer> optional = new ArrayList<NodeScorer>();
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
-      for (final Weight w  : weights) {
+      for (final Weight w  : ancestorWeights) {
         final NodeBooleanClause c =  cIter.next();
         final NodeScorer subScorer = (NodeScorer) w.scorer(context, true, false, acceptDocs);
         if (subScorer == null) {
@@ -361,6 +456,16 @@ public class TwigQuery extends NodeBooleanQuery {
         return new TwigScorer(this, disableCoord, rootScorer, levelConstraint,
           required, prohibited, optional, maxCoord);
       }
+    }
+
+    @Override
+    public Query getQuery() {
+      return TwigQuery.this;
+    }
+
+    @Override
+    public String toString() {
+      return "weight(" + TwigQuery.this + ")";
     }
 
   }
@@ -573,6 +678,12 @@ public class TwigQuery extends NodeBooleanQuery {
            this.levelConstraint == other.levelConstraint &&
            this.lowerBound == other.lowerBound &&
            this.upperBound == other.upperBound;
+  }
+
+  /** Returns a hash code value for this object. */
+  @Override
+  public int hashCode() {
+    return Float.floatToIntBits(this.getBoost()) ^ clauses.hashCode() ^ root.hashCode();
   }
 
   /**
