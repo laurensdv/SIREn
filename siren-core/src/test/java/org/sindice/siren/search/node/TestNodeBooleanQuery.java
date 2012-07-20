@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009-2011 Sindice Limited. All Rights Reserved.
+ * Copyright (c) 2009-2012 National University of Ireland, Galway. All Rights Reserved.
  *
  * Project and contact information: http://www.siren.sindice.com/
  *
@@ -19,217 +19,74 @@
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @project siren
- * @author Renaud Delbru [ 8 Feb 2010 ]
+ * @project siren-core
+ * @author Renaud Delbru [ 19 Jul 2012 ]
  * @link http://renaud.delbru.fr/
- * @copyright Copyright (C) 2009 by Renaud Delbru, All rights reserved.
  */
 package org.sindice.siren.search.node;
 
-
-import java.io.IOException;
-
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.util.LuceneTestCase;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.sindice.siren.analysis.AnyURIAnalyzer;
-import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.search.node.NodeBooleanClause.Occur;
+import org.sindice.siren.util.SirenTestCase;
 
-public class TestBooleanQuery extends LuceneTestCase {
+public class TestNodeBooleanQuery extends SirenTestCase {
 
-  private QueryTestingHelper _helper = null;
+  @Test
+  public void testSetLevelConstraint() {
+    final NodeTermQuery ntq = new NodeTermQuery(new Term("field", "value"));
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    bq.add(ntq, Occur.MUST);
+    bq.setLevelConstraint(3);
 
-  @Before
-  public void setUp()
-  throws Exception {
-    super.setUp();
-    _helper = new QueryTestingHelper(new TupleAnalyzer(TEST_VERSION_CURRENT,
-      new StandardAnalyzer(TEST_VERSION_CURRENT),
-      new AnyURIAnalyzer(TEST_VERSION_CURRENT)));
-  }
+    assertEquals(3, bq.getLevelConstraint());
+    // node queries in node boolean clauses must have been updated
+    assertEquals(3, ntq.getLevelConstraint());
 
-  @After
-  public void tearDown()
-  throws Exception {
-    super.tearDown();
-    _helper.close();
+    final NodeTermQuery ntq2 = new NodeTermQuery(new Term("field", "value"));
+    bq.add(ntq2, Occur.MUST);
+    // new clause must have been updated
+    assertEquals(3, ntq2.getLevelConstraint());
   }
 
   @Test
-  public void testReqTuple() throws CorruptIndexException, IOException {
-    for (int i = 0; i < 10; i++) {
-      _helper.addDocument("<subj> <aaa> <bbb> . <subj> <ccc> <ddd> . ");
-      _helper.addDocument("<subj> <aaa> <bbb> . ");
-    }
+  public void testSetNodeConstraint() {
+    final NodeTermQuery ntq = new NodeTermQuery(new Term("field", "value"));
+    final NodeBooleanQuery bq = new NodeBooleanQuery();
+    bq.add(ntq, Occur.MUST);
+    bq.setNodeConstraint(2,6);
 
-    NodeBooleanQuery bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa")), NodeBooleanClause.Occur.MUST);
-    SirenCellQuery cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
+    assertEquals(2, bq.lowerBound);
+    assertEquals(6, bq.upperBound);
+    // node queries in node boolean clauses must have been updated
+    assertEquals(2, ntq.lowerBound);
+    assertEquals(6, ntq.upperBound);
 
-    NodeBooleanQuery bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb")), NodeBooleanClause.Occur.MUST);
-    SirenCellQuery cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery reqTuple1 = new TupleQuery();
-    reqTuple1.add(cq1, SirenTupleClause.Occur.MUST);
-    reqTuple1.add(cq2, SirenTupleClause.Occur.MUST);
-
-    bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), NodeBooleanClause.Occur.MUST);
-    cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
-
-    bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd")), NodeBooleanClause.Occur.MUST);
-    cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery optTuple = new TupleQuery();
-    optTuple.add(cq1, SirenTupleClause.Occur.MUST);
-    optTuple.add(cq2, SirenTupleClause.Occur.MUST);
-
-    final BooleanQuery q = new BooleanQuery();
-    q.add(reqTuple1, Occur.MUST);
-    q.add(optTuple, Occur.MUST);
-
-    assertEquals(10, _helper.search(q).length);
+    final NodeTermQuery ntq2 = new NodeTermQuery(new Term("field", "value"));
+    bq.add(ntq2, Occur.MUST);
+    // new clause must have been updated
+    assertEquals(2, ntq2.lowerBound);
+    assertEquals(6, ntq2.upperBound);
   }
 
   @Test
-  public void testReqOptTuple() throws CorruptIndexException, IOException {
-    for (int i = 0; i < 10; i++) {
-      _helper.addDocument("<subj> <aaa> <bbb> . <subj> <ccc> <ddd> . ");
-      _helper.addDocument("<subj> <aaa> <bbb> . ");
-    }
-
-    NodeBooleanQuery bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa")), NodeBooleanClause.Occur.MUST);
-    SirenCellQuery cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
-
-    NodeBooleanQuery bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb")), NodeBooleanClause.Occur.MUST);
-    SirenCellQuery cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery reqTuple1 = new TupleQuery();
-    reqTuple1.add(cq1, SirenTupleClause.Occur.MUST);
-    reqTuple1.add(cq2, SirenTupleClause.Occur.MUST);
-
-    bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), NodeBooleanClause.Occur.MUST);
-    cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
-
-    bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd")), NodeBooleanClause.Occur.MUST);
-    cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery optTuple = new TupleQuery();
-    optTuple.add(cq1, SirenTupleClause.Occur.MUST);
-    optTuple.add(cq2, SirenTupleClause.Occur.MUST);
-
-    final BooleanQuery q = new BooleanQuery();
-    q.add(reqTuple1, Occur.MUST);
-    q.add(optTuple, Occur.SHOULD);
-
-    assertEquals(20, _helper.search(q).length);
-  }
-
-  @Test
-  public void testReqExclTuple() throws CorruptIndexException, IOException {
-    for (int i = 0; i < 10; i++) {
-      _helper.addDocument("<subj> <aaa> <bbb> . <subj> <ccc> <ddd> . <subj> <eee> <fff> . ");
-      _helper.addDocument("<subj> <aaa> <bbb> . <subj> <ccc> <ddd> . <subj> <eee> <ggg> . ");
-    }
-
-    NodeBooleanQuery bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "eee")), NodeBooleanClause.Occur.MUST);
-    SirenCellQuery cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
-
-    NodeBooleanQuery bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ggg")), NodeBooleanClause.Occur.MUST);
-    SirenCellQuery cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery exclTuple = new TupleQuery();
-    exclTuple.add(cq1, SirenTupleClause.Occur.MUST);
-    exclTuple.add(cq2, SirenTupleClause.Occur.MUST);
-
-    bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa")), NodeBooleanClause.Occur.MUST);
-    cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
-
-    bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb")), NodeBooleanClause.Occur.MUST);
-    cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery reqTuple1 = new TupleQuery();
-    reqTuple1.add(cq1, SirenTupleClause.Occur.MUST);
-    reqTuple1.add(cq2, SirenTupleClause.Occur.MUST);
-
-    bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ccc")), NodeBooleanClause.Occur.MUST);
-    cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
-
-    bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ddd")), NodeBooleanClause.Occur.MUST);
-    cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
-
-    final TupleQuery reqTuple2 = new TupleQuery();
-    reqTuple2.add(cq1, SirenTupleClause.Occur.MUST);
-    reqTuple2.add(cq2, SirenTupleClause.Occur.MUST);
-
-    final BooleanQuery q = new BooleanQuery();
-    q.add(exclTuple, Occur.MUST_NOT);
-    q.add(reqTuple1, Occur.MUST);
-    q.add(reqTuple2, Occur.MUST);
-
-    assertEquals(10, _helper.search(q).length);
-  }
-
-  @Test
-  public void testReqExclCell() throws CorruptIndexException, IOException {
-    for (int i = 0; i < 10; i++) {
-      _helper.addDocument("<subj> <aaa> <bbb> . <subj> <ccc> <ddd> . <subj> <eee> <fff> . ");
-      _helper.addDocument("<subj> <aaa> <bbb> . <subj> <ccc> <ddd> . <subj> <eee> <ggg> . ");
-    }
-
+  public void testSetAncestor() {
+    final NodeTermQuery ntq = new NodeTermQuery(new Term("field", "value"));
     final NodeBooleanQuery bq1 = new NodeBooleanQuery();
-    bq1.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "aaa")), NodeBooleanClause.Occur.MUST);
-    final SirenCellQuery cq1 = new SirenCellQuery(bq1);
-    cq1.setConstraint(1);
+    bq1.add(ntq, Occur.MUST);
 
     final NodeBooleanQuery bq2 = new NodeBooleanQuery();
-    bq2.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "bbb")), NodeBooleanClause.Occur.MUST);
-    final SirenCellQuery cq2 = new SirenCellQuery(bq2);
-    cq2.setConstraint(2);
 
-    final NodeBooleanQuery bq3 = new NodeBooleanQuery();
-    bq3.add(new NodeTermQuery(new Term(QueryTestingHelper.DEFAULT_FIELD, "ggg")), NodeBooleanClause.Occur.MUST);
-    final SirenCellQuery cq3 = new SirenCellQuery(bq3);
-    cq3.setConstraint(2);
+    bq1.setAncestorPointer(bq2);
 
-    final BooleanQuery q = new BooleanQuery();
-    q.add(cq3, Occur.MUST_NOT);
-    q.add(cq1, Occur.MUST);
-    q.add(cq2, Occur.MUST);
+    assertSame(bq2, bq1.ancestor);
+    // node queries in node boolean clauses must have been updated
+    assertSame(bq2, ntq.ancestor);
 
-    assertEquals(10, _helper.search(q).length);
+    final NodeTermQuery ntq2 = new NodeTermQuery(new Term("field", "value"));
+    bq1.add(ntq2, Occur.MUST);
+    // new clause must have been updated
+    assertSame(bq2, ntq2.ancestor);
   }
 
 }

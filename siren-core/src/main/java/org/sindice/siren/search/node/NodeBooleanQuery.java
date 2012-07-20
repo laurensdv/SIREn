@@ -113,6 +113,33 @@ public class NodeBooleanQuery extends NodeQuery {
     return disableCoord;
   }
 
+  @Override
+  public void setLevelConstraint(final int levelConstraint) {
+    super.setLevelConstraint(levelConstraint);
+    // keep clauses synchronised
+    for (final NodeBooleanClause clause : clauses) {
+      clause.getQuery().setLevelConstraint(levelConstraint);
+    }
+  }
+
+  @Override
+  public void setNodeConstraint(final int lowerBound, final int upperBound) {
+    super.setNodeConstraint(lowerBound, upperBound);
+    // keep clauses synchronised
+    for (final NodeBooleanClause clause : clauses) {
+      clause.getQuery().setNodeConstraint(lowerBound, upperBound);
+    }
+  }
+
+  @Override
+  protected void setAncestorPointer(final NodeQuery ancestor) {
+    super.setAncestorPointer(ancestor);
+    // keep clauses synchronised
+    for (final NodeBooleanClause clause : clauses) {
+      clause.getQuery().setAncestorPointer(ancestor);
+    }
+  }
+
   /**
    * Adds a clause to a boolean query.
    *
@@ -136,6 +163,10 @@ public class NodeBooleanQuery extends NodeQuery {
       throw new TooManyClauses();
     }
     clauses.add(clause);
+    // keep clause synchronised in term of constraint management
+    clause.getQuery().setLevelConstraint(levelConstraint);
+    clause.getQuery().setNodeConstraint(lowerBound, upperBound);
+    clause.getQuery().setAncestorPointer(ancestor);
   }
 
   /** Returns the set of clauses in this query. */
