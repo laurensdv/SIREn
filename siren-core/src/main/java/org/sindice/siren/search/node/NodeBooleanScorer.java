@@ -35,7 +35,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.IntsRef;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
-import org.sindice.siren.search.node.NodeBooleanQuery.NodeBooleanWeight;
+import org.sindice.siren.search.node.NodeBooleanQuery.AbstractNodeBooleanWeight;
 
 /**
  * A scorer that matches a boolean combination of node scorers.
@@ -76,7 +76,7 @@ public class NodeBooleanScorer extends NodeScorer {
    * @param optional
    *          the list of optional scorers.
    */
-  public NodeBooleanScorer(final NodeBooleanWeight weight,
+  public NodeBooleanScorer(final AbstractNodeBooleanWeight weight,
                            final boolean disableCoord,
                            final List<NodeScorer> required,
                            final List<NodeScorer> prohibited,
@@ -127,7 +127,7 @@ public class NodeBooleanScorer extends NodeScorer {
     final int requiredNrMatchers = requiredScorers.size();
 
     return new NodeConjunctionScorer(weight,
-      disableCoord ? 1.0f : ((NodeBooleanWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
+      disableCoord ? 1.0f : ((AbstractNodeBooleanWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
                    requiredScorers) {
 
       private int     lastScoredDoc  = -1;
@@ -287,7 +287,7 @@ public class NodeBooleanScorer extends NodeScorer {
     void init(final boolean disableCoord) { // use after all scorers have been added.
       coordFactors = new float[optionalScorers.size() + requiredScorers.size() + 1];
       for (int i = 0; i < coordFactors.length; i++) {
-        coordFactors[i] = disableCoord ? 1.0f : ((NodeBooleanWeight) weight).coord(i, maxCoord);
+        coordFactors[i] = disableCoord ? 1.0f : ((AbstractNodeBooleanWeight) weight).coord(i, maxCoord);
       }
     }
   }

@@ -47,6 +47,8 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
+import org.sindice.siren.search.node.TupleQuery.TupleWeight;
+import org.sindice.siren.search.node.TwigQuery.TwigWeight;
 
 /**
  * A Query that matches a boolean combination of primitive queries, e.g.,
@@ -189,10 +191,15 @@ public class NodeBooleanQuery extends NodeQuery {
   }
 
   /**
-   * Expert: the Weight for {@link NodeBooleanQuery}, used to
-   * normalize, score and explain these queries.
+   * Expert: An abstract weight for queries with node boolean clauses.
+   * <p>
+   * This abstract class enables to use the {@link NodeBooleanScorer} by many
+   * different query implmentation.
+   * <p>
+   * It is subclassed by {@link NodeBooleanWeight}, {@link TwigWeight} and
+   * {@link TupleWeight}.
    */
-  public class NodeBooleanWeight extends Weight {
+  public static abstract class AbstractNodeBooleanWeight extends Weight {
 
     /** The Similarity implementation. */
     protected Similarity similarity;
@@ -200,13 +207,33 @@ public class NodeBooleanQuery extends NodeQuery {
     protected int maxCoord;  // num optional + num required
     private final boolean disableCoord;
 
-    public NodeBooleanWeight(final IndexSearcher searcher, final boolean disableCoord)
+    public AbstractNodeBooleanWeight(final IndexSearcher searcher, final boolean disableCoord)
     throws IOException {
-      this.similarity = searcher.getSimilarity();
       this.disableCoord = disableCoord;
+      this.similarity = searcher.getSimilarity();
       this.initWeights(searcher);
     }
 
+    protected abstract void initWeights(final IndexSearcher searcher) throws IOException;
+
+    public float coord(final int overlap, final int maxOverlap) {
+      return similarity.coord(overlap, maxOverlap);
+    }
+
+  }
+
+  /**
+   * Expert: the Weight for {@link NodeBooleanQuery}, used to
+   * normalize, score and explain these queries.
+   */
+  public class NodeBooleanWeight extends AbstractNodeBooleanWeight {
+
+    public NodeBooleanWeight(final IndexSearcher searcher, final boolean disableCoord)
+    throws IOException {
+      super(searcher, disableCoord);
+    }
+
+    @Override
     protected void initWeights(final IndexSearcher searcher) throws IOException {
       weights = new ArrayList<Weight>(clauses.size());
       for (int i = 0; i < clauses.size(); i++) {
@@ -252,10 +279,6 @@ public class NodeBooleanQuery extends NodeQuery {
       sum *= NodeBooleanQuery.this.getBoost() * NodeBooleanQuery.this.getBoost();
 
       return sum;
-    }
-
-    public float coord(final int overlap, final int maxOverlap) {
-      return similarity.coord(overlap, maxOverlap);
     }
 
     @Override

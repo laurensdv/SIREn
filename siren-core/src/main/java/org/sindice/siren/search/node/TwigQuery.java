@@ -46,6 +46,7 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ToStringUtils;
+import org.sindice.siren.search.node.NodeBooleanQuery.AbstractNodeBooleanWeight;
 import org.sindice.siren.search.node.NodeBooleanQuery.TooManyClauses;
 import org.sindice.siren.search.node.TwigQuery.EmptyRootQuery.EmptyRootScorer;
 
@@ -287,28 +288,23 @@ public class TwigQuery extends NodeQuery {
    * Expert: the Weight for {@link TwigQuery}, used to
    * normalize, score and explain these queries.
    */
-  protected class TwigWeight extends Weight {
+  protected class TwigWeight extends AbstractNodeBooleanWeight {
 
-    /** The Similarity implementation. */
-    protected Similarity similarity;
     protected Weight rootWeight;
-    protected ArrayList<Weight> ancestorWeights;
-    protected int maxCoord;  // num optional + num required
-    private final boolean disableCoord;
 
     public TwigWeight(final IndexSearcher searcher, final boolean disableCoord)
     throws IOException {
-      this.similarity = searcher.getSimilarity();
-      this.disableCoord = disableCoord;
+      super(searcher, disableCoord);
       rootWeight = root.createWeight(searcher);
     }
 
+    @Override
     protected void initWeights(final IndexSearcher searcher) throws IOException {
-      ancestorWeights = new ArrayList<Weight>(clauses.size());
+      weights = new ArrayList<Weight>(clauses.size());
       for (int i = 0; i < clauses.size(); i++) {
         final NodeBooleanClause c = clauses.get(i);
         final NodeQuery q = c.getQuery();
-        ancestorWeights.add(q.createWeight(searcher));
+        weights.add(q.createWeight(searcher));
         if (!c.isProhibited()) maxCoord++;
       }
     }
@@ -316,9 +312,9 @@ public class TwigQuery extends NodeQuery {
     @Override
     public float getValueForNormalization() throws IOException {
       float sum = 0.0f;
-      for (int i = 0; i < ancestorWeights.size(); i++) {
+      for (int i = 0; i < weights.size(); i++) {
         // call sumOfSquaredWeights for all clauses in case of side effects
-        final float s = ancestorWeights.get(i).getValueForNormalization(); // sum sub weights
+        final float s = weights.get(i).getValueForNormalization(); // sum sub weights
         if (!clauses.get(i).isProhibited()) {
         // only add to sum for non-prohibited clauses
           sum += s;
@@ -338,16 +334,12 @@ public class TwigQuery extends NodeQuery {
     public void normalize(final float norm, float topLevelBoost) {
       // incorporate boost
       topLevelBoost *= TwigQuery.this.getBoost();
-      for (final Weight w : ancestorWeights) {
+      for (final Weight w : weights) {
         // normalize all clauses, (even if prohibited in case of side affects)
         w.normalize(norm, topLevelBoost);
       }
       // Normalise root weight
       rootWeight.normalize(norm, topLevelBoost);
-    }
-
-    public float coord(final int overlap, final int maxOverlap) {
-      return similarity.coord(overlap, maxOverlap);
     }
 
     // TODO: Add root node in the explanation
@@ -360,7 +352,7 @@ public class TwigQuery extends NodeQuery {
       float sum = 0.0f;
       boolean fail = false;
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
-      for (final Weight w : ancestorWeights) {
+      for (final Weight w : weights) {
         final NodeBooleanClause c = cIter.next();
         if (w.scorer(context, true, true, context.reader().getLiveDocs()) == null) {
           if (c.isRequired()) {
@@ -431,7 +423,7 @@ public class TwigQuery extends NodeQuery {
       final List<NodeScorer> prohibited = new ArrayList<NodeScorer>();
       final List<NodeScorer> optional = new ArrayList<NodeScorer>();
       final Iterator<NodeBooleanClause> cIter = clauses.iterator();
-      for (final Weight w  : ancestorWeights) {
+      for (final Weight w  : weights) {
         final NodeBooleanClause c =  cIter.next();
         final NodeScorer subScorer = (NodeScorer) w.scorer(context, true, false, acceptDocs);
         if (subScorer == null) {
