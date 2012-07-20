@@ -120,7 +120,7 @@ public class TwigQuery extends NodeQuery {
    * @param disableCoord disables {@link Similarity#coord(int,int)} in scoring.
    */
   public TwigQuery(final int rootLevel, final boolean disableCoord) {
-    this(1, new EmptyRootQuery(), disableCoord);
+    this(rootLevel, new EmptyRootQuery(), disableCoord);
   }
 
   /**
@@ -177,7 +177,7 @@ public class TwigQuery extends NodeQuery {
    *           if the new number of clauses exceeds the maximum clause number
    * @see #getMaxClauseCount()
    */
-  protected void add(final NodeBooleanClause clause) {
+  protected void addClause(final NodeBooleanClause clause) {
     if (clauses.size() >= maxClauseCount) {
       throw new TooManyClauses();
     }
@@ -197,7 +197,7 @@ public class TwigQuery extends NodeQuery {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
-    this.add(new NodeBooleanClause(query, occur));
+    this.addClause(new NodeBooleanClause(query, occur));
   }
 
   /**
@@ -218,7 +218,7 @@ public class TwigQuery extends NodeQuery {
     // set the ancestor pointer
     query.setAncestorPointer(root);
     // add the query to the clauses
-    this.add(new NodeBooleanClause(query, occur));
+    this.addClause(new NodeBooleanClause(query, occur));
   }
 
   @Override

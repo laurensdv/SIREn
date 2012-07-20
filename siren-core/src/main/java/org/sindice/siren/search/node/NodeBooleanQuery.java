@@ -47,7 +47,6 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.ToStringUtils;
-import org.sindice.siren.search.node.TupleQuery.TupleWeight;
 import org.sindice.siren.search.node.TwigQuery.TwigWeight;
 
 /**
