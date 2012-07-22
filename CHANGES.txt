@@ -7,18 +7,22 @@ New Features
 Improvements 
 
 * [GH-47] Twig Query API Improvements
-8 [gh-48] Remove the term frequency in the Doc posting list
+8 [GH-48] Remove the term frequency in the Doc posting list
 
 Bugs
 
 * [GH-50] Incorrect TwigQuery Rewritting and Level Constraint
+* [GH-52] Fix constraint management in NodeBooleanQuery
+* [GH-53] Fix constraint management in TwigQuery
+* [GH-54] Fix constraint management in TupleQuery
 
 Tasks
 
 * [GH-41] Finalise TupleScorer
 * [GH-40] Upgrade to Lucene 4.0 Alpha
 * [GH-30] Upgrade SIREn to use Lucene 4.0 and the new Flex (flexible Indexing) feature
-* [gh-49] Remove SIREn 0.2 codec
+* [GH-49] Remove SIREn 0.2 codec
+* [GH-56] Port Tuple And Cell query unit tests
 
 ======================= Release 0.2.3-RC1 2011-12-11 =======================
 
