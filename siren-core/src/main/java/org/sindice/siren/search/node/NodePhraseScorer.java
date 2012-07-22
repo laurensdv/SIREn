@@ -127,7 +127,7 @@ abstract class NodePhraseScorer extends NodeScorer {
    * phrase frequency in current node as computed by phraseFreq().
    */
   @Override
-  public float termFreqInNode()
+  public float freqInNode()
   throws IOException {
     return freq;
   }

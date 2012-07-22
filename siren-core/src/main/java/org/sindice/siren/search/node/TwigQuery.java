@@ -44,11 +44,9 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.node.NodeBooleanQuery.AbstractNodeBooleanWeight;
 import org.sindice.siren.search.node.NodeBooleanQuery.TooManyClauses;
-import org.sindice.siren.search.node.TwigQuery.EmptyRootQuery.EmptyRootScorer;
 
 /**
  * A Query that matches a boolean combination of Ancestor-Descendant and
@@ -439,8 +437,12 @@ public class TwigQuery extends NodeQuery {
         }
       }
 
-      // check if rootScorer is an EmptyRootScorer
-      if (rootScorer instanceof EmptyRootScorer) {
+      // check if rootScorer is null (empty root)
+      if (rootScorer == null) {
+        if (required.size() == 0 && optional.size() == 0) {
+          // empty root and no required and optional clauses.
+          return null;
+        }
         return new TwigScorer(this, disableCoord, levelConstraint, required,
           prohibited, optional, maxCoord);
       }
@@ -723,51 +725,7 @@ public class TwigQuery extends NodeQuery {
                            final boolean topScorer,
                            final Bits acceptDocs)
       throws IOException {
-        return new EmptyRootScorer(this);
-      }
-
-    }
-
-    /**
-     * The empty root scorer.
-     * <p>
-     * All methods throw a {@link UnsupportedOperationException} as they should
-     * never be used.
-     */
-    protected class EmptyRootScorer extends NodeScorer {
-
-      protected EmptyRootScorer(final Weight weight) {
-        super(weight);
-      }
-
-      @Override
-      public boolean nextCandidateDocument() throws IOException {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public boolean nextNode() throws IOException {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public boolean skipToCandidate(final int target) throws IOException {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public int doc() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public IntsRef node() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public float score() throws IOException {
-        throw new UnsupportedOperationException();
+        return null;
       }
 
     }

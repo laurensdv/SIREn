@@ -156,7 +156,7 @@ public class DocumentScorer extends Scorer {
 
       do { // nextNode() was already called in nextDoc() or in advance()
         score += scorer.scoreInNode();
-        freq += scorer.termFreqInNode();
+        freq += scorer.freqInNode();
       } while (scorer.nextNode());
     }
   }

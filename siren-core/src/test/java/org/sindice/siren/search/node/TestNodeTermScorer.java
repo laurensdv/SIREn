@@ -27,8 +27,6 @@
 package org.sindice.siren.search.node;
 
 import static org.sindice.siren.analysis.MockSirenToken.node;
-import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
-import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryBuilder.nbq;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeTermQueryBuilder.ntq;
 
 import java.io.IOException;
@@ -39,8 +37,6 @@ import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.doc.DocumentScorer;
-import org.sindice.siren.search.node.NodeScorer;
-import org.sindice.siren.search.node.NodeTermScorer;
 
 public class TestNodeTermScorer extends AbstractTestSirenScorer {
 

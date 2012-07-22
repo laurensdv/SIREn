@@ -217,8 +217,13 @@ public class NodeConjunctionScorer extends NodeScorer {
   }
 
   @Override
-  public float scoreInNode()
-  throws IOException {
+  public float freqInNode() throws IOException {
+    // return the number of required matchers in the node
+    return this.scorers.length;
+  }
+
+  @Override
+  public float scoreInNode() throws IOException {
     float curNodeScore = 0;
     for (final NodeScorer scorer : scorers) {
       curNodeScore += scorer.scoreInNode();

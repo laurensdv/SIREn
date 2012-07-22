@@ -50,12 +50,12 @@ public class DocumentQuery extends Query {
 
     private final Weight weight;
 
-    public DocumentWeight(Weight weight) {
+    public DocumentWeight(final Weight weight) {
       this.weight = weight;
     }
 
     @Override
-    public Explanation explain(AtomicReaderContext context, int doc)
+    public Explanation explain(final AtomicReaderContext context, final int doc)
     throws IOException {
       final DocumentScorer dScorer = (DocumentScorer) this.scorer(context, true, false, context.reader().getLiveDocs());
       return dScorer.getWeight().explain(context, doc);
@@ -73,35 +73,36 @@ public class DocumentQuery extends Query {
     }
 
     @Override
-    public void normalize(float norm, float topLevelBoost) {
+    public void normalize(final float norm, final float topLevelBoost) {
       weight.normalize(norm, topLevelBoost);
     }
 
     @Override
-    public Scorer scorer(AtomicReaderContext context,
-                         boolean scoreDocsInOrder,
-                         boolean topScorer,
-                         Bits acceptDocs)
+    public Scorer scorer(final AtomicReaderContext context,
+                         final boolean scoreDocsInOrder,
+                         final boolean topScorer,
+                         final Bits acceptDocs)
     throws IOException {
-      final NodeScorer nodeScorer = (NodeScorer) weight.scorer(context, scoreDocsInOrder, topScorer, acceptDocs);
+      final NodeScorer nodeScorer = (NodeScorer) weight.scorer(context,
+        scoreDocsInOrder, topScorer, acceptDocs);
       return nodeScorer == null ? null // no match
                                 : new DocumentScorer(nodeScorer);
     }
 
   }
 
-  public DocumentQuery(NodeQuery nq) {
+  public DocumentQuery(final NodeQuery nq) {
     this.nodeQuery = nq;
   }
 
   @Override
-  public Weight createWeight(IndexSearcher searcher)
+  public Weight createWeight(final IndexSearcher searcher)
   throws IOException {
     return new DocumentWeight(nodeQuery.createWeight(searcher));
   }
 
   @Override
-  public Query rewrite(IndexReader reader)
+  public Query rewrite(final IndexReader reader)
   throws IOException {
     final Query rewroteQuery = nodeQuery.rewrite(reader);
 
@@ -110,14 +111,14 @@ public class DocumentQuery extends Query {
   }
 
   @Override
-  public void extractTerms(Set<Term> terms) {
+  public void extractTerms(final Set<Term> terms) {
     nodeQuery.extractTerms(terms);
   }
 
   @Override
-  public String toString(String field) {
+  public String toString(final String field) {
     return "documentQuery(" + nodeQuery.toString(field) + ")";
   }
 
-  
+
 }

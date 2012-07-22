@@ -38,6 +38,7 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer.ChildScorer;
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
@@ -688,6 +689,35 @@ public class TestTwigScorer extends AbstractTestSirenScorer {
 
     // Should be rewritten into a NodeTermScorer
     assertTrue(scorer instanceof NodeTermScorer);
+  }
+
+  @Test
+  public void testNoRequiredAndOptionalClause() throws IOException {
+    // if the root node of a twig query is empty, and if there is no required
+    // and optional clauses, it should return no result
+
+    // optional clauses with terms that do not exist
+    Query query = twq(1)
+      .optional(child(must("ddd")))
+      .optional(child(must("eee")))
+      .getDocumentQuery();
+    assertEquals(0, searcher.search(query, 100).totalHits);
+
+    query = twq(1).getDocumentQuery();
+    assertEquals(0, searcher.search(query, 100).totalHits);
+  }
+
+  @Test
+  public void testNullAncestorQuery() throws IOException {
+    // when a twig with an empty root and only one clause is rewritten in an
+    // ancestor query, if the ancestor query is composed of terms that do not
+    // exist it should return no result
+
+    // optional clauses with terms that do not exist
+    final Query query = twq(1)
+      .optional(child(must("eee")))
+      .getDocumentQuery();
+    assertEquals(0, searcher.search(query, 100).totalHits);
   }
 
 }

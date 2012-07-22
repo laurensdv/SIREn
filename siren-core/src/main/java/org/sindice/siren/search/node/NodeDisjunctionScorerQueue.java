@@ -146,7 +146,7 @@ public class NodeDisjunctionScorerQueue {
    * {@link DocsNodesAndPositionsEnum}.
    * <p>
    * Iterating over the elements of the queue enables us to save such a array
-   * copy and therefore optimise garbage collector.
+   * copy.
    *
    * @see #nrMatchersInNode()
    * @see #scoreInNode()

@@ -50,7 +50,7 @@ import org.sindice.siren.util.BasicSirenTestCase;
 
 public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
 
-  public static DocumentQuery dq(NodeQuery nq) {
+  public static DocumentQuery dq(final NodeQuery nq) {
     return new DocumentQuery(nq);
   }
 

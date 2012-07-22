@@ -52,8 +52,8 @@ public class AncestorFilterScorer extends NodeScorer {
   }
 
   @Override
-  public float score() throws IOException {
-    return scorer.score();
+  public float freqInNode() throws IOException {
+    return scorer.freqInNode();
   }
 
   @Override

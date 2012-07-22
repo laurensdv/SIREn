@@ -38,7 +38,7 @@ import org.sindice.siren.search.AbstractTestSirenScorer;
 import org.sindice.siren.search.node.NodePhraseScorer;
 import org.sindice.siren.search.node.NodeQuery;
 
-public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
+public class TestNodeExactPhraseScorer extends AbstractTestSirenScorer {
 
   @Override
   protected void configure() throws IOException {
@@ -107,10 +107,10 @@ public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
     assertEquals(0, scorer.doc());
     assertTrue(scorer.nextNode());
     assertEquals(node(0,0), scorer.node());
-    assertEquals(1.0f, scorer.termFreqInNode(), 0);
+    assertEquals(1.0f, scorer.freqInNode(), 0);
     assertTrue(scorer.nextNode());
     assertEquals(node(0,1), scorer.node());
-    assertEquals(2.0f, scorer.termFreqInNode(), 0);
+    assertEquals(2.0f, scorer.freqInNode(), 0);
 
     assertFalse(scorer.nextNode());
     assertFalse(scorer.nextCandidateDocument());
@@ -122,7 +122,7 @@ public class TestSirenExactPhraseScorer extends AbstractTestSirenScorer {
     assertEquals(0, scorer.doc());
     assertTrue(scorer.nextNode());
     assertEquals(node(0,1), scorer.node());
-    assertEquals(2.0f, scorer.termFreqInNode(), 0);
+    assertEquals(2.0f, scorer.freqInNode(), 0);
 
     assertFalse(scorer.nextNode());
     assertFalse(scorer.nextCandidateDocument());

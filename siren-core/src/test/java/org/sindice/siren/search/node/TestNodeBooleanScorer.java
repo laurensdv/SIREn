@@ -34,6 +34,12 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanQueryB
 
 import java.io.IOException;
 
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
@@ -292,5 +298,231 @@ public class TestNodeBooleanScorer extends AbstractTestSirenScorer {
     assertTrue(d0score01 + " == " + d0score00, d0score01 == d0score00);
     assertEndOfStream(scorer);
   }
+
+  // Unit Tests coming from SirenCellQuery
+
+  @Test
+  public void testUnaryClause() throws IOException {
+    this.addDocuments(new String[] { "\"aaa ccc\" .",
+                                      "\"bbb\" . \"ddd eee\" . ",
+                                      "\"ccc ccc\" . \"ccc ccc\" . " });
+
+    Query q = nbq(must("aaa")).getDocumentQuery();
+    assertEquals(1, searcher.search(q, 10).totalHits);
+
+    q = nbq(must("bbb")).getDocumentQuery();
+    assertEquals(1, searcher.search(q, 10).totalHits);
+
+    q = nbq(must("ccc")).getDocumentQuery();
+    assertEquals(2, searcher.search(q, 10).totalHits);
+
+    q = nbq(must("ddd")).getDocumentQuery();
+    assertEquals(1, searcher.search(q, 10).totalHits);
+
+    q = nbq(must("eee")).getDocumentQuery();
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  @Test
+  public void testUnaryClauseWithIndexConstraint()
+  throws Exception {
+    this.addDocuments(new String[] { "\"aaa\" \"bbb\" \"ccc\" .",
+                                     "\"ccc\" \"bbb\" \"aaa\" ." });
+
+    final Query q = nbq(must("aaa")).bound(0,0).getDocumentQuery();
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(aaa bbb ccc ddd eee)</code>
+   */
+  @Test
+  public void testFlat() throws IOException {
+    this.addDocuments(new String[] { "\"aaa ccc\" .",
+                                     "\"bbb\" . \"ddd eee\" . ",
+                                     "\"ccc ccc\" . \"ccc ccc\" . " });
+
+    final Query q = nbq(should("aaa"), should("bbb"), should("ccc"),
+                        should("ddd"), should("eee")).getDocumentQuery();
+
+    assertEquals(3, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>bbb cell(+ddd +eee)</code>
+   */
+  @Test
+  public void testParenthesisMust() throws IOException {
+    this.addDocument("\"bbb\" . \"ddd eee\" . ");
+
+    final Query nested = nbq(must("ddd"), must("eee")).getDocumentQuery();
+    final BooleanQuery bq = new BooleanQuery();
+    bq.add(new TermQuery(new Term(DEFAULT_TEST_FIELD, "aaa")), BooleanClause.Occur.SHOULD);
+    bq.add(nested, BooleanClause.Occur.SHOULD);
+    assertEquals(1, searcher.search(bq, 10).totalHits);
+  }
+
+  /**
+   * <code>aaa +cell(ddd eee)</code>
+   */
+  @Test
+  public void testParenthesisMust2() throws IOException {
+    this.addDocument("\"bbb\" . \"ddd eee\" . ");
+
+    final Query nested = nbq(should("ddd"), should("eee")).getDocumentQuery();
+    final BooleanQuery bq = new BooleanQuery();
+    bq.add(new TermQuery(new Term(DEFAULT_TEST_FIELD, "bbb")), BooleanClause.Occur.SHOULD);
+    bq.add(nested, BooleanClause.Occur.MUST);
+    assertEquals(1, searcher.search(bq, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(ddd ccc) cell(eee ccc)</code>
+   */
+  @Test
+  public void testParenthesisShould() throws IOException {
+    this.addDocument("\"bbb\" . \"ddd eee\" . ");
+
+    final Query nested1 = nbq(should("ddd"), should("ccc")).getDocumentQuery();
+    final Query nested2 = nbq(should("eee"), should("ccc")).getDocumentQuery();
+
+    final BooleanQuery q = new BooleanQuery();
+    q.add(nested1, BooleanClause.Occur.SHOULD);
+    q.add(nested2, BooleanClause.Occur.SHOULD);
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(+ddd +eee)</code>
+   */
+  @Test
+  public void testMust() throws IOException {
+    this.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
+                                     "\"bbb\" . \"ddd eee\" . " });
+
+    final Query q = nbq(must("ddd"), must("eee")).getDocumentQuery();
+
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(+ddd +eee)</code>, same tuple but not the same cell
+   */
+  @Test
+  public void testMust2() throws IOException {
+    this.addDocuments(new String[] { "\"eee\" \"ddd\" . ",
+                                     "\"bbb\" \"ddd eee\" . " });
+
+    final Query q = nbq(must("ddd"), must("eee")).getDocumentQuery();
+
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(+ddd eee)</code>
+   */
+  @Test
+  public void testMustShould() throws IOException {
+    this.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
+                                     "\"bbb\" . \"ddd eee\" . " });
+
+    final Query q = nbq(must("ddd"), should("eee")).getDocumentQuery();
+
+    assertEquals(2, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(+ddd -eee)</code>
+   */
+  @Test
+  public void testMustMustNot() throws IOException {
+    this.addDocuments(new String[] { "\"eee\" . \"ddd aaa\" . ",
+                                     "\"bbb\" . \"ddd eee\" . " });
+
+    final Query q = nbq(must("ddd"), not("eee")).getDocumentQuery();
+
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(eee bbb)</code>
+   */
+  @Test
+  public void testShould() throws IOException {
+    this.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
+                                     "\"bbb\" . \"ddd eee\" . " });
+
+    final Query q = nbq(should("ddd"), should("eee")).getDocumentQuery();
+
+    assertEquals(2, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * <code>cell(ddd -eee)</code>
+   */
+  @Test
+  public void testShouldMustNot() throws IOException {
+    this.addDocuments(new String[] { "\"eee\" . \"ddd\" . ",
+                                     "\"bbb\" . \"ddd eee\" . " });
+
+    final Query q = nbq(should("ddd"), not("eee")).getDocumentQuery();
+
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * SRN-99
+   * <code>cell(+(aaa bbb) +(ccc ddd))</code>
+   */
+  @Test
+  public void testReqNestedCellQuery() throws IOException {
+    this.addDocuments(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+                                     "\"bbb\" . \"ddd ccc\" . " });
+
+    final Query q = nbq(
+        must(nbq(should("aaa"), should("bbb"))),
+        must(nbq(should("ccc"), should("ddd")))
+      ).getDocumentQuery();
+
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * SRN-99
+   * <code>cell(+(aaa bbb) -(ccc ddd))</code>
+   */
+  @Test
+  public void testReqExclNestedCellQuery() throws IOException {
+    this.addDocuments(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+                                     "\"bbb\" . \"ddd ccc\" . " });
+
+    final Query q = nbq(
+      must(nbq(should("aaa"), should("bbb"))),
+      not(nbq(should("ccc"), should("ddd")))
+    ).getDocumentQuery();
+
+    assertEquals(1, searcher.search(q, 10).totalHits);
+  }
+
+  /**
+   * SRN-99
+   * <code>cell(+(aaa bbb) (ccc ddd))</code>
+   */
+  @Test
+  public void testReqOptNestedCellQuery() throws IOException {
+    this.addDocuments(new String[] { "\"ccc\" . \"aaa ddd\" . ",
+                                     "\"bbb\" . \"ddd ccc\" . " });
+
+    final Query q = nbq(
+      must(nbq(should("aaa"), should("bbb"))),
+      should(nbq(should("ccc"), should("ddd")))
+    ).getDocumentQuery();
+
+    final TopDocs docs = searcher.search(q, 10);
+    assertEquals(2, docs.totalHits);
+    assertEquals(0, docs.scoreDocs[0].doc); // first doc should be ranked higher
+
+  }
+
 
 }

@@ -47,7 +47,7 @@ import org.sindice.siren.search.node.NodeTermQuery;
 import org.sindice.siren.search.node.NodeTermRangeQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
-public class TestSirenTermRangeQuery extends BasicSirenTestCase {
+public class TestNodeTermRangeQuery extends BasicSirenTestCase {
 
   @Override
   protected void configure() throws IOException {

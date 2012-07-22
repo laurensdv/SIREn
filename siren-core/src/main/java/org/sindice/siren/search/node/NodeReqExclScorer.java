@@ -181,6 +181,11 @@ public class NodeReqExclScorer extends NodeScorer {
   }
 
   @Override
+  public float freqInNode() throws IOException {
+    return reqScorer.freqInNode();
+  }
+
+  @Override
   public float scoreInNode()
   throws IOException {
     return reqScorer.scoreInNode(); // reqScorer may be null when next() or skipTo()

@@ -96,25 +96,25 @@ public class TestSirenNumericRangeQuery64 extends LuceneTestCase {
       long val=distance*l+startOffset;
 
       // add fields, that have a distance to test general functionality
-      doc.add(newField("field8", getTriple(val, XSDDatatype.XSD_LONG+"8"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("field6", getTriple(val, XSDDatatype.XSD_LONG+"6"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("field4", getTriple(val, XSDDatatype.XSD_LONG+"4"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("field2", getTriple(val, XSDDatatype.XSD_LONG+"2"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("field"+Integer.MAX_VALUE, getTriple(val, XSDDatatype.XSD_LONG+Integer.MAX_VALUE), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("field8", getTriple(val, XSDDatatype.XSD_LONG+"8"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("field6", getTriple(val, XSDDatatype.XSD_LONG+"6"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("field4", getTriple(val, XSDDatatype.XSD_LONG+"4"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("field2", getTriple(val, XSDDatatype.XSD_LONG+"2"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("field"+Integer.MAX_VALUE, getTriple(val, XSDDatatype.XSD_LONG+Integer.MAX_VALUE), Field.Store.YES, Field.Index.ANALYZED));
 
       // add ascending fields with a distance of 1, beginning at -noDocs/2 to
       // test the correct splitting of range and inclusive/exclusive
       val=l-(noDocs/2);
 
-      doc.add(newField("ascfield8", getTriple(val, XSDDatatype.XSD_LONG+"8"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("ascfield6", getTriple(val, XSDDatatype.XSD_LONG+"6"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("ascfield4", getTriple(val, XSDDatatype.XSD_LONG+"4"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("ascfield2", getTriple(val, XSDDatatype.XSD_LONG+"2"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("ascfield8", getTriple(val, XSDDatatype.XSD_LONG+"8"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("ascfield6", getTriple(val, XSDDatatype.XSD_LONG+"6"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("ascfield4", getTriple(val, XSDDatatype.XSD_LONG+"4"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("ascfield2", getTriple(val, XSDDatatype.XSD_LONG+"2"), Field.Store.YES, Field.Index.ANALYZED));
 
-      doc.add(newField("double8", getTriple(val, XSDDatatype.XSD_DOUBLE+"8"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("double6", getTriple(val, XSDDatatype.XSD_DOUBLE+"6"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("double4", getTriple(val, XSDDatatype.XSD_DOUBLE+"4"), Field.Store.YES, Field.Index.ANALYZED));
-      doc.add(newField("double2", getTriple(val, XSDDatatype.XSD_DOUBLE+"2"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("double8", getTriple(val, XSDDatatype.XSD_DOUBLE+"8"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("double6", getTriple(val, XSDDatatype.XSD_DOUBLE+"6"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("double4", getTriple(val, XSDDatatype.XSD_DOUBLE+"4"), Field.Store.YES, Field.Index.ANALYZED));
+      doc.addClause(newField("double2", getTriple(val, XSDDatatype.XSD_DOUBLE+"2"), Field.Store.YES, Field.Index.ANALYZED));
       
       writer.addDocument(doc);
     }

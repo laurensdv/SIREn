@@ -242,7 +242,7 @@ public class NodePhraseQuery extends NodePrimitiveQuery {
           while (scorer.nextNode()) {
             final ComplexExplanation nodeMatch = new ComplexExplanation();
             nodeMatch.setDescription("in "+scorer.node()+"), result of:");
-            final float freq = scorer.termFreqInNode();
+            final float freq = scorer.freqInNode();
             final Explanation scoreExplanation = docScorer.explain(doc, new Explanation(freq, "phraseFreq=" + freq));
             nodeMatch.setValue(scoreExplanation.getValue());
             nodeMatch.setMatch(true);

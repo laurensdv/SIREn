@@ -259,8 +259,8 @@ public class NodeConstantScoreQuery extends NodePrimitiveQuery {
     }
 
     @Override
-    public float termFreqInNode() throws IOException {
-      return scorer.termFreqInNode();
+    public float freqInNode() throws IOException {
+      return scorer.freqInNode();
     }
 
     @Override

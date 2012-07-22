@@ -99,14 +99,20 @@ public class NodeDisjunctionScorer extends NodeScorer {
     return nodeQueue;
   }
 
-  /**
-   * Returns the score of the current node matching the query. Initially
-   * invalid, until {@link #nextCandidateDocument()} is called the first time.
-   * @throws IOException 
-   */
   @Override
-  public float scoreInNode()
-  throws IOException {
+  public float freqInNode() throws IOException {
+    if (currentDoc != -1) { // if nextCandidateDocument not called for the first time
+      return 0;
+    }
+    // return the number of matchers in the node
+    return this.nrMatchers();
+  }
+
+  @Override
+  public float scoreInNode() throws IOException {
+    if (currentDoc != -1) { // if nextCandidateDocument not called for the first time
+      return 0;
+    }
     nodeScorerQueue.countAndSumMatchers();
     return nodeScorerQueue.scoreInNode();
   }
@@ -132,12 +138,11 @@ public class NodeDisjunctionScorer extends NodeScorer {
   }
 
   /**
-   * Returns the number of subscorers matching the current document. Initially
-   * invalid, until {@link #nextDocument()} is called the first time.
-   * @throws IOException 
+   * Returns the number of subscorers matching the current node. Initially
+   * invalid, until {@link #nextCandidateDocument()} is called the first time.
+   * @throws IOException
    */
-  public int nrMatchers()
-  throws IOException {
+  public int nrMatchers() throws IOException {
     // update the number of matched scorers
     nodeScorerQueue.countAndSumMatchers();
     return nodeScorerQueue.nrMatchersInNode();

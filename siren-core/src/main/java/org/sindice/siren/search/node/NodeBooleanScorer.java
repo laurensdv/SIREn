@@ -127,8 +127,9 @@ public class NodeBooleanScorer extends NodeScorer {
     final int requiredNrMatchers = requiredScorers.size();
 
     return new NodeConjunctionScorer(weight,
-      disableCoord ? 1.0f : ((AbstractNodeBooleanWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
-                   requiredScorers) {
+      disableCoord ? 1.0f :
+        ((AbstractNodeBooleanWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
+      requiredScorers) {
 
       private int     lastScoredDoc  = -1;
 
@@ -219,8 +220,7 @@ public class NodeBooleanScorer extends NodeScorer {
   }
 
   @Override
-  public float termFreqInNode()
-  throws IOException {
+  public float freqInNode() throws IOException {
     return coordinator.nrMatchers;
   }
 
@@ -309,8 +309,12 @@ public class NodeBooleanScorer extends NodeScorer {
     }
 
     @Override
-    public float scoreInNode()
-    throws IOException {
+    public float freqInNode() throws IOException {
+      return scorer.freqInNode();
+    }
+
+    @Override
+    public float scoreInNode() throws IOException {
       final int doc = this.doc();
 
       if (doc >= lastScoredDoc) {

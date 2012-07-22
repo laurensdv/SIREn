@@ -125,7 +125,11 @@ class AncestorFilterQuery extends NodeQuery {
                          final boolean scoreDocsInOrder,
                          final boolean topScorer, final Bits acceptDocs)
     throws IOException {
-      final NodeScorer scorer = (NodeScorer) weight.scorer(context, scoreDocsInOrder, topScorer, acceptDocs);
+      final NodeScorer scorer = (NodeScorer) weight.scorer(context,
+        scoreDocsInOrder, topScorer, acceptDocs);
+      if (scorer == null) {
+        return null;
+      }
       return new AncestorFilterScorer(scorer, ancestorLevel);
     }
 

@@ -92,11 +92,42 @@ public class NodeReqOptScorer extends NodeScorer {
   }
 
   @Override
-  public float scoreInNode()
-  throws IOException {
+  public float freqInNode() throws IOException {
+    // TODO: Computation similar to #scoreInNode. Could the instructions be
+    // abstracted and merged somehow
+    final float reqFreq = reqScorer.freqInNode();
+    final int doc = this.doc();
+
+    if (optScorer == null) {
+      return reqFreq;
+    } else if (optScorer.doc() < doc && // if it is the first call, optScorer.doc() returns -1
+               !optScorer.skipToCandidate(doc)) {
+      optScorer = null;
+      return reqFreq;
+    }
+
+    final IntsRef reqNode = this.node();
+    /*
+     * the optional scorer can be in a node that is before the one where
+     * the required scorer is in.
+     */
+    int cmp = 1;
+    while ((cmp = NodeUtils.compare(optScorer.node(), reqNode)) < 0) {
+      if (!optScorer.nextNode()) {
+        return reqFreq;
+      }
+    }
+    // If the optional scorer matches the same node, increase the freq
+    return (optScorer.doc() == doc && cmp == 0)
+           ? reqFreq + optScorer.freqInNode()
+           : reqFreq;
+  }
+
+  @Override
+  public float scoreInNode() throws IOException {
     final float reqScore = reqScorer.scoreInNode();
     final int doc = this.doc();
-  
+
     if (optScorer == null) {
       return reqScore;
     } else if (optScorer.doc() < doc && // if it is the first call, optScorer.doc() returns -1

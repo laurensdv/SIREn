@@ -33,6 +33,19 @@ import org.sindice.siren.util.SirenTestCase;
 public class TestNodeBooleanQuery extends SirenTestCase {
 
   @Test
+  public void testEquality() throws Exception {
+    final NodeBooleanQuery bq1 = new NodeBooleanQuery();
+    bq1.add(new NodeTermQuery(new Term("field", "value1")), NodeBooleanClause.Occur.SHOULD);
+    bq1.add(new NodeTermQuery(new Term("field", "value2")), NodeBooleanClause.Occur.SHOULD);
+
+    final NodeBooleanQuery bq2 = new NodeBooleanQuery();
+    bq2.add(new NodeTermQuery(new Term("field", "value1")), NodeBooleanClause.Occur.SHOULD);
+    bq2.add(new NodeTermQuery(new Term("field", "value2")), NodeBooleanClause.Occur.SHOULD);
+
+    assertEquals(bq1, bq1);
+  }
+
+  @Test
   public void testSetLevelConstraint() {
     final NodeTermQuery ntq = new NodeTermQuery(new Term("field", "value"));
     final NodeBooleanQuery bq = new NodeBooleanQuery();

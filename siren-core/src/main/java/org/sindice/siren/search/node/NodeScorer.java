@@ -111,17 +111,13 @@ public abstract class NodeScorer extends Scorer {
   /**
    * Returns the number of occurrences in the current node
    */
-  public float termFreqInNode() throws IOException {
-    throw new UnsupportedOperationException(this + " does not implement termFreqInNode()");
-  }
+  public abstract float freqInNode() throws IOException;
 
   /**
    * Returns the score of the current node of the current
    * document matching the query.
    */
-  public float scoreInNode() throws IOException {
-    throw new UnsupportedOperationException(this + " does not implement scoreInNode()");
-  }
+  public abstract float scoreInNode() throws IOException;
 
   /**
    * Methods implemented in {@link DocumentScorer}

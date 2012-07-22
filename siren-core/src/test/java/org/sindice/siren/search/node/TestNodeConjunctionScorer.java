@@ -176,15 +176,15 @@ public class TestNodeConjunctionScorer extends AbstractTestSirenScorer {
   @Test
   public void testScoreWithTermConjunction()
   throws Exception {
-    final ArrayList<String> docs = new ArrayList<String>() {{
-      add("<http://renaud.delbru.fr/> . ");
-      add("<http://sindice.com/test/name> \"Renaud Delbru\" . ");
-      add("<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
-          "<http://sindice.com/test/name> \"Renaud Delbru\" . ");
-      add("<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
+    final String[] docs = new String[] {
+      "<http://renaud.delbru.fr/> . ",
+      "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
+      "<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
+          "<http://sindice.com/test/name> \"Renaud Delbru\" . ",
+      "<http://sindice.com/test/type> <http://sindice.com/test/Person> . " +
           "<http://sindice.com/test/homepage> <http://renaud.delbru.fr/> . " +
-          "<http://sindice.com/test/name> \"Renaud Delbru\" .");
-    }};
+          "<http://sindice.com/test/name> \"Renaud Delbru\" ."
+    };
     this.addDocuments(docs);
 
     final DocumentScorer scorer = new DocumentScorer(this.getScorer(nbq(must("renaud"), must("delbru"))));
