@@ -293,15 +293,25 @@ public class NodeConstantScoreQuery extends NodePrimitiveQuery {
       final NodeConstantScoreQuery other = (NodeConstantScoreQuery) o;
       return
         ((this.filter == null) ? other.filter == null : this.filter.equals(other.filter)) &&
-        ((this.query == null) ? other.query == null : this.query.equals(other.query));
+        ((this.query == null) ? other.query == null : this.query.equals(other.query)) &&
+        this.ancestor.equals(other.ancestor) &&
+        this.levelConstraint == other.levelConstraint &&
+        this.lowerBound == other.lowerBound &&
+        this.upperBound == other.upperBound;
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() +
-      ((query == null) ? filter : query).hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((query == null) ? filter : query).hashCode();
+    result = prime * result + ancestor.hashCode();
+    result = prime * result + lowerBound;
+    result = prime * result + upperBound;
+    result = prime * result + levelConstraint;
+    return result;
   }
 
 }

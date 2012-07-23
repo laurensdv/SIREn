@@ -79,7 +79,10 @@ class AncestorFilterQuery extends NodeQuery {
     final AncestorFilterQuery other = (AncestorFilterQuery) o;
     return (this.getBoost() == other.getBoost()) &&
            this.q.equals(other.q) &&
-           this.ancestorLevel == other.ancestorLevel;
+           this.ancestor.equals(other.ancestor) &&
+           this.lowerBound == other.lowerBound &&
+           this.upperBound == other.upperBound &&
+           this.levelConstraint == other.levelConstraint;
   }
 
   @Override
@@ -88,7 +91,10 @@ class AncestorFilterQuery extends NodeQuery {
     int result = super.hashCode();
     result = prime * result + Float.floatToIntBits(this.getBoost());
     result = prime * result + q.hashCode();
-    result = prime * result + ancestorLevel;
+    result = prime * result + ancestor.hashCode();
+    result = prime * result + lowerBound;
+    result = prime * result + upperBound;
+    result = prime * result + levelConstraint;
     return result;
   }
 

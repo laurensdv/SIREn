@@ -668,16 +668,16 @@ public class TwigQuery extends NodeQuery {
     return (this.getBoost() == other.getBoost()) &&
            this.clauses.equals(other.clauses) &&
            this.disableCoord == other.disableCoord &&
-           this.root.equals(other.root) &&
-           this.levelConstraint == other.levelConstraint &&
-           this.lowerBound == other.lowerBound &&
-           this.upperBound == other.upperBound;
+           this.root.equals(other.root); // root and twig query should have the same constraints,
+                                         // no need to integrate them into the equality test
   }
 
-  /** Returns a hash code value for this object. */
   @Override
   public int hashCode() {
-    return Float.floatToIntBits(this.getBoost()) ^ clauses.hashCode() ^ root.hashCode();
+    return Float.floatToIntBits(this.getBoost())
+      ^ clauses.hashCode()
+      ^ root.hashCode(); // root and twig query should have the same constraints,
+                         // no need to integrate them into the hashcode
   }
 
   /**
@@ -691,6 +691,26 @@ public class TwigQuery extends NodeQuery {
     @Override
     public Weight createWeight(final IndexSearcher searcher) throws IOException {
       return new EmptyRootWeight();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (!(o instanceof EmptyRootQuery)) return false;
+      final EmptyRootQuery other = (EmptyRootQuery) o;
+      return (this.getBoost() == other.getBoost()) &&
+              this.ancestor.equals(other.ancestor) &&
+              this.levelConstraint == other.levelConstraint &&
+              this.lowerBound == other.lowerBound &&
+              this.upperBound == other.upperBound;
+    }
+
+    @Override
+    public int hashCode() {
+      return Float.floatToIntBits(this.getBoost())
+        ^ ancestor.hashCode()
+        ^ levelConstraint
+        ^ upperBound
+        ^ lowerBound;
     }
 
     @Override

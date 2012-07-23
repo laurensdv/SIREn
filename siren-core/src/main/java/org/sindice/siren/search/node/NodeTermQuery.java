@@ -252,13 +252,22 @@ public class NodeTermQuery extends NodePrimitiveQuery {
     if (!(o instanceof NodeTermQuery)) return false;
     final NodeTermQuery other = (NodeTermQuery) o;
     return (this.getBoost() == other.getBoost()) &&
-           this.term.equals(other.term);
+            this.term.equals(other.term) &&
+            this.ancestor.equals(other.ancestor) &&
+            this.levelConstraint == other.levelConstraint &&
+            this.lowerBound == other.lowerBound &&
+            this.upperBound == other.upperBound;
   }
 
   /** Returns a hash code value for this object. */
   @Override
   public int hashCode() {
-    return Float.floatToIntBits(this.getBoost()) ^ term.hashCode();
+    return Float.floatToIntBits(this.getBoost())
+      ^ term.hashCode()
+      ^ ancestor.hashCode()
+      ^ levelConstraint
+      ^ upperBound
+      ^ lowerBound;
   }
 
 }

@@ -120,5 +120,9 @@ public class DocumentQuery extends Query {
     return "documentQuery(" + nodeQuery.toString(field) + ")";
   }
 
+  @Override
+  public int hashCode() {
+    return Float.floatToIntBits(this.getBoost()) ^ nodeQuery.hashCode();
+  }
 
 }

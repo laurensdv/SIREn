@@ -325,16 +325,24 @@ public class NodePhraseQuery extends NodePrimitiveQuery {
       return false;
     }
     final NodePhraseQuery other = (NodePhraseQuery) o;
-    return (this.getBoost() == other.getBoost())
-      && this.terms.equals(other.terms)
-      && this.positions.equals(other.positions);
+    return (this.getBoost() == other.getBoost()) &&
+      this.terms.equals(other.terms) &&
+      this.positions.equals(other.positions) &&
+      this.ancestor.equals(other.ancestor) &&
+      this.levelConstraint == other.levelConstraint &&
+      this.lowerBound == other.lowerBound &&
+      this.upperBound == other.upperBound;
   }
 
   @Override
   public int hashCode() {
     return Float.floatToIntBits(this.getBoost())
       ^ terms.hashCode()
-      ^ positions.hashCode();
+      ^ positions.hashCode()
+      ^ ancestor.hashCode()
+      ^ levelConstraint
+      ^ upperBound
+      ^ lowerBound;
   }
 
   static class PostingsAndPosition {
