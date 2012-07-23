@@ -25,31 +25,25 @@
  */
 package org.sindice.siren.analysis;
 
-import java.io.IOException;
 import java.io.Reader;
 
-import org.apache.lucene.document.NumericField.DataType;
-import org.sindice.siren.util.XSDPrimitiveTypeParser;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Tokenizer;
 
 public class FloatNumericAnalyzer
-extends NumericAnalyzer {
+extends Analyzer {
+
+  private final int precisionStep;
 
   public FloatNumericAnalyzer(final int precisionStep) {
-    super(precisionStep);
-  }
-
-  /* (non-Javadoc)
-   * @see org.sindice.siren.analysis.NumericAnalyzer#setNumericValue(java.io.Reader)
-   */
-  @Override
-  protected void setNumericValue(final SirenNumericTokenStream tokenStream, final Reader reader)
-  throws IOException {
-    tokenStream.setFloatValue(XSDPrimitiveTypeParser.parseFloat(reader));
+    this.precisionStep = precisionStep;
   }
 
   @Override
-  public DataType getNumericType() {
-    return DataType.FLOAT;
+  protected TokenStreamComponents createComponents(String fieldName,
+                                                   Reader reader) {
+    final Tokenizer sink = new FloatNumericTokenizer(reader, precisionStep);
+    return new TokenStreamComponents(sink);
   }
 
 }

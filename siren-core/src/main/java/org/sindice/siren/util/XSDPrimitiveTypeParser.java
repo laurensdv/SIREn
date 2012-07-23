@@ -293,7 +293,10 @@ public final class XSDPrimitiveTypeParser {
 
     private static double parseINF(final Reader reader, final boolean isNegative)
     throws IOException {
-      if (reader.read() == 'N' && (reader.read() == 'F')) {
+      final int n = reader.read();
+      final int f = reader.read();
+
+      if ((n == 'n' || n == 'N') && (f == 'f' || f == 'F')) {
         return isNegative ? Double.NEGATIVE_INFINITY
                           : Double.POSITIVE_INFINITY;
       }

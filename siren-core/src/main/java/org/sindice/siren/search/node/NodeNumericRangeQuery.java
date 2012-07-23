@@ -90,6 +90,8 @@ import org.apache.lucene.util.ToStringUtils;
  **/
 public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTermQuery {
 
+  private final String pstepDatatype;
+
   private NodeNumericRangeQuery(final String field, final int precisionStep,
                                  final NumericType dataType,
                                  final T min, final T max,
@@ -103,7 +105,8 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
     this.max = max;
     this.minInclusive = minInclusive;
     this.maxInclusive = maxInclusive;
-    this.dataType = dataType;
+    this.datatype = dataType;
+    pstepDatatype = dataType.toString() + precisionStep;
 
     // For bigger precisionSteps this query likely
     // hits too many terms, so set to CONSTANT_SCORE_FILTER right off
@@ -320,7 +323,7 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
 
   // members (package private, to be also fast accessible by NumericRangeTermEnum)
   final int precisionStep;
-  final NumericType dataType;
+  final NumericType datatype;
   final T min, max;
   final boolean minInclusive,maxInclusive;
 
@@ -353,15 +356,15 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
 
     NumericRangeTermsEnum(final TermsEnum tenum) throws IOException {
       super(tenum);
-      switch (dataType) {
+      switch (datatype) {
         case LONG:
         case DOUBLE: {
           // lower
           long minBound;
-          if (dataType == NumericType.LONG) {
+          if (datatype == NumericType.LONG) {
             minBound = (min == null) ? Long.MIN_VALUE : min.longValue();
           } else {
-            assert dataType == NumericType.DOUBLE;
+            assert datatype == NumericType.DOUBLE;
             minBound = (min == null) ? LONG_NEGATIVE_INFINITY
               : NumericUtils.doubleToSortableLong(min.doubleValue());
           }
@@ -372,10 +375,10 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
 
           // upper
           long maxBound;
-          if (dataType == NumericType.LONG) {
+          if (datatype == NumericType.LONG) {
             maxBound = (max == null) ? Long.MAX_VALUE : max.longValue();
           } else {
-            assert dataType == NumericType.DOUBLE;
+            assert datatype == NumericType.DOUBLE;
             maxBound = (max == null) ? LONG_POSITIVE_INFINITY
               : NumericUtils.doubleToSortableLong(max.doubleValue());
           }
@@ -387,8 +390,12 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
           NumericUtils.splitLongRange(new NumericUtils.LongRangeBuilder() {
             @Override
             public final void addRange(final BytesRef minPrefixCoded, final BytesRef maxPrefixCoded) {
-              rangeBounds.add(minPrefixCoded);
-              rangeBounds.add(maxPrefixCoded);
+              final BytesRef min = new BytesRef(pstepDatatype);
+              min.append(minPrefixCoded);
+              final BytesRef max = new BytesRef(pstepDatatype);
+              max.append(maxPrefixCoded);
+              rangeBounds.add(min);
+              rangeBounds.add(max);
             }
           }, precisionStep, minBound, maxBound);
           break;
@@ -398,10 +405,10 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
         case FLOAT: {
           // lower
           int minBound;
-          if (dataType == NumericType.INT) {
+          if (datatype == NumericType.INT) {
             minBound = (min == null) ? Integer.MIN_VALUE : min.intValue();
           } else {
-            assert dataType == NumericType.FLOAT;
+            assert datatype == NumericType.FLOAT;
             minBound = (min == null) ? INT_NEGATIVE_INFINITY
               : NumericUtils.floatToSortableInt(min.floatValue());
           }
@@ -412,10 +419,10 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
 
           // upper
           int maxBound;
-          if (dataType == NumericType.INT) {
+          if (datatype == NumericType.INT) {
             maxBound = (max == null) ? Integer.MAX_VALUE : max.intValue();
           } else {
-            assert dataType == NumericType.FLOAT;
+            assert datatype == NumericType.FLOAT;
             maxBound = (max == null) ? INT_POSITIVE_INFINITY
               : NumericUtils.floatToSortableInt(max.floatValue());
           }
@@ -427,8 +434,12 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
           NumericUtils.splitIntRange(new NumericUtils.IntRangeBuilder() {
             @Override
             public final void addRange(final BytesRef minPrefixCoded, final BytesRef maxPrefixCoded) {
-              rangeBounds.add(minPrefixCoded);
-              rangeBounds.add(maxPrefixCoded);
+              final BytesRef min = new BytesRef(pstepDatatype);
+              min.append(minPrefixCoded);
+              final BytesRef max = new BytesRef(pstepDatatype);
+              max.append(maxPrefixCoded);
+              rangeBounds.add(min);
+              rangeBounds.add(max);
             }
           }, precisionStep, minBound, maxBound);
           break;

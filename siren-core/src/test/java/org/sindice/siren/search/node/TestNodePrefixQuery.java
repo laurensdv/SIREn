@@ -35,7 +35,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.search.node.NodePrefixQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 /**

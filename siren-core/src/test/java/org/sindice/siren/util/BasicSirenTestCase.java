@@ -32,6 +32,7 @@ import java.util.Collection;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
@@ -50,6 +51,7 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected IndexSearcher searcher;
   protected Analyzer analyzer;
   protected RandomSirenCodec codec;
+  private IndexWriterConfig config;
 
   public enum AnalyzerType {
     MOCK, TUPLE
@@ -73,7 +75,11 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
 
   private void init() throws IOException {
     directory = newDirectory();
-    writer = this.newRandomIndexWriter(directory, analyzer, codec);
+    if (config == null) {
+      writer = this.newRandomIndexWriter(directory, analyzer, codec);
+    } else {
+      writer = this.newRandomIndexWriter(directory, analyzer, codec, config);
+    }
     this.deleteAll(writer);
     reader = this.newIndexReader(writer);
     searcher = newSearcher(reader);
@@ -83,6 +89,7 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   @After
   public void tearDown() throws Exception {
     this.close();
+    config = null;
     super.tearDown();
   }
 
@@ -98,6 +105,15 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
     if (directory != null) {
       directory.close();
       directory = null;
+    }
+  }
+
+  protected void setIndexWriterConfig(final IndexWriterConfig config)
+  throws IOException {
+    this.config = config;
+    if (analyzer != null || codec != null) {
+      this.close();
+      this.init();
     }
   }
 

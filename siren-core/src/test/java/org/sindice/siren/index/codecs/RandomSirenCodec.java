@@ -26,6 +26,8 @@
 package org.sindice.siren.index.codecs;
 
 import java.security.InvalidParameterException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
 
 import org.apache.lucene.codecs.Codec;
@@ -40,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class RandomSirenCodec extends Lucene40Codec {
 
   final Random random;
-
+  private final HashSet<String> sirenFields = new HashSet<String>();
   final PostingsFormat lucene40 = new Lucene40PostingsFormat();
   PostingsFormat defaultTestFormat;
 
@@ -57,20 +59,26 @@ public class RandomSirenCodec extends Lucene40Codec {
   }
 
   public RandomSirenCodec(final Random random, final PostingsFormatType formatType) {
+    this.addSirenFields(SirenTestCase.DEFAULT_TEST_FIELD);
     this.random = random;
     this.defaultTestFormat = this.getPostingsFormat(formatType);
     Codec.setDefault(this);
   }
 
   public RandomSirenCodec(final Random random, final PostingsFormat format) {
+    this.addSirenFields(SirenTestCase.DEFAULT_TEST_FIELD);
     this.random = random;
     this.defaultTestFormat = format;
     Codec.setDefault(this);
   }
 
+  public void addSirenFields(String... fields) {
+    sirenFields.addAll(Arrays.asList(fields));
+  }
+
   @Override
   public PostingsFormat getPostingsFormatForField(final String field) {
-    if (field.equals(SirenTestCase.DEFAULT_TEST_FIELD)) {
+    if (sirenFields.contains(field)) {
       return defaultTestFormat;
     }
     else {
