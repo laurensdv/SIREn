@@ -52,9 +52,9 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
    */
   @Test
   public void testTop() throws IOException {
-    this.addDocument(writer, "\"term1\" . ");
-    this.addDocument(writer, "\"term2\" . ");
-    this.addDocument(writer, "\"term3\" .  \"term4\" . ");
+    this.addDocument("\"term1\" . ");
+    this.addDocument("\"term2\" . ");
+    this.addDocument("\"term3\" .  \"term4\" . ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(5);
 
@@ -75,8 +75,8 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNextCandidateDocumentAndAdjustElsePop() throws IOException {
-    this.addDocument(writer, "\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
-    this.addDocument(writer, "\"term5\" \"term2\" . \"term3\" .  ");
+    this.addDocument("\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
+    this.addDocument("\"term5\" \"term2\" . \"term3\" .  ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(4);
     q.put(this.getScorer(ntq("term2")));
@@ -97,9 +97,9 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNextNodeAndAdjust() throws IOException {
-    this.addDocument(writer, "\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
-    this.addDocument(writer, "\"term2\" \"term3\" . \"term5\" .  ");
-    this.addDocument(writer, "\"term2\" \"term1\" . \"term5\" .  ");
+    this.addDocument("\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
+    this.addDocument("\"term2\" \"term3\" . \"term5\" .  ");
+    this.addDocument("\"term2\" \"term1\" . \"term5\" .  ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(2);
     q.put(this.getScorer(ntq("term1")));
@@ -135,9 +135,9 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNrMatches() throws IOException {
-    this.addDocument(writer, "\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
-    this.addDocument(writer, "\"term2\" \"term3\" . \"term5\" .  ");
-    this.addDocument(writer, "\"term2\" \"term1 term5\" .  ");
+    this.addDocument("\"term1\" \"term2\" . \"term3\" .  \"term4\" . ");
+    this.addDocument("\"term2\" \"term3\" . \"term5\" .  ");
+    this.addDocument("\"term2\" \"term1 term5\" .  ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(2);
     q.put(this.getScorer(ntq("term1")));
@@ -166,7 +166,7 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testScoreSum() throws IOException {
-    this.addDocument(writer, "\"term1 term2 term3\" .  \"term4\" . ");
+    this.addDocument("\"term1 term2 term3\" .  \"term4\" . ");
 
     final NodeScorer s1 = this.getScorer(ntq("term1"));
     final NodeScorer s2 = this.getScorer(ntq("term2"));
@@ -189,11 +189,11 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testskipToCandidateAndAdjustElsePop() throws IOException {
-    this.addDocument(writer, "\"term1\" \"term2\" . ");
-    this.addDocument(writer, "\"term3\" .  \"term1\" . ");
-    this.addDocument(writer, "\"term2\" \"term3\" . ");
-    this.addDocument(writer, "\"term3\" .  \"term1\" . ");
-    this.addDocument(writer, "\"term3\" .  \"term3\" . ");
+    this.addDocument("\"term1\" \"term2\" . ");
+    this.addDocument("\"term3\" .  \"term1\" . ");
+    this.addDocument("\"term2\" \"term3\" . ");
+    this.addDocument("\"term3\" .  \"term1\" . ");
+    this.addDocument("\"term3\" .  \"term3\" . ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(3);
     q.put(this.getScorer(ntq("term1")));
@@ -232,7 +232,7 @@ public class TestNodeDisjunctionScorerNodeQueue extends AbstractTestSirenScorer 
 
   @Test
   public void testNextNodeHeapTraversal() throws IOException {
-    this.addDocument(writer, "\"term1 term3\" \"term5 term2\" . \"term1 term3\" .  \"term5 term4 term3\" . ");
+    this.addDocument("\"term1 term3\" \"term5 term2\" . \"term1 term3\" .  \"term5 term4 term3\" . ");
 
     final NodeDisjunctionScorerQueue q = new NodeDisjunctionScorerQueue(4);
     q.put(this.getScorer(ntq("term2")));

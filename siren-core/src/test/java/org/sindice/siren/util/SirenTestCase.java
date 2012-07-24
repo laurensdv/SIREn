@@ -40,7 +40,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SlowCompositeReaderWrapper;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
@@ -97,7 +96,8 @@ public abstract class SirenTestCase extends LuceneTestCase {
                                                    final Analyzer analyzer,
                                                    final Codec codec)
   throws IOException {
-    return this.newRandomIndexWriter(dir, analyzer, codec, newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
+    return this.newRandomIndexWriter(dir, analyzer, codec,
+      newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
     .setCodec(codec).setMergePolicy(newLogMergePolicy())
     .setSimilarity(new DefaultSimilarity()));
   }
@@ -115,14 +115,6 @@ public abstract class SirenTestCase extends LuceneTestCase {
   protected IndexReader newIndexReader(final RandomIndexWriter writer)
   throws IOException {
     return SlowCompositeReaderWrapper.wrap(writer.getReader());
-  }
-
-  protected IndexSearcher newIndexSearcher(final RandomIndexWriter writer)
-  throws IOException {
-    final IndexReader indexReader = SlowCompositeReaderWrapper.wrap(writer.getReader());
-    final IndexSearcher indexSearcher = newSearcher(indexReader);
-    indexSearcher.setSimilarity(new DefaultSimilarity());
-    return indexSearcher;
   }
 
   protected void addDocument(final RandomIndexWriter writer, final String data)
