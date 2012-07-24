@@ -121,6 +121,8 @@ public class NodeDisjunctionScorer extends NodeScorer {
   public boolean nextCandidateDocument() throws IOException {
     boolean more = true;
 
+    // The first time nextCandidateDocument is called, we must not advance the
+    // underlying scorers as they have been already advanced during the queue init
     if (currentDoc != -1) { // if not called for the first time
       more = nodeScorerQueue.nextCandidateDocumentAndAdjustElsePop();
     }
