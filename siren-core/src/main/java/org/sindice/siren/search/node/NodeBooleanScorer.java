@@ -98,23 +98,12 @@ public class NodeBooleanScorer extends NodeScorer {
   throws IOException {
     return new NodeDisjunctionScorer(this.getWeight(), scorers) {
 
-      private int     lastScoredDoc  = -1;
-
-      // Save the score of lastScoredDoc, so that we don't compute it more than
-      // once in score() per document.
-      private float   lastNodeScore  = Float.NaN;
-
       @Override
       public float scoreInNode()
       throws IOException {
-        final int doc = this.doc();
-
-        if (doc >= lastScoredDoc) {
-          lastNodeScore = super.scoreInNode();
-          lastScoredDoc = doc;
-          coordinator.nrMatchers += super.nrMatchers();
-        }
-        return lastNodeScore;
+        final float nodeScore = super.scoreInNode();
+        coordinator.nrMatchers += super.nrMatchers();
+        return nodeScore;
       }
 
     };
@@ -131,26 +120,15 @@ public class NodeBooleanScorer extends NodeScorer {
         ((AbstractNodeBooleanWeight) weight).coord(requiredNrMatchers, requiredNrMatchers),
       requiredScorers) {
 
-      private int     lastScoredDoc  = -1;
-
-      // Save the score of lastScoredDoc, so that we don't compute it more than
-      // once in score().
-      private float   lastNodeScore  = Float.NaN;
-
       @Override
       public float scoreInNode() throws IOException {
-        final int doc = this.doc();
-
-        if (doc >= lastScoredDoc) {
-          lastNodeScore = super.scoreInNode();
-          lastScoredDoc = doc;
-          coordinator.nrMatchers += requiredNrMatchers;
-        }
+        final float nodeScore = super.scoreInNode();
+        coordinator.nrMatchers += requiredNrMatchers;
         // All scorers match, so defaultSimilarity super.score() always has 1 as
         // the coordination factor.
         // Therefore the sum of the scores of the requiredScorers
         // is used as score.
-        return lastNodeScore;
+        return nodeScore;
       }
     };
   }
@@ -297,12 +275,6 @@ public class NodeBooleanScorer extends NodeScorer {
 
     private final NodeScorer scorer;
 
-    private int     lastScoredDoc  = -1;
-
-    // Save the score of lastScoredNode, so that we don't compute it more than
-    // once in score().
-    private float   lastNodeScore  = Float.NaN;
-
     SingleMatchScorer(final NodeScorer scorer) {
       super(scorer.getWeight());
       this.scorer = scorer;
@@ -313,16 +285,16 @@ public class NodeBooleanScorer extends NodeScorer {
       return scorer.freqInNode();
     }
 
+    /*
+     * TODO: Is it useful to cache the score ?
+     * It would mean (1) to cache an ints ref and (2) an array comparison for
+     * each call to scoreInNode().
+     */
     @Override
     public float scoreInNode() throws IOException {
-      final int doc = this.doc();
-
-      if (doc >= lastScoredDoc) {
-        lastNodeScore = scorer.scoreInNode();
-        lastScoredDoc = doc;
-        coordinator.nrMatchers++;
-      }
-      return lastNodeScore;
+      final float nodeScore = scorer.scoreInNode();
+      coordinator.nrMatchers++;
+      return nodeScore;
     }
 
     @Override

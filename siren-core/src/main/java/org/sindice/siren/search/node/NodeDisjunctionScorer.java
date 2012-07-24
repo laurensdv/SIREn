@@ -101,7 +101,7 @@ public class NodeDisjunctionScorer extends NodeScorer {
 
   @Override
   public float freqInNode() throws IOException {
-    if (currentDoc != -1) { // if nextCandidateDocument not called for the first time
+    if (currentDoc == -1) { // if nextCandidateDocument not called for the first time
       return 0;
     }
     // return the number of matchers in the node
@@ -110,7 +110,7 @@ public class NodeDisjunctionScorer extends NodeScorer {
 
   @Override
   public float scoreInNode() throws IOException {
-    if (currentDoc != -1) { // if nextCandidateDocument not called for the first time
+    if (currentDoc == -1) { // if nextCandidateDocument not called for the first time
       return 0;
     }
     nodeScorerQueue.countAndSumMatchers();

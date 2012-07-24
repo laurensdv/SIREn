@@ -64,6 +64,8 @@ public class TestNodeDisjunctionScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(0,0), scorer.node());
+    final float d0score00 = scorer.scoreInNode();
+    final float d0freq00 = scorer.freqInNode();
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
@@ -72,6 +74,9 @@ public class TestNodeDisjunctionScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(0,1), scorer.node());
+    final float d1score01 = scorer.scoreInNode();
+    final float d1freq01 = scorer.freqInNode();
+    assertEquals(d0freq00, d1freq01, 0);
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 
@@ -80,6 +85,13 @@ public class TestNodeDisjunctionScorer extends AbstractTestSirenScorer {
     assertEquals(node(-1), scorer.node());
     assertTrue(scorer.nextNode());
     assertEquals(node(1,1), scorer.node());
+    // only one term is matched in the node
+    final float d3score11 = scorer.scoreInNode();
+    final float d3freq11 = scorer.freqInNode();
+    assertTrue(d0freq00 > d3freq11);
+    assertTrue(d1freq01 > d3freq11);
+    assertTrue(d3score11 + " < " + d1score01, d3score11 < d1score01);
+    assertTrue(d3score11 + " < " + d0score00, d3score11 < d0score00);
     assertFalse(scorer.nextNode());
     assertEquals(DocsAndNodesIterator.NO_MORE_NOD, scorer.node());
 

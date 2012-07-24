@@ -50,7 +50,6 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.index.DocsNodesAndPositionsEnum;
-import org.sindice.siren.search.doc.DocumentScorer;
 
 /**
  * A Query that matches nodes containing a term. Provides an interface to
@@ -145,20 +144,28 @@ public class NodeTermQuery extends NodePrimitiveQuery {
       return reader.docFreq(field, bytes) == 0;
     }
 
-    // TODO: Review explanation to include all the matching nodes
     @Override
     public Explanation explain(final AtomicReaderContext context, final int doc) throws IOException {
-      final DocumentScorer scorer = new DocumentScorer((NodeScorer) this.scorer(context, true, false, context.reader().getLiveDocs()));
-      if (scorer != null && scorer.advance(doc) == doc) {
-        final float freq = scorer.freq();
-        final ExactSimScorer docScorer = similarity.exactSimScorer(stats, context);
-        final ComplexExplanation result = new ComplexExplanation();
-        result.setDescription("weight("+this.getQuery()+" in "+doc+") [" + similarity.getClass().getSimpleName() + "], result of:");
-        final Explanation scoreExplanation = docScorer.explain(doc, new Explanation(freq, "termFreq=" + freq));
-        result.addDetail(scoreExplanation);
-        result.setValue(scoreExplanation.getValue());
-        result.setMatch(true);
-        return result;
+      final NodeScorer scorer = (NodeScorer) this.scorer(context, true, false, context.reader().getLiveDocs());
+
+      if (scorer != null) {
+        if (scorer.skipToCandidate(doc) && scorer.doc() == doc) {
+          final ExactSimScorer docScorer = similarity.exactSimScorer(stats, context);
+          final ComplexExplanation result = new ComplexExplanation();
+          result.setDescription("weight("+this.getQuery()+" in "+doc+") [" + similarity.getClass().getSimpleName() + "], result of:");
+          while (scorer.nextNode()) {
+            final ComplexExplanation nodeMatch = new ComplexExplanation();
+            nodeMatch.setDescription("in "+scorer.node()+"), result of:");
+            final float freq = scorer.freqInNode();
+            final Explanation scoreExplanation = docScorer.explain(doc, new Explanation(freq, "termFreq=" + freq));
+            nodeMatch.setValue(scoreExplanation.getValue());
+            nodeMatch.setMatch(true);
+            nodeMatch.addDetail(scoreExplanation);
+            result.addDetail(nodeMatch);
+          }
+          result.setMatch(true);
+          return result;
+        }
       }
       return new ComplexExplanation(false, 0.0f, "no matching term");
     }
