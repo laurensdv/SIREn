@@ -28,7 +28,6 @@ package org.sindice.siren.search.node;
 import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeNumericRangeQueryBuilder.nmqDouble;
-import static org.sindice.siren.search.AbstractTestSirenScorer.NodeNumericRangeQueryBuilder.nmqInt;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeNumericRangeQueryBuilder.nmqLong;
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigChildBuilder.child;
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.twq;
