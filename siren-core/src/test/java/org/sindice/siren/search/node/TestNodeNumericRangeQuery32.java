@@ -25,6 +25,7 @@
  */
 package org.sindice.siren.search.node;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeBooleanClauseBuilder.must;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeNumericRangeQueryBuilder.nmqFloat;
 import static org.sindice.siren.search.AbstractTestSirenScorer.NodeNumericRangeQueryBuilder.nmqInt;
@@ -32,10 +33,12 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.TwigChildBuilder.
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.twq;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType.NumericType;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -44,7 +47,6 @@ import org.apache.lucene.search.QueryUtils;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util._TestUtil;
@@ -54,9 +56,6 @@ import org.sindice.siren.analysis.FloatNumericAnalyzer;
 import org.sindice.siren.analysis.IntNumericAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.search.node.MultiNodeTermQuery;
-import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.node.NodeNumericRangeQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 import org.sindice.siren.util.XSDDatatype;
 
@@ -85,12 +84,6 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
     codec.addSirenFields("field8", "field4", "field2", "field" + Integer.MAX_VALUE,
                          "ascfield8", "ascfield4", "ascfield2",
                          "float8", "float4", "float2");
-    this.setIndexWriterConfig(
-      newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
-      .setMaxBufferedDocs(_TestUtil.nextInt(random, 100, 1000))
-      .setCodec(codec).setMergePolicy(newLogMergePolicy())
-      .setSimilarity(new DefaultSimilarity())
-    );
   }
 
   @Override
@@ -109,6 +102,7 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_INT+Integer.MAX_VALUE).toCharArray(), new IntNumericAnalyzer(Integer.MAX_VALUE));
 
     // Add a series of noDocs docs with increasing int values
+    final ArrayList<Document> docs = new ArrayList<Document>();
     for (int l = 0; l < noDocs; l++) {
       final Document doc = new Document();
 
@@ -132,10 +126,9 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
       doc.add(new Field("float4", getTriple(val, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
       doc.add(new Field("float2", getTriple(val, XSDDatatype.XSD_FLOAT+"2"), this.newStoredFieldType()));
 
-      writer.addDocument(doc);
+      docs.add(doc);
     }
-    writer.commit();
-    refreshReaderAndSearcher();
+    this.addDocuments(docs);
 
     // Remove maximum clause limit for the tests
     NodeBooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);
@@ -323,29 +316,30 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
 
   @Test
   public void testInfiniteValues() throws Exception {
-    deleteAll(); // remove the data written in the setUp
+    final ArrayList<Document> docs = new ArrayList<Document>();
+
     Document doc = new Document();
     doc.add(new Field("float4", getTriple(Float.NEGATIVE_INFINITY, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(Integer.MIN_VALUE, XSDDatatype.XSD_INT+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     doc = new Document();
     doc.add(new Field("float4", getTriple(Float.POSITIVE_INFINITY, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(Integer.MAX_VALUE, XSDDatatype.XSD_INT+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     doc = new Document();
     doc.add(new Field("float4", getTriple(0.0f, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(0, XSDDatatype.XSD_INT+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     for (float f : FLOAT_NANs) {
       doc = new Document();
       doc.add(new Field("float4", getTriple(f, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
-      writer.addDocument(doc);
+      docs.add(doc);
     }
-    writer.commit();
-    refreshReaderAndSearcher();
+    deleteAll();
+    this.addDocuments(docs);
 
     Query q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)
@@ -401,95 +395,109 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
     topDocs = searcher.search(q, 10);
     assertEquals("Score doc count", FLOAT_NANs.length,  topDocs.scoreDocs.length );
   }
+//  final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", false, false);
 
-  // TODO: to uncomment when NodeTermRangeQueries are working
-//  private void testRandomTrieAndClassicRangeQuery(final int precisionStep)
-//  throws Exception {
-//    final String field="field"+precisionStep;
-//    int termCountT=0,termCountC=0;
-//    final int num = 10 * RANDOM_MULTIPLIER;
-//
-//    for (int i = 0; i < num; i++) {
-//      int lower=(int)(random.nextDouble()*noDocs*distance)+startOffset;
-//      int upper=(int)(random.nextDouble()*noDocs*distance)+startOffset;
-//      if (lower>upper) {
-//        final int a=lower; lower=upper; upper=a;
-//      }
-//      final String prefix = NumericType.INT.name() + precisionStep;
-//
-//      // test inclusive range
-//      Query dq = twq(1)
-//      .with(child(must(nmqInt(field, precisionStep, lower, upper, true, true)
-//        .bound(2, 2)))).getDocumentQuery();
-//
-//      NodeNumericRangeQuery<Integer> tq=NodeNumericRangeQuery.newIntRange(field, precisionStep, lower, upper, true, true);
-//      NodeTermRangeQuery cq=new NodeTermRangeQuery(field, prefix + NumericUtils.intToPrefixCoded(lower), prefix + NumericUtils.intToPrefixCoded(upper), true, true);
-//      TopDocs tTopDocs = searcher.search(tq, 1);
-//      TopDocs cTopDocs = searcher.search(cq, 1);
-//      assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
-//      termCountT += tq.getTotalNumberOfTerms();
-//      termCountC += cq.getTotalNumberOfTerms();
-//      // test exclusive range
-//      tq=NodeNumericRangeQuery.newIntRange(field, precisionStep, lower, upper, false, false);
-//      cq=new NodeTermRangeQuery(field, prefix + NumericUtils.intToPrefixCoded(lower), prefix + NumericUtils.intToPrefixCoded(upper), false, false);
-//      tTopDocs = searcher.search(tq, 1);
-//      cTopDocs = searcher.search(cq, 1);
-//      assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
-//      termCountT += tq.getTotalNumberOfTerms();
-//      termCountC += cq.getTotalNumberOfTerms();
-//      // test left exclusive range
-//      tq=NodeNumericRangeQuery.newIntRange(field, precisionStep, lower, upper, false, true);
-//      cq=new NodeTermRangeQuery(field, prefix + NumericUtils.intToPrefixCoded(lower), prefix + NumericUtils.intToPrefixCoded(upper), false, true);
-//      tTopDocs = searcher.search(tq, 1);
-//      cTopDocs = searcher.search(cq, 1);
-//      assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
-//      termCountT += tq.getTotalNumberOfTerms();
-//      termCountC += cq.getTotalNumberOfTerms();
-//      // test right exclusive range
-//      tq=NodeNumericRangeQuery.newIntRange(field, precisionStep, lower, upper, true, false);
-//      cq=new NodeTermRangeQuery(field, prefix + NumericUtils.intToPrefixCoded(lower), prefix + NumericUtils.intToPrefixCoded(upper), true, false);
-//      tTopDocs = searcher.search(tq, 1);
-//      cTopDocs = searcher.search(cq, 1);
-//      assertEquals("Returned count for SirenNumericRangeQuery and SirenTermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
-//      termCountT += tq.getTotalNumberOfTerms();
-//      termCountC += cq.getTotalNumberOfTerms();
-//    }
-//    if (precisionStep == Integer.MAX_VALUE && searcher.getIndexReader().getSequentialSubReaders().length == 1) {
-//      assertEquals("Total number of terms should be equal for unlimited precStep", termCountT, termCountC);
-//    } else if (VERBOSE) {
-//      System.out.println("Average number of terms during random search on '" + field + "':");
-//      System.out.println(" Trie query: " + (((double)termCountT)/(num * 4)));
-//      System.out.println(" Classical query: " + (((double)termCountC)/(num * 4)));
-//    }
-//  }
-//
-//  @Test
-//  public void testRandomTrieAndClassicRangeQuery_8bit() throws Exception {
-//    this.testRandomTrieAndClassicRangeQuery(8);
-//  }
-//
-//  @Test
-//  public void testRandomTrieAndClassicRangeQuery_4bit() throws Exception {
-//    this.testRandomTrieAndClassicRangeQuery(4);
-//  }
-//
-//  @Test
-//  public void testRandomTrieAndClassicRangeQuery_2bit() throws Exception {
-//    this.testRandomTrieAndClassicRangeQuery(2);
-//  }
-//
-//  @Test
-//  public void testRandomTrieAndClassicRangeQuery_NoTrie() throws Exception {
-//    this.testRandomTrieAndClassicRangeQuery(Integer.MAX_VALUE);
-//  }
-  // TODO: this method is used in the new Lucene4.0 tests in the trunk
-//  private void checkTermCounts(int precisionStep, int termCountT, int termCountC) {
-//    if (precisionStep == Integer.MAX_VALUE) {
-//      assertEquals("Number of terms should be equal for unlimited precStep", termCountC, termCountT);
-//    } else {
-//      assertTrue("Number of terms for NRQ should be <= compared to classical TRQ", termCountT <= termCountC);
-//    }
-//  }
+  private void testRandomTrieAndClassicRangeQuery(int precisionStep) throws Exception {
+    String field="field"+precisionStep;
+    int totalTermCountT=0,totalTermCountC=0,termCountT,termCountC;
+    int num = _TestUtil.nextInt(random(), 10, 20);
+
+    for (int i = 0; i < num; i++) {
+      int lower=(int)(random().nextDouble()*noDocs*distance)+startOffset;
+      int upper=(int)(random().nextDouble()*noDocs*distance)+startOffset;
+      if (lower>upper) {
+        int a=lower; lower=upper; upper=a;
+      }
+      /*
+       * In SIREn, the numeric type and the precision step are prepended to the
+       * indexed numeric terms.
+       */
+      final BytesRef lowerBytes = new BytesRef(NumericType.INT.toString() + precisionStep);
+      final BytesRef upperBytes = new BytesRef(NumericType.INT.toString() + precisionStep);
+      final BytesRef lBytes = new BytesRef(NumericUtils.BUF_SIZE_INT);
+      final BytesRef uBytes = new BytesRef(NumericUtils.BUF_SIZE_INT);
+      NumericUtils.intToPrefixCoded(lower, 0, lBytes);
+      NumericUtils.intToPrefixCoded(upper, 0, uBytes);
+      lowerBytes.append(lBytes);
+      upperBytes.append(uBytes);
+
+      // test inclusive range
+      MultiNodeTermQuery tq = (MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, true, true).getNodeQuery();
+      MultiNodeTermQuery cq = new NodeTermRangeQuery(field, lowerBytes, upperBytes, true, true);
+      TopDocs tTopDocs = searcher.search(dq(tq), 1);
+      TopDocs cTopDocs = searcher.search(dq(cq), 1);
+      assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
+      totalTermCountT += termCountT = countTerms(tq);
+      totalTermCountC += termCountC = countTerms(cq);
+      checkTermCounts(precisionStep, termCountT, termCountC);
+      // test exclusive range
+      tq = (MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, false, false).getNodeQuery();
+      cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, false, false);
+      tTopDocs = searcher.search(dq(tq), 1);
+      cTopDocs = searcher.search(dq(cq), 1);
+      assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
+      totalTermCountT += termCountT = countTerms(tq);
+      totalTermCountC += termCountC = countTerms(cq);
+      checkTermCounts(precisionStep, termCountT, termCountC);
+      // test left exclusive range
+      tq=(MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, false, true).getNodeQuery();
+      cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, false, true);
+      tTopDocs = searcher.search(dq(tq), 1);
+      cTopDocs = searcher.search(dq(cq), 1);
+      assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
+      totalTermCountT += termCountT = countTerms(tq);
+      totalTermCountC += termCountC = countTerms(cq);
+      checkTermCounts(precisionStep, termCountT, termCountC);
+      // test right exclusive range
+      tq=(MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, true, false).getNodeQuery();
+      cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, true, false);
+      tTopDocs = searcher.search(dq(tq), 1);
+      cTopDocs = searcher.search(dq(cq), 1);
+      assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
+      totalTermCountT += termCountT = countTerms(tq);
+      totalTermCountC += termCountC = countTerms(cq);
+      checkTermCounts(precisionStep, termCountT, termCountC);
+    }
+    
+    checkTermCounts(precisionStep, totalTermCountT, totalTermCountC);
+    if (VERBOSE && precisionStep != Integer.MAX_VALUE) {
+      System.out.println("Average number of terms during random search on '" + field + "':");
+      System.out.println(" Numeric query: " + (((double)totalTermCountT)/(num * 4)));
+      System.out.println(" Classical query: " + (((double)totalTermCountC)/(num * 4)));
+    }
+  }
+
+  private void checkTermCounts(int precisionStep, int termCountT, int termCountC) {
+    if (precisionStep == Integer.MAX_VALUE) {
+      assertEquals("Number of terms should be equal for unlimited precStep", termCountC, termCountT);
+    } else {
+      assertTrue("Number of terms for NRQ should be <= compared to classical TRQ", termCountT <= termCountC);
+    }
+  }
+
+  @Test
+  public void testRandomTrieAndClassicRangeQuery_8bit() throws Exception {
+    this.testRandomTrieAndClassicRangeQuery(8);
+  }
+
+  @Test
+  public void testRandomTrieAndClassicRangeQuery_4bit() throws Exception {
+    this.testRandomTrieAndClassicRangeQuery(4);
+  }
+
+  @Test
+  public void testRandomTrieAndClassicRangeQuery_2bit() throws Exception {
+    this.testRandomTrieAndClassicRangeQuery(2);
+  }
+
+  /*
+   * TODO: Remove the expected exception once the filter-based rewrite method
+   * in MultiNodeTermQuery is supported
+   */
+  @Test(expected=UnsupportedOperationException.class)
+  public void testRandomTrieAndClassicRangeQuery_NoTrie() throws Exception {
+    this.testRandomTrieAndClassicRangeQuery(Integer.MAX_VALUE);
+  }
 
   private void testRangeSplit(final int precisionStep) throws Exception {
     final String field="ascfield"+precisionStep;
