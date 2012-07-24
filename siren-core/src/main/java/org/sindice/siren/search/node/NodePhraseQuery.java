@@ -328,7 +328,7 @@ public class NodePhraseQuery extends NodePrimitiveQuery {
     return (this.getBoost() == other.getBoost()) &&
       this.terms.equals(other.terms) &&
       this.positions.equals(other.positions) &&
-      this.ancestor.equals(other.ancestor) &&
+      other.ancestor == null ? ancestor == null : ancestor.equals(other.ancestor) &&
       this.levelConstraint == other.levelConstraint &&
       this.lowerBound == other.lowerBound &&
       this.upperBound == other.upperBound;
@@ -339,7 +339,7 @@ public class NodePhraseQuery extends NodePrimitiveQuery {
     return Float.floatToIntBits(this.getBoost())
       ^ terms.hashCode()
       ^ positions.hashCode()
-      ^ ancestor.hashCode()
+      ^ (ancestor == null ? 0 : ancestor.hashCode())
       ^ levelConstraint
       ^ upperBound
       ^ lowerBound;

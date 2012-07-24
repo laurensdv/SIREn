@@ -520,7 +520,7 @@ public class NodeBooleanQuery extends NodeQuery {
     return (this.getBoost() == other.getBoost()) &&
            this.clauses.equals(other.clauses) &&
            this.disableCoord == other.disableCoord &&
-           this.ancestor.equals(other.ancestor) &&
+           other.ancestor == null ? ancestor == null : ancestor.equals(other.ancestor) &&
            this.levelConstraint == other.levelConstraint &&
            this.lowerBound == other.lowerBound &&
            this.upperBound == other.upperBound;
@@ -531,7 +531,7 @@ public class NodeBooleanQuery extends NodeQuery {
   public int hashCode() {
     return Float.floatToIntBits(this.getBoost())
       ^ clauses.hashCode()
-      ^ ancestor.hashCode()
+      ^ (ancestor == null ? 0 : ancestor.hashCode())
       ^ levelConstraint
       ^ upperBound
       ^ lowerBound;

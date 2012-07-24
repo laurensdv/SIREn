@@ -294,7 +294,7 @@ public class NodeConstantScoreQuery extends NodePrimitiveQuery {
       return
         ((this.filter == null) ? other.filter == null : this.filter.equals(other.filter)) &&
         ((this.query == null) ? other.query == null : this.query.equals(other.query)) &&
-        this.ancestor.equals(other.ancestor) &&
+        ((other.ancestor == null) ? ancestor == null : ancestor.equals(other.ancestor)) &&
         this.levelConstraint == other.levelConstraint &&
         this.lowerBound == other.lowerBound &&
         this.upperBound == other.upperBound;
@@ -307,7 +307,7 @@ public class NodeConstantScoreQuery extends NodePrimitiveQuery {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((query == null) ? filter : query).hashCode();
-    result = prime * result + ancestor.hashCode();
+    if (ancestor != null) result = prime * result + ancestor.hashCode();
     result = prime * result + lowerBound;
     result = prime * result + upperBound;
     result = prime * result + levelConstraint;
