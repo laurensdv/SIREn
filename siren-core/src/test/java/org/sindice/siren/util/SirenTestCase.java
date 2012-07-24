@@ -97,7 +97,7 @@ public abstract class SirenTestCase extends LuceneTestCase {
                                                    final Analyzer analyzer,
                                                    final Codec codec)
   throws IOException {
-    return newRandomIndexWriter(dir, analyzer, codec, newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
+    return this.newRandomIndexWriter(dir, analyzer, codec, newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
     .setCodec(codec).setMergePolicy(newLogMergePolicy())
     .setSimilarity(new DefaultSimilarity()));
   }
@@ -180,7 +180,6 @@ public abstract class SirenTestCase extends LuceneTestCase {
   }
 
   protected void forceMerge(final RandomIndexWriter writer) throws IOException {
-    logger.debug("Force merge");
     writer.forceMerge(1);
   }
 

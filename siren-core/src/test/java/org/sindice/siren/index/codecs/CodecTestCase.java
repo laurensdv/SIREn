@@ -95,8 +95,8 @@ public abstract class CodecTestCase extends SirenTestCase {
       }
 
       for (final int blockSize : blockSizes) {
-        logger.debug("Perform Integer Range Test: length = {}, bits = {}, block size = {}",
-          new Object[]{input.length, i, blockSize});
+//        logger.debug("Perform Integer Range Test: length = {}, bits = {}, block size = {}",
+//          new Object[]{input.length, i, blockSize});
         this.doTest(input, blockSize);
       }
     }
