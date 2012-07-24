@@ -185,7 +185,7 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
     this.refreshReaderAndSearcher();
   }
 
-  protected void addDocument(final List<Document> docs)
+  protected void addDocuments(final List<Document> docs)
   throws IOException {
     for (Document doc : docs) {
       writer.addDocument(doc);
