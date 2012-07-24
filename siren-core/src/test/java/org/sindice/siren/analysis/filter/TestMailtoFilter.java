@@ -87,6 +87,7 @@ public class TestMailtoFilter {
           assertEquals(expectedPosIncr[i], posIncrAtt.getPositionIncrement());
     }
     filter.end();
+    filter.close();
   }
 
   @Test

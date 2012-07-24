@@ -37,6 +37,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SlowCompositeReaderWrapper;
 import org.apache.lucene.search.IndexSearcher;
@@ -80,7 +81,7 @@ public abstract class SirenTestCase extends LuceneTestCase {
     return ft;
   }
 
-  private FieldType newStoredFieldType() {
+  protected FieldType newStoredFieldType() {
     final FieldType ft = this.newFieldType();
     ft.setStored(true);
     return ft;
@@ -96,11 +97,17 @@ public abstract class SirenTestCase extends LuceneTestCase {
                                                    final Analyzer analyzer,
                                                    final Codec codec)
   throws IOException {
-    final RandomIndexWriter writer = new RandomIndexWriter(random(), dir,
-      newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
-      .setCodec(codec)
-      .setMergePolicy(newLogMergePolicy())
-      .setSimilarity(new DefaultSimilarity()));
+    return newRandomIndexWriter(dir, analyzer, codec, newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
+    .setCodec(codec).setMergePolicy(newLogMergePolicy())
+    .setSimilarity(new DefaultSimilarity()));
+  }
+
+  protected RandomIndexWriter newRandomIndexWriter(final Directory dir,
+                                                   final Analyzer analyzer,
+                                                   final Codec codec,
+                                                   final IndexWriterConfig config)
+  throws IOException {
+    final RandomIndexWriter writer = new RandomIndexWriter(random(), dir, config);
     writer.setDoRandomForceMergeAssert(true);
     return writer;
   }

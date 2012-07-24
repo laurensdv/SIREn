@@ -113,7 +113,7 @@ public class DatatypeAnalyzerFilter extends TokenFilter {
     posIncrAtt = input.getAttribute(PositionIncrementAttribute.class);
     typeAtt = input.getAttribute(TypeAttribute.class);
     dtypeAtt = input.getAttribute(DatatypeAttribute.class);
-    nodeAtt = this.addAttribute(NodeAttribute.class);
+    nodeAtt = this.addAttribute(NodeAttribute.class); // TODO: why is it this, not input
   }
 
   /**

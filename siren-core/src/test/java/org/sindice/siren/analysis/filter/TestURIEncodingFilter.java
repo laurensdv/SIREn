@@ -109,6 +109,7 @@ public class TestURIEncodingFilter {
           assertEquals(expectedPosIncr[i], posIncrAtt.getPositionIncrement());
     }
     filter.end();
+    filter.close();
   }
 
   /**

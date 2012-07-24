@@ -37,9 +37,11 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.sindice.siren.index.DocsAndNodesIterator;
 import org.sindice.siren.search.doc.DocumentQuery;
+import org.sindice.siren.search.node.MultiNodeTermQuery.RewriteMethod;
 import org.sindice.siren.search.node.NodeBooleanClause;
 import org.sindice.siren.search.node.NodeBooleanClause.Occur;
 import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeNumericRangeQuery;
 import org.sindice.siren.search.node.NodePhraseQuery;
 import org.sindice.siren.search.node.NodeQuery;
 import org.sindice.siren.search.node.NodeScorer;
@@ -82,6 +84,103 @@ public abstract class AbstractTestSirenScorer extends BasicSirenTestCase {
     public abstract NodeQuery getNodeQuery();
 
     public abstract Query getDocumentQuery();
+
+  }
+
+  public static class NodeNumericRangeQueryBuilder extends NodeQueryBuilder {
+
+    protected final NodeNumericRangeQuery<? extends Number> nmq;
+
+    public NodeNumericRangeQueryBuilder setRewriteMethod(final RewriteMethod method) {
+      nmq.setRewriteMethod(method);
+      return this;
+    }
+
+    private NodeNumericRangeQueryBuilder(String field,
+                                         int precisionStep,
+                                         Integer min,
+                                         Integer max,
+                                         boolean minInclusive,
+                                         boolean maxInclusive) {
+      nmq = NodeNumericRangeQuery
+      .newIntRange(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    private NodeNumericRangeQueryBuilder(String field,
+                                         int precisionStep,
+                                         Float min,
+                                         Float max,
+                                         boolean minInclusive,
+                                         boolean maxInclusive) {
+      nmq = NodeNumericRangeQuery
+      .newFloatRange(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    private NodeNumericRangeQueryBuilder(String field,
+                                         int precisionStep,
+                                         Double min,
+                                         Double max,
+                                         boolean minInclusive,
+                                         boolean maxInclusive) {
+      nmq = NodeNumericRangeQuery
+      .newDoubleRange(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    private NodeNumericRangeQueryBuilder(String field,
+                                         int precisionStep,
+                                         Long min,
+                                         Long max,
+                                         boolean minInclusive,
+                                         boolean maxInclusive) {
+      nmq = NodeNumericRangeQuery
+      .newLongRange(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    public static NodeNumericRangeQueryBuilder nmqInt(String field,
+                                                      int precisionStep,
+                                                      Integer min,
+                                                      Integer max,
+                                                      boolean minInclusive,
+                                                      boolean maxInclusive) {
+      return new NodeNumericRangeQueryBuilder(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    public static NodeNumericRangeQueryBuilder nmqFloat(String field,
+                                                        int precisionStep,
+                                                        Float min,
+                                                        Float max,
+                                                        boolean minInclusive,
+                                                        boolean maxInclusive) {
+      return new NodeNumericRangeQueryBuilder(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    public static NodeNumericRangeQueryBuilder nmqDouble(String field,
+                                                         int precisionStep,
+                                                         Double min,
+                                                         Double max,
+                                                         boolean minInclusive,
+                                                         boolean maxInclusive) {
+      return new NodeNumericRangeQueryBuilder(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    public static NodeNumericRangeQueryBuilder nmqLong(String field,
+                                                       int precisionStep,
+                                                       Long min,
+                                                       Long max,
+                                                       boolean minInclusive,
+                                                       boolean maxInclusive) {
+      return new NodeNumericRangeQueryBuilder(field, precisionStep, min, max, minInclusive, maxInclusive);
+    }
+
+    @Override
+    public NodeQuery getNodeQuery() {
+      return nmq;
+    }
+
+    @Override
+    public Query getDocumentQuery() {
+      return new DocumentQuery(nmq);
+    }
 
   }
 

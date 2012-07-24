@@ -96,11 +96,19 @@ public class DocumentScorer extends Scorer {
   @Override
   public int advance(int target)
   throws IOException {
-    while (scorer.skipToCandidate(target)) {
-      if (scorer.nextNode()) { // check if there is at least 1 node that matches the query
-        return docID();
-      }
+    if (scorer.skipToCandidate(target)) {
+      do {
+        if (scorer.nextNode()) {
+          return docID();
+        }
+      } while (scorer.nextCandidateDocument());
     }
+    // TODO: test for failure
+//    while (scorer.skipToCandidate(target)) {
+//      if (scorer.nextNode()) { // check if there is at least 1 node that matches the query
+//        return docID();
+//      }
+//    }
     return NO_MORE_DOCS;
   }
 

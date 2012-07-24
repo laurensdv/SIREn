@@ -81,6 +81,7 @@ public class TestURINormalisationFilter {
 
     assertFalse("end of stream", filter.incrementToken());
     filter.end();
+    filter.close();
   }
 
   @Test
