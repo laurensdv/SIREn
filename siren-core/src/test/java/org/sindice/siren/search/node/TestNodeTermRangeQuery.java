@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.sindice.siren.search.AbstractTestSirenScorer.dq;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Terms;
@@ -39,12 +40,6 @@ import org.apache.lucene.search.TermRangeTermsEnum;
 import org.sindice.siren.analysis.AnyURIAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.search.node.MultiNodeTermQuery;
-import org.sindice.siren.search.node.NodeBooleanClause;
-import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.node.NodePrimitiveQuery;
-import org.sindice.siren.search.node.NodeTermQuery;
-import org.sindice.siren.search.node.NodeTermRangeQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 
 public class TestNodeTermRangeQuery extends BasicSirenTestCase {
@@ -60,92 +55,93 @@ public class TestNodeTermRangeQuery extends BasicSirenTestCase {
   }
 
   public void testExclusive1() throws Exception {
-    this.addDocument("<A>");
-    this.addDocument("<B>");
-    this.addDocument("<C>");
-    this.addDocument("<D>");
+    this.addDocument("</computera>");
+    this.addDocument("</computerb>");
+    this.addDocument("</computerc>");
+    this.addDocument("</computerd>");
 
-    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", false, false);
+    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", false, false);
 
-    final ScoreDoc[] hits = searcher.search(q, null, 1000).scoreDocs;
+    final ScoreDoc[] hits = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals("A,B,C,D, only B in range", 1, hits.length);
   }
 
   public void testExclusive2() throws Exception {
-    this.addDocument("<A>");
-    this.addDocument("<B>");
-    this.addDocument("<D>");
+    this.addDocument("</computera>");
+    this.addDocument("</computerb>");
+    this.addDocument("</computerc>");
 
-    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", false, false);
+    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", false, false);
 
-    ScoreDoc[] hits = searcher.search(q, null, 1000).scoreDocs;
+    ScoreDoc[] hits = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals("A,B,D, only B in range", 1, hits.length);
 
-    this.addDocument("<C>");
-    hits = searcher.search(q, null, 1000).scoreDocs;
+    this.addDocument("</computerc>");
+    hits = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals("C added, still only B in range", 1, hits.length);
   }
 
   public void testInclusive1() throws Exception {
-    this.addDocument("<A>");
-    this.addDocument("<B>");
-    this.addDocument("<C>");
-    this.addDocument("<D>");
+    this.addDocument("</computera>");
+    this.addDocument("</computerb>");
+    this.addDocument("</computerc>");
+    this.addDocument("</computerd>");
 
-    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", true, true);
+    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", true, true);
 
-    final ScoreDoc[] hits = searcher.search(q, null, 1000).scoreDocs;
+    final ScoreDoc[] hits = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals("A,B,C,D - A,B,C in range", 3, hits.length);
   }
 
   public void testInclusive2() throws Exception {
-    this.addDocument("<A>");
-    this.addDocument("<B>");
-    this.addDocument("<D>");
+    this.addDocument("</computera>");
+    this.addDocument("</computerb>");
+    this.addDocument("</computerd>");
 
-    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", true, true);
+    final NodePrimitiveQuery q = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", true, true);
 
-    ScoreDoc[] hits = searcher.search(q, null, 1000).scoreDocs;
+    ScoreDoc[] hits = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals("A,B,D - A and B in range", 2, hits.length);
 
-    this.addDocument("<C>");
-    hits = searcher.search(q, null, 1000).scoreDocs;
+    this.addDocument("</computerc>");
+    hits = searcher.search(dq(q), null, 1000).scoreDocs;
     assertEquals("C added - A, B, C in range", 3, hits.length);
   }
 
   public void testAllDocs() throws Exception {
-    this.addDocuments(new String[]{"<A>", "<B>", "<C>", "<D>"});
+    this.addDocuments(new String[]{"</computera>", "</computerb>", "</computerc>", "</computerd>"});
 
     NodeTermRangeQuery query = new NodeTermRangeQuery(DEFAULT_TEST_FIELD, null, null, true, true);
     final Terms terms = MultiFields.getTerms(searcher.getIndexReader(), DEFAULT_TEST_FIELD);
     assertFalse(query.getTermsEnum(terms) instanceof TermRangeTermsEnum);
-    assertEquals(4, searcher.search(query, null, 1000).scoreDocs.length);
+    assertEquals(4, searcher.search(dq(query), null, 1000).scoreDocs.length);
     query = new NodeTermRangeQuery(DEFAULT_TEST_FIELD, null, null, false, false);
     assertFalse(query.getTermsEnum(terms) instanceof TermRangeTermsEnum);
-    assertEquals(4, searcher.search(query, null, 1000).scoreDocs.length);
+    assertEquals(4, searcher.search(dq(query), null, 1000).scoreDocs.length);
     query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "", null, true, false);
     assertFalse(query.getTermsEnum(terms) instanceof TermRangeTermsEnum);
-    assertEquals(4, searcher.search(query, null, 1000).scoreDocs.length);
-    // and now anothe one
-    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "B", null, true, false);
+    assertEquals(4, searcher.search(dq(query), null, 1000).scoreDocs.length);
+    // and now an other one
+    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computerb", null, true, false);
     assertTrue(query.getTermsEnum(terms) instanceof TermRangeTermsEnum);
-    assertEquals(3, searcher.search(query, null, 1000).scoreDocs.length);
+    assertEquals(3, searcher.search(dq(query), null, 1000).scoreDocs.length);
     reader.close();
   }
 
   /** This test should not be here, but it tests the fuzzy query rewrite mode (TOP_TERMS_SCORING_BOOLEAN_REWRITE)
    * with constant score and checks, that only the lower end of terms is put into the range */
   public void testTopTermsRewrite() throws Exception {
-    this.addDocuments(new String[]{"<A>", "<B>", "<C>", "<D>", "<E>", "<F>",
-                                   "<G>", "<H>", "<I>", "<J>", "<K>"});
+    this.addDocuments(new String[]{"</computera>", "</computerb>", "</computerc>", "</computerd>", "</computere>", "</computerf>",
+                                   "</computerg>", "</computerh>", "</computeri>", "</computerj>", "</computerk>"});
 
-    final NodeTermRangeQuery query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "B", "J", true, true);
-    this.checkBooleanTerms(query, "B", "C", "D", "E", "F", "G", "H", "I", "J");
+    final NodeTermRangeQuery query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computerb", "/computerj", true, true);
+    this.checkBooleanTerms(query, "/computerb", "/computerc", "/computerd", "/computere", "/computerf",
+      "/computerg", "/computerh", "/computeri", "/computerj");
 
     final int savedClauseCount = NodeBooleanQuery.getMaxClauseCount();
     try {
       NodeBooleanQuery.setMaxClauseCount(3);
-      this.checkBooleanTerms(query, "B", "C", "D");
+      this.checkBooleanTerms(query, "/computerb", "/computerc", "/computerd");
     } finally {
       NodeBooleanQuery.setMaxClauseCount(savedClauseCount);
     }
@@ -168,10 +164,10 @@ public class TestNodeTermRangeQuery extends BasicSirenTestCase {
   }
 
   public void testEqualsHashcode() {
-    Query query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", true, true);
+    Query query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", true, true);
 
     query.setBoost(1.0f);
-    Query other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", true, true);
+    Query other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", true, true);
     other.setBoost(1.0f);
 
     assertEquals("query equals itself is true", query, query);
@@ -181,31 +177,31 @@ public class TestNodeTermRangeQuery extends BasicSirenTestCase {
     other.setBoost(2.0f);
     assertFalse("Different boost queries are not equal", query.equals(other));
 
-    other = NodeTermRangeQuery.newStringRange("notcontent", "A", "C", true, true);
+    other = NodeTermRangeQuery.newStringRange("notcontent", "/computera", "/computerc", true, true);
     assertFalse("Different fields are not equal", query.equals(other));
 
-    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "X", "C", true, true);
+    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computerx", "/computerc", true, true);
     assertFalse("Different lower terms are not equal", query.equals(other));
 
-    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "Z", true, true);
+    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerz", true, true);
     assertFalse("Different upper terms are not equal", query.equals(other));
 
-    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, null, "C", true, true);
-    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, null, "C", true, true);
+    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, null, "/computerc", true, true);
+    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, null, "/computerc", true, true);
     assertEquals("equivalent queries with null lowerterms are equal()", query, other);
     assertEquals("hashcode must return same value when equals is true", query.hashCode(), other.hashCode());
 
-    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "C", null, true, true);
-    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "C", null, true, true);
+    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computerc", null, true, true);
+    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computerc", null, true, true);
     assertEquals("equivalent queries with null upperterms are equal()", query, other);
     assertEquals("hashcode returns same value", query.hashCode(), other.hashCode());
 
-    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, null, "C", true, true);
-    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "C", null, true, true);
+    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, null, "/computerc", true, true);
+    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computerc", null, true, true);
     assertFalse("queries with different upper and lower terms are not equal", query.equals(other));
 
-    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", false, false);
-    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "A", "C", true, true);
+    query = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", false, false);
+    other = NodeTermRangeQuery.newStringRange(DEFAULT_TEST_FIELD, "/computera", "/computerc", true, true);
     assertFalse("queries with different inclusive are not equal", query.equals(other));
   }
 
