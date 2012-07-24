@@ -32,6 +32,7 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.TwigChildBuilder.
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.twq;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.apache.lucene.document.Document;
@@ -44,19 +45,14 @@ import org.apache.lucene.search.QueryUtils;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
-import org.apache.lucene.util._TestUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.sindice.siren.analysis.FloatNumericAnalyzer;
 import org.sindice.siren.analysis.IntNumericAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.search.node.MultiNodeTermQuery;
-import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.node.NodeNumericRangeQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 import org.sindice.siren.util.XSDDatatype;
 
@@ -85,12 +81,6 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
     codec.addSirenFields("field8", "field4", "field2", "field" + Integer.MAX_VALUE,
                          "ascfield8", "ascfield4", "ascfield2",
                          "float8", "float4", "float2");
-    this.setIndexWriterConfig(
-      newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
-      .setMaxBufferedDocs(_TestUtil.nextInt(random, 100, 1000))
-      .setCodec(codec).setMergePolicy(newLogMergePolicy())
-      .setSimilarity(new DefaultSimilarity())
-    );
   }
 
   @Override
@@ -109,6 +99,7 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_INT+Integer.MAX_VALUE).toCharArray(), new IntNumericAnalyzer(Integer.MAX_VALUE));
 
     // Add a series of noDocs docs with increasing int values
+    final ArrayList<Document> docs = new ArrayList<Document>();
     for (int l = 0; l < noDocs; l++) {
       final Document doc = new Document();
 
@@ -132,10 +123,9 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
       doc.add(new Field("float4", getTriple(val, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
       doc.add(new Field("float2", getTriple(val, XSDDatatype.XSD_FLOAT+"2"), this.newStoredFieldType()));
 
-      writer.addDocument(doc);
+      docs.add(doc);
     }
-    writer.commit();
-    refreshReaderAndSearcher();
+    this.addDocument(docs);
 
     // Remove maximum clause limit for the tests
     NodeBooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);
@@ -323,29 +313,30 @@ public class TestNodeNumericRangeQuery32 extends BasicSirenTestCase {
 
   @Test
   public void testInfiniteValues() throws Exception {
-    deleteAll(); // remove the data written in the setUp
+    final ArrayList<Document> docs = new ArrayList<Document>();
+
     Document doc = new Document();
     doc.add(new Field("float4", getTriple(Float.NEGATIVE_INFINITY, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(Integer.MIN_VALUE, XSDDatatype.XSD_INT+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     doc = new Document();
     doc.add(new Field("float4", getTriple(Float.POSITIVE_INFINITY, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(Integer.MAX_VALUE, XSDDatatype.XSD_INT+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     doc = new Document();
     doc.add(new Field("float4", getTriple(0.0f, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(0, XSDDatatype.XSD_INT+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     for (float f : FLOAT_NANs) {
       doc = new Document();
       doc.add(new Field("float4", getTriple(f, XSDDatatype.XSD_FLOAT+"4"), this.newStoredFieldType()));
-      writer.addDocument(doc);
+      docs.add(doc);
     }
-    writer.commit();
-    refreshReaderAndSearcher();
+    deleteAll();
+    this.addDocument(docs);
 
     Query q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)

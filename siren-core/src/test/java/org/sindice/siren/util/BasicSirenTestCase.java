@@ -28,9 +28,11 @@ package org.sindice.siren.util;
 import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.RandomIndexWriter;
@@ -173,6 +175,22 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   protected void addDocument(final String data)
   throws IOException {
     this.addDocument(writer, data);
+    this.refreshReaderAndSearcher();
+  }
+
+  protected void addDocument(final Document doc)
+  throws IOException {
+    writer.addDocument(doc);
+    writer.commit();
+    this.refreshReaderAndSearcher();
+  }
+
+  protected void addDocument(final List<Document> docs)
+  throws IOException {
+    for (Document doc : docs) {
+      writer.addDocument(doc);
+    }
+    writer.commit();
     this.refreshReaderAndSearcher();
   }
 

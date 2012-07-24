@@ -32,6 +32,7 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.TwigChildBuilder.
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.twq;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.apache.lucene.document.Document;
@@ -44,18 +45,13 @@ import org.apache.lucene.search.QueryUtils;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
-import org.apache.lucene.util._TestUtil;
 import org.junit.Test;
 import org.sindice.siren.analysis.DoubleNumericAnalyzer;
 import org.sindice.siren.analysis.LongNumericAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.search.node.MultiNodeTermQuery;
-import org.sindice.siren.search.node.NodeBooleanQuery;
-import org.sindice.siren.search.node.NodeNumericRangeQuery;
 import org.sindice.siren.util.BasicSirenTestCase;
 import org.sindice.siren.util.XSDDatatype;
 
@@ -84,12 +80,6 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
     codec.addSirenFields("field8", "field6", "field4", "field2", "field" + Integer.MAX_VALUE,
                          "ascfield8", "ascfield6", "ascfield4", "ascfield2",
                          "double8", "double6", "double4", "double2");
-    this.setIndexWriterConfig(
-      newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
-      .setMaxBufferedDocs(_TestUtil.nextInt(random, 100, 1000))
-      .setCodec(codec).setMergePolicy(newLogMergePolicy())
-      .setSimilarity(new DefaultSimilarity())
-    );
   }
 
   @Override
@@ -111,6 +101,7 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_LONG+Integer.MAX_VALUE).toCharArray(), new LongNumericAnalyzer(Integer.MAX_VALUE));
 
     // Add a series of noDocs docs with increasing long values, by updating the fields
+    final ArrayList<Document> docs = new ArrayList<Document>();
     for (int l=0; l<noDocs; l++) {
       final Document doc = new Document();
 
@@ -137,10 +128,9 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       doc.add(new Field("double4", getTriple(val, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
       doc.add(new Field("double2", getTriple(val, XSDDatatype.XSD_DOUBLE+"2"), this.newStoredFieldType()));
 
-      writer.addDocument(doc);
+      docs.add(doc);
     }
-    writer.commit();
-    refreshReaderAndSearcher();
+    this.addDocument(docs);
 
     // Remove maximum clause limit for the tests
     NodeBooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);
@@ -324,29 +314,30 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
 
   @Test
   public void testInfiniteValues() throws Exception {
-    deleteAll(); // remove the data written in the setUp
+    final ArrayList<Document> docs = new ArrayList<Document>();
+
     Document doc = new Document();
     doc.add(new Field("double4", getTriple(Double.NEGATIVE_INFINITY, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(Long.MIN_VALUE, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     doc = new Document();
     doc.add(new Field("double4", getTriple(Double.POSITIVE_INFINITY, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(Long.MAX_VALUE, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     doc = new Document();
     doc.add(new Field("double4", getTriple(0.0d, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
     doc.add(new Field("field4", getTriple(0L, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-    writer.addDocument(doc);
+    docs.add(doc);
 
     for (double f : DOUBLE_NANs) {
       doc = new Document();
       doc.add(new Field("double4", getTriple(f, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
-      writer.addDocument(doc);
+      docs.add(doc);
     }
-    writer.commit();
-    refreshReaderAndSearcher();
+    this.deleteAll();
+    this.addDocument(docs);
 
     Query q = twq(1)
     .with(child(must(nmqLong("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)
