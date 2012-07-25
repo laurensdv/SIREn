@@ -215,13 +215,13 @@ public class TestNodeFuzzyQuery extends BasicSirenTestCase {
     this.addDocument("<e123456>");
 
     final Directory directory2 = newDirectory();
-    final RandomIndexWriter writer2 = this.newRandomIndexWriter(directory2, analyzer, codec);
-    this.addDocument(writer2, "<a123456>");
-    this.addDocument(writer2, "<b123456>");
-    this.addDocument(writer2, "<b123456>");
-    this.addDocument(writer2, "<b123456>");
-    this.addDocument(writer2, "<c123456>");
-    this.addDocument(writer2, "<f123456>");
+    final RandomIndexWriter writer2 = newRandomIndexWriter(directory2, analyzer, codec);
+    addDocument(writer2, "<a123456>");
+    addDocument(writer2, "<b123456>");
+    addDocument(writer2, "<b123456>");
+    addDocument(writer2, "<b123456>");
+    addDocument(writer2, "<c123456>");
+    addDocument(writer2, "<f123456>");
 
     final IndexReader ir1 = writer.getReader();
     final IndexReader ir2 = writer2.getReader();

@@ -33,33 +33,41 @@ import static org.sindice.siren.search.AbstractTestSirenScorer.TwigChildBuilder.
 import static org.sindice.siren.search.AbstractTestSirenScorer.TwigQueryBuilder.twq;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Random;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType.NumericType;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryUtils;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util._TestUtil;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sindice.siren.analysis.DoubleNumericAnalyzer;
 import org.sindice.siren.analysis.LongNumericAnalyzer;
 import org.sindice.siren.analysis.TupleAnalyzer;
+import org.sindice.siren.index.codecs.RandomSirenCodec;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
-import org.sindice.siren.util.BasicSirenTestCase;
+import org.sindice.siren.util.SirenTestCase;
 import org.sindice.siren.util.XSDDatatype;
 
-public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
+public class TestNodeNumericRangeQuery64 extends SirenTestCase {
 
   private final double[] DOUBLE_NANs =  {
     Double.NaN,
@@ -76,24 +84,25 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
   private static final long startOffset = - 1L << 31;
   // number of docs to generate for testing
   private static int noDocs;
+  private static Index index;
 
-  @Override
-  protected void configure() throws IOException {
-    this.setAnalyzer(AnalyzerType.TUPLE);
-    this.setPostingsFormat(PostingsFormatType.RANDOM);
-    codec.addSirenFields("field8", "field6", "field4", "field2", "field" + Integer.MAX_VALUE,
-                         "ascfield8", "ascfield6", "ascfield4", "ascfield2",
-                         "double8", "double6", "double4", "double2");
+  private static class Index {
+    Directory directory = null;
+    IndexReader reader = null;
+    IndexSearcher searcher = null;
+    RandomIndexWriter writer = null;
   }
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    final TupleAnalyzer tupleAnalyzer = (TupleAnalyzer) analyzer;
+  private static void init(Index index)
+  throws IOException {
+    final RandomSirenCodec codec = new RandomSirenCodec(random(), PostingsFormatType.RANDOM);
+    final TupleAnalyzer tupleAnalyzer = (TupleAnalyzer) SirenTestCase.newTupleAnalyzer();
 
-    noDocs = atLeast(4096);
-    distance = (1L << 60) / noDocs;
-
+    // Set the SIREn fields
+    codec.addSirenFields("field8", "field6", "field4", "field2", "field" + Integer.MAX_VALUE,
+      "ascfield8", "ascfield6", "ascfield4", "ascfield2",
+      "double8", "double6", "double4", "double2");
+    // Set the datatype analyzers
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_LONG+"8").toCharArray(), new LongNumericAnalyzer(8));
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_LONG+"6").toCharArray(), new LongNumericAnalyzer(6));
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_LONG+"4").toCharArray(), new LongNumericAnalyzer(4));
@@ -104,40 +113,89 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_DOUBLE+"2").toCharArray(), new DoubleNumericAnalyzer(2));
     tupleAnalyzer.registerLiteralAnalyzer((XSDDatatype.XSD_LONG+Integer.MAX_VALUE).toCharArray(), new LongNumericAnalyzer(Integer.MAX_VALUE));
 
+    index.directory = newDirectory();
+    index.writer = newRandomIndexWriter(index.directory, tupleAnalyzer, codec);
+  }
+
+  @BeforeClass
+  public static void setUpBeforeClass()
+  throws IOException {
+    index = new Index();
+    init(index);
+
+    noDocs = atLeast(4096);
+    distance = (1L << 60) / noDocs;
     // Add a series of noDocs docs with increasing long values, by updating the fields
-    final ArrayList<Document> docs = new ArrayList<Document>();
     for (int l=0; l<noDocs; l++) {
       final Document doc = new Document();
 
       long val=distance*l+startOffset;
 
       // add fields, that have a distance to test general functionality
-      doc.add(new Field("field8", getTriple(val, XSDDatatype.XSD_LONG+"8"), this.newStoredFieldType()));
-      doc.add(new Field("field6", getTriple(val, XSDDatatype.XSD_LONG+"6"), this.newStoredFieldType()));
-      doc.add(new Field("field4", getTriple(val, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-      doc.add(new Field("field2", getTriple(val, XSDDatatype.XSD_LONG+"2"), this.newStoredFieldType()));
-      doc.add(new Field("field"+Integer.MAX_VALUE, getTriple(val, XSDDatatype.XSD_LONG+Integer.MAX_VALUE), this.newStoredFieldType()));
+      doc.add(new Field("field8", getTriple(val, XSDDatatype.XSD_LONG+"8"), newStoredFieldType()));
+      doc.add(new Field("field6", getTriple(val, XSDDatatype.XSD_LONG+"6"), newStoredFieldType()));
+      doc.add(new Field("field4", getTriple(val, XSDDatatype.XSD_LONG+"4"), newStoredFieldType()));
+      doc.add(new Field("field2", getTriple(val, XSDDatatype.XSD_LONG+"2"), newStoredFieldType()));
+      doc.add(new Field("field"+Integer.MAX_VALUE, getTriple(val, XSDDatatype.XSD_LONG+Integer.MAX_VALUE), newStoredFieldType()));
 
       // add ascending fields with a distance of 1, beginning at -noDocs/2 to
       // test the correct splitting of range and inclusive/exclusive
       val=l-(noDocs/2);
 
-      doc.add(new Field("ascfield8", getTriple(val, XSDDatatype.XSD_LONG+"8"), this.newStoredFieldType()));
-      doc.add(new Field("ascfield6", getTriple(val, XSDDatatype.XSD_LONG+"6"), this.newStoredFieldType()));
-      doc.add(new Field("ascfield4", getTriple(val, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-      doc.add(new Field("ascfield2", getTriple(val, XSDDatatype.XSD_LONG+"2"), this.newStoredFieldType()));
+      doc.add(new Field("ascfield8", getTriple(val, XSDDatatype.XSD_LONG+"8"), newStoredFieldType()));
+      doc.add(new Field("ascfield6", getTriple(val, XSDDatatype.XSD_LONG+"6"), newStoredFieldType()));
+      doc.add(new Field("ascfield4", getTriple(val, XSDDatatype.XSD_LONG+"4"), newStoredFieldType()));
+      doc.add(new Field("ascfield2", getTriple(val, XSDDatatype.XSD_LONG+"2"), newStoredFieldType()));
 
-      doc.add(new Field("double8", getTriple(val, XSDDatatype.XSD_DOUBLE+"8"), this.newStoredFieldType()));
-      doc.add(new Field("double6", getTriple(val, XSDDatatype.XSD_DOUBLE+"6"), this.newStoredFieldType()));
-      doc.add(new Field("double4", getTriple(val, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
-      doc.add(new Field("double2", getTriple(val, XSDDatatype.XSD_DOUBLE+"2"), this.newStoredFieldType()));
+      doc.add(new Field("double8", getTriple(val, XSDDatatype.XSD_DOUBLE+"8"), newStoredFieldType()));
+      doc.add(new Field("double6", getTriple(val, XSDDatatype.XSD_DOUBLE+"6"), newStoredFieldType()));
+      doc.add(new Field("double4", getTriple(val, XSDDatatype.XSD_DOUBLE+"4"), newStoredFieldType()));
+      doc.add(new Field("double2", getTriple(val, XSDDatatype.XSD_DOUBLE+"2"), newStoredFieldType()));
 
-      docs.add(doc);
+      index.writer.addDocument(doc);
     }
-    this.addDocuments(docs);
+    index.writer.commit();
+    index.reader = newIndexReader(index.writer);
+    index.searcher = newSearcher(index.reader);
+  }
 
+  @AfterClass
+  public static void tearDownAfterClass()
+  throws IOException {
+    if (index != null) {
+      close(index);
+    }
+  }
+
+  private static void close(Index index)
+  throws IOException {
+    if (index.reader != null) {
+      index.reader.close();
+      index.reader = null;
+    }
+    if (index.writer != null) {
+      index.writer.close();
+      index.writer = null;
+    }
+    if (index.directory != null) {
+      index.directory.close();
+      index.directory = null;
+    }
+  }
+
+  @Override
+  @Before
+  public void setUp() throws Exception {
+    super.setUp();
     // Remove maximum clause limit for the tests
     NodeBooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);
+  }
+
+  @Override
+  @After
+  public void tearDown()
+  throws Exception {
+    super.tearDown();
   }
 
   private static String getTriple(final Number val, final String datatypeURI) {
@@ -163,14 +221,14 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
 
     final String type = " (constant score boolean rewrite)";
 
-    TopDocs topDocs = searcher.search(dq, null, noDocs, Sort.INDEXORDER);
+    TopDocs topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
 
     final ScoreDoc[] sd = topDocs.scoreDocs;
     assertNotNull(sd);
     assertEquals("Score doc count"+type, count, sd.length );
-    Document doc=searcher.doc(sd[0].doc);
+    Document doc=index.searcher.doc(sd[0].doc);
     assertEquals("First doc"+type, 2*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
-    doc=searcher.doc(sd[sd.length-1].doc);
+    doc=index.searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc"+type, (1+count)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
 
   }
@@ -202,7 +260,7 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
     .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
     .bound(2, 2)))).getDocumentQuery();
 
-    final TopDocs topDocs = searcher.search(dq, noDocs);
+    final TopDocs topDocs = index.searcher.search(dq, noDocs);
     final ScoreDoc[] sd = topDocs.scoreDocs;
     assertNotNull(sd);
     assertEquals("Score doc count", 1, sd.length );
@@ -218,26 +276,26 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
 
-    TopDocs topDocs = searcher.search(dq, null, noDocs, Sort.INDEXORDER);
+    TopDocs topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
     ScoreDoc[] sd = topDocs.scoreDocs;
     assertNotNull(sd);
     assertEquals("Score doc count", count, sd.length );
-    Document doc=searcher.doc(sd[0].doc);
+    Document doc=index.searcher.doc(sd[0].doc);
     assertEquals("First doc", startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
-    doc=searcher.doc(sd[sd.length-1].doc);
+    doc=index.searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc", (count-1)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
 
     dq = twq(1)
     .with(child(must(nmqLong(field, precisionStep, null, upper, false, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(dq, null, noDocs, Sort.INDEXORDER);
+    topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
     sd = topDocs.scoreDocs;
     assertNotNull(sd);
     assertEquals("Score doc count", count, sd.length );
-    doc=searcher.doc(sd[0].doc);
+    doc=index.searcher.doc(sd[0].doc);
     assertEquals("First doc", startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
-    doc=searcher.doc(sd[sd.length-1].doc);
+    doc=index.searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc", (count-1)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
   }
 
@@ -271,13 +329,13 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
 
-    TopDocs topDocs = searcher.search(dq, null, noDocs, Sort.INDEXORDER);
+    TopDocs topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
     ScoreDoc[] sd = topDocs.scoreDocs;
     assertNotNull(sd);
     assertEquals("Score doc count", noDocs-count, sd.length );
-    Document doc=searcher.doc(sd[0].doc);
+    Document doc=index.searcher.doc(sd[0].doc);
     assertEquals("First doc", count*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
-    doc=searcher.doc(sd[sd.length-1].doc);
+    doc=index.searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc", (noDocs-1)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
 
     dq = twq(1)
@@ -285,13 +343,13 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
 
-    topDocs = searcher.search(dq, null, noDocs, Sort.INDEXORDER);
+    topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
     sd = topDocs.scoreDocs;
     assertNotNull(sd);
     assertEquals("Score doc count", noDocs-count, sd.length );
-    doc=searcher.doc(sd[0].doc);
+    doc=index.searcher.doc(sd[0].doc);
     assertEquals("First doc", count*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
-    doc=searcher.doc(sd[sd.length-1].doc);
+    doc=index.searcher.doc(sd[sd.length-1].doc);
     assertEquals("Last doc", (noDocs-1)*distance+startOffset, Long.parseLong(getLiteralValue(doc.get(field))));
   }
 
@@ -318,93 +376,97 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
 
   @Test
   public void testInfiniteValues() throws Exception {
-    final ArrayList<Document> docs = new ArrayList<Document>();
+    final Index index = new Index();
+    init(index);
 
     Document doc = new Document();
-    doc.add(new Field("double4", getTriple(Double.NEGATIVE_INFINITY, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
-    doc.add(new Field("field4", getTriple(Long.MIN_VALUE, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-    docs.add(doc);
+    doc.add(new Field("double4", getTriple(Double.NEGATIVE_INFINITY, XSDDatatype.XSD_DOUBLE+"4"), newStoredFieldType()));
+    doc.add(new Field("field4", getTriple(Long.MIN_VALUE, XSDDatatype.XSD_LONG+"4"), newStoredFieldType()));
+    index.writer.addDocument(doc);
 
     doc = new Document();
-    doc.add(new Field("double4", getTriple(Double.POSITIVE_INFINITY, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
-    doc.add(new Field("field4", getTriple(Long.MAX_VALUE, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-    docs.add(doc);
+    doc.add(new Field("double4", getTriple(Double.POSITIVE_INFINITY, XSDDatatype.XSD_DOUBLE+"4"), newStoredFieldType()));
+    doc.add(new Field("field4", getTriple(Long.MAX_VALUE, XSDDatatype.XSD_LONG+"4"), newStoredFieldType()));
+    index.writer.addDocument(doc);
 
     doc = new Document();
-    doc.add(new Field("double4", getTriple(0.0d, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
-    doc.add(new Field("field4", getTriple(0L, XSDDatatype.XSD_LONG+"4"), this.newStoredFieldType()));
-    docs.add(doc);
+    doc.add(new Field("double4", getTriple(0.0d, XSDDatatype.XSD_DOUBLE+"4"), newStoredFieldType()));
+    doc.add(new Field("field4", getTriple(0L, XSDDatatype.XSD_LONG+"4"), newStoredFieldType()));
+    index.writer.addDocument(doc);
 
     for (double f : DOUBLE_NANs) {
       doc = new Document();
-      doc.add(new Field("double4", getTriple(f, XSDDatatype.XSD_DOUBLE+"4"), this.newStoredFieldType()));
-      docs.add(doc);
+      doc.add(new Field("double4", getTriple(f, XSDDatatype.XSD_DOUBLE+"4"), newStoredFieldType()));
+      index.writer.addDocument(doc);
     }
-    this.deleteAll();
-    this.addDocuments(docs);
+    index.writer.commit();
+    index.reader = newIndexReader(index.writer);
+    index.searcher = newSearcher(index.reader);
 
     Query q = twq(1)
     .with(child(must(nmqLong("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    TopDocs topDocs = searcher.search(q, 10);
+    TopDocs topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqLong("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, false, false)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqLong("field4", NumericUtils.PRECISION_STEP_DEFAULT, Long.MIN_VALUE, Long.MAX_VALUE, true, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqLong("field4", NumericUtils.PRECISION_STEP_DEFAULT, Long.MIN_VALUE, Long.MAX_VALUE, false, false)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 1,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqLong("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqDouble("double4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, false, false)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqDouble("double4", NumericUtils.PRECISION_STEP_DEFAULT, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, true, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqDouble("double4", NumericUtils.PRECISION_STEP_DEFAULT, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, false, false)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 1,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqDouble("double4", NumericUtils.PRECISION_STEP_DEFAULT, Double.NaN, Double.NaN, true, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    topDocs = searcher.search(q, 10);
+    topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", DOUBLE_NANs.length,  topDocs.scoreDocs.length );
+
+    close(index);
   }
 
   private void testRandomTrieAndClassicRangeQuery(int precisionStep) throws Exception {
@@ -437,8 +499,8 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       MultiNodeTermQuery cq = new NodeTermRangeQuery(field, lowerBytes, upperBytes, true, true);
       tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      TopDocs tTopDocs = searcher.search(dq(tq), 1);
-      TopDocs cTopDocs = searcher.search(dq(cq), 1);
+      TopDocs tTopDocs = index.searcher.search(dq(tq), 1);
+      TopDocs cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       totalTermCountT += termCountT = countTerms(tq);
       totalTermCountC += termCountC = countTerms(cq);
@@ -448,8 +510,8 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, false, false);
       tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      tTopDocs = searcher.search(dq(tq), 1);
-      cTopDocs = searcher.search(dq(cq), 1);
+      tTopDocs = index.searcher.search(dq(tq), 1);
+      cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       totalTermCountT += termCountT = countTerms(tq);
       totalTermCountC += termCountC = countTerms(cq);
@@ -459,8 +521,8 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, false, true);
       tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      tTopDocs = searcher.search(dq(tq), 1);
-      cTopDocs = searcher.search(dq(cq), 1);
+      tTopDocs = index.searcher.search(dq(tq), 1);
+      cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       totalTermCountT += termCountT = countTerms(tq);
       totalTermCountC += termCountC = countTerms(cq);
@@ -470,8 +532,8 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, true, false);
       tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      tTopDocs = searcher.search(dq(tq), 1);
-      cTopDocs = searcher.search(dq(cq), 1);
+      tTopDocs = index.searcher.search(dq(tq), 1);
+      cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
       totalTermCountT += termCountT = countTerms(tq);
       totalTermCountC += termCountC = countTerms(cq);
@@ -534,28 +596,28 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
       .with(child(must(nmqLong(field, precisionStep, lower, upper, true, true)
         .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
-      TopDocs tTopDocs = searcher.search(tq, 1);
+      TopDocs tTopDocs = index.searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to inclusive range length", upper-lower+1, tTopDocs.totalHits );
       // test exclusive range
       tq=twq(1)
       .with(child(must(nmqLong(field, precisionStep, lower, upper, false, false)
         .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
-      tTopDocs = searcher.search(tq, 1);
+      tTopDocs = index.searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to exclusive range length", Math.max(upper-lower-1, 0), tTopDocs.totalHits );
       // test left exclusive range
       tq=twq(1)
       .with(child(must(nmqLong(field, precisionStep, lower, upper, false, true)
         .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
-      tTopDocs = searcher.search(tq, 1);
+      tTopDocs = index.searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to half exclusive range length", upper-lower, tTopDocs.totalHits );
       // test right exclusive range
       tq=twq(1)
       .with(child(must(nmqLong(field, precisionStep, lower, upper, true, false)
         .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
-      tTopDocs = searcher.search(tq, 1);
+      tTopDocs = index.searcher.search(tq, 1);
       assertEquals("Returned count of range query must be equal to half exclusive range length", upper-lower, tTopDocs.totalHits );
     }
   }
@@ -598,7 +660,7 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
     .with(child(must(nmqDouble(field, precisionStep, lower, upper, true, true)
       .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
-    final TopDocs tTopDocs = searcher.search(dq, 1);
+    final TopDocs tTopDocs = index.searcher.search(dq, 1);
     assertEquals("Returned count of range query must be equal to inclusive range length", upper-lower+1, tTopDocs.totalHits, 0);
   }
 
@@ -674,7 +736,7 @@ public class TestNodeNumericRangeQuery64 extends BasicSirenTestCase {
   }
 
   private int countTerms(MultiNodeTermQuery q) throws Exception {
-    final Terms terms = MultiFields.getTerms(reader, q.getField());
+    final Terms terms = MultiFields.getTerms(index.reader, q.getField());
     if (terms == null)
       return 0;
     final TermsEnum termEnum = q.getTermsEnum(terms);
