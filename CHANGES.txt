@@ -15,6 +15,7 @@ Bugs
 * [GH-52] Fix constraint management in NodeBooleanQuery
 * [GH-53] Fix constraint management in TwigQuery
 * [GH-54] Fix constraint management in TupleQuery
+* [GH-55] Check hash code and equality of node query classes
 
 Tasks
 
