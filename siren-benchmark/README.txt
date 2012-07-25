@@ -46,7 +46,7 @@ a given directory.
 Example: To fetch a sample composed of 20 archives (of 64MB each) and store them
 to the directory '/tmp/sindice-dataset-20/'
 
-$ ./scripts/fetcher --output-dir /tmp/sindice-dataset-20/ --sample-size 20
+$ ./scripts/fetcher --output /tmp/sindice-dataset-20/ --size 20
 
 2. Creating the term lexicon
 ----------------------------
