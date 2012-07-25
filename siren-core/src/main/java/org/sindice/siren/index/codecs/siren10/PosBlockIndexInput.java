@@ -46,6 +46,9 @@ public class PosBlockIndexInput extends BlockIndexInput {
 
   @Override
   public PosBlockReader getBlockReader() {
+    // Clone index input. A cloned index input does not need to be closed
+    // by the block reader, as the underlying stream will be closed by the
+    // input it was cloned from
     return new PosBlockReader((IndexInput) in.clone());
   }
 

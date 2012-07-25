@@ -50,6 +50,9 @@ public class DocsFreqBlockIndexInput extends BlockIndexInput {
 
   @Override
   public DocsFreqBlockReader getBlockReader() {
+    // Clone index input. A cloned index input does not need to be closed
+    // by the block reader, as the underlying stream will be closed by the
+    // input it was cloned from
     return new DocsFreqBlockReader((IndexInput) in.clone());
   }
 
