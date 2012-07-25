@@ -355,7 +355,6 @@ public abstract class MultiNodeTermQuery extends NodePrimitiveQuery {
     int result = 1;
     result = prime * result + Float.floatToIntBits(this.getBoost());
     result = prime * result + rewriteMethod.hashCode();
-    if (ancestor != null) result = prime * result + ancestor.hashCode();
     result = prime * result + lowerBound;
     result = prime * result + upperBound;
     result = prime * result + levelConstraint;
@@ -375,9 +374,6 @@ public abstract class MultiNodeTermQuery extends NodePrimitiveQuery {
     if (Float.floatToIntBits(this.getBoost()) != Float.floatToIntBits(other.getBoost()))
       return false;
     if (!rewriteMethod.equals(other.rewriteMethod)) {
-      return false;
-    }
-    if (!(other.ancestor == null ? ancestor == null : ancestor.equals(other.ancestor))) {
       return false;
     }
     if (!(this.lowerBound == other.lowerBound &&

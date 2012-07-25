@@ -260,7 +260,6 @@ public class NodeTermQuery extends NodePrimitiveQuery {
     final NodeTermQuery other = (NodeTermQuery) o;
     return (this.getBoost() == other.getBoost()) &&
             this.term.equals(other.term) &&
-            other.ancestor == null ? ancestor == null : ancestor.equals(other.ancestor) &&
             this.levelConstraint == other.levelConstraint &&
             this.lowerBound == other.lowerBound &&
             this.upperBound == other.upperBound;
@@ -271,7 +270,6 @@ public class NodeTermQuery extends NodePrimitiveQuery {
   public int hashCode() {
     return Float.floatToIntBits(this.getBoost())
       ^ term.hashCode()
-      ^ (ancestor == null ? 0 : ancestor.hashCode())
       ^ levelConstraint
       ^ upperBound
       ^ lowerBound;

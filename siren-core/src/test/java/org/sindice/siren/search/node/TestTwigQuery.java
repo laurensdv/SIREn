@@ -100,8 +100,14 @@ public class TestTwigQuery extends SirenTestCase {
     assertTrue(q instanceof AncestorFilterQuery);
     assertEquals(2, q.getLevelConstraint());
     assertEquals(tq.getBoost(), q.getBoost(), 0);
-    assertEquals(ntq, ((AncestorFilterQuery) q).getQuery());
-    assertEquals(q, ((AncestorFilterQuery) q).getQuery().ancestor);
+
+    final NodeTermQuery nested = (NodeTermQuery) ((AncestorFilterQuery) q).getQuery();
+    assertEquals(ntq, nested);
+
+    // ancestor of single clause should be its AncestorFilterQuery
+    assertEquals(q, nested.ancestor);
+    // ancestor of rewritten query should be the same, as the ancestor has not
+    // been rewritten yet
     assertSame(tq.ancestor, q.ancestor);
 
     // if more than one clause, it must not be rewritten

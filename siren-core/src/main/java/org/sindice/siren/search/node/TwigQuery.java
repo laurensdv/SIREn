@@ -698,7 +698,6 @@ public class TwigQuery extends NodeQuery {
       if (!(o instanceof EmptyRootQuery)) return false;
       final EmptyRootQuery other = (EmptyRootQuery) o;
       return (this.getBoost() == other.getBoost()) &&
-              other.ancestor == null ? ancestor == null : ancestor.equals(other.ancestor) &&
               this.levelConstraint == other.levelConstraint &&
               this.lowerBound == other.lowerBound &&
               this.upperBound == other.upperBound;
@@ -707,7 +706,6 @@ public class TwigQuery extends NodeQuery {
     @Override
     public int hashCode() {
       return Float.floatToIntBits(this.getBoost())
-        ^ (ancestor == null ? 0 : ancestor.hashCode())
         ^ levelConstraint
         ^ upperBound
         ^ lowerBound;
