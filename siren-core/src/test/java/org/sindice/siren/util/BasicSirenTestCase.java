@@ -78,12 +78,12 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
   private void init() throws IOException {
     directory = newDirectory();
     if (config == null) {
-      writer = this.newRandomIndexWriter(directory, analyzer, codec);
+      writer = newRandomIndexWriter(directory, analyzer, codec);
     } else {
-      writer = this.newRandomIndexWriter(directory, analyzer, codec, config);
+      writer = newRandomIndexWriter(directory, analyzer, codec, config);
     }
     this.deleteAll(writer);
-    reader = this.newIndexReader(writer);
+    reader = newIndexReader(writer);
     searcher = newSearcher(reader);
   }
 
@@ -168,13 +168,13 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
 
   protected void refreshReaderAndSearcher() throws IOException {
     reader.close();
-    reader = this.newIndexReader(writer);
+    reader = newIndexReader(writer);
     searcher = newSearcher(reader);
   }
 
   protected void addDocument(final String data)
   throws IOException {
-    this.addDocument(writer, data);
+    addDocument(writer, data);
     this.refreshReaderAndSearcher();
   }
 
@@ -200,19 +200,19 @@ public abstract class BasicSirenTestCase extends SirenTestCase {
 
   protected void addDocuments(final Collection<String> docs)
   throws IOException {
-    this.addDocuments(writer, docs.toArray(new String[docs.size()]));
+    addDocuments(writer, docs.toArray(new String[docs.size()]));
     this.refreshReaderAndSearcher();
   }
 
   protected void addDocuments(final String ... docs)
   throws IOException {
-    this.addDocuments(writer, docs);
+    addDocuments(writer, docs);
     this.refreshReaderAndSearcher();
   }
 
   protected void addDocuments(final MockSirenDocument ... sdocs)
   throws IOException {
-    this.addDocuments(writer, sdocs);
+    addDocuments(writer, sdocs);
     this.refreshReaderAndSearcher();
   }
 

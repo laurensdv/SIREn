@@ -70,7 +70,7 @@ public abstract class SirenTestCase extends LuceneTestCase {
     return new MockSirenAnalyzer();
   }
 
-  private FieldType newFieldType() {
+  private static FieldType newFieldType() {
     final FieldType ft = new FieldType();
     ft.setStored(false);
     ft.setOmitNorms(false);
@@ -80,47 +80,47 @@ public abstract class SirenTestCase extends LuceneTestCase {
     return ft;
   }
 
-  protected FieldType newStoredFieldType() {
-    final FieldType ft = this.newFieldType();
+  protected static FieldType newStoredFieldType() {
+    final FieldType ft = newFieldType();
     ft.setStored(true);
     return ft;
   }
 
   private FieldType newStoredNoNormFieldType() {
-    final FieldType ft = this.newStoredFieldType();
+    final FieldType ft = newStoredFieldType();
     ft.setOmitNorms(true);
     return ft;
   }
 
-  protected RandomIndexWriter newRandomIndexWriter(final Directory dir,
-                                                   final Analyzer analyzer,
-                                                   final Codec codec)
+  protected static RandomIndexWriter newRandomIndexWriter(final Directory dir,
+                                                          final Analyzer analyzer,
+                                                          final Codec codec)
   throws IOException {
-    return this.newRandomIndexWriter(dir, analyzer, codec,
+    return newRandomIndexWriter(dir, analyzer, codec,
       newIndexWriterConfig(TEST_VERSION_CURRENT, analyzer)
     .setCodec(codec).setMergePolicy(newLogMergePolicy())
     .setSimilarity(new DefaultSimilarity()));
   }
 
-  protected RandomIndexWriter newRandomIndexWriter(final Directory dir,
-                                                   final Analyzer analyzer,
-                                                   final Codec codec,
-                                                   final IndexWriterConfig config)
+  protected static RandomIndexWriter newRandomIndexWriter(final Directory dir,
+                                                          final Analyzer analyzer,
+                                                          final Codec codec,
+                                                          final IndexWriterConfig config)
   throws IOException {
     final RandomIndexWriter writer = new RandomIndexWriter(random(), dir, config);
     writer.setDoRandomForceMergeAssert(true);
     return writer;
   }
 
-  protected IndexReader newIndexReader(final RandomIndexWriter writer)
+  protected static IndexReader newIndexReader(final RandomIndexWriter writer)
   throws IOException {
     return SlowCompositeReaderWrapper.wrap(writer.getReader());
   }
 
-  protected void addDocument(final RandomIndexWriter writer, final String data)
+  protected static void addDocument(final RandomIndexWriter writer, final String data)
   throws IOException {
     final Document doc = new Document();
-    doc.add(new Field(DEFAULT_TEST_FIELD, data, this.newStoredFieldType()));
+    doc.add(new Field(DEFAULT_TEST_FIELD, data, newStoredFieldType()));
     writer.addDocument(doc);
     writer.commit();
   }
@@ -139,27 +139,27 @@ public abstract class SirenTestCase extends LuceneTestCase {
    * <br>
    * See also {@link IndexWriter#addDocuments(Iterable)}
    */
-  protected void addDocuments(final RandomIndexWriter writer,
-                              final String[] data)
+  protected static void addDocuments(final RandomIndexWriter writer,
+                                     final String[] data)
   throws IOException {
     final ArrayList<Document> docs = new ArrayList<Document>();
 
     for (final String entry : data) {
       final Document doc = new Document();
-      doc.add(new Field(DEFAULT_TEST_FIELD, entry, this.newStoredFieldType()));
+      doc.add(new Field(DEFAULT_TEST_FIELD, entry, newStoredFieldType()));
       docs.add(doc);
     }
     writer.addDocuments(docs);
     writer.commit();
   }
 
-  protected void addDocuments(final RandomIndexWriter writer,
-                              final MockSirenDocument ... sdocs)
+  protected static void addDocuments(final RandomIndexWriter writer,
+                                     final MockSirenDocument ... sdocs)
   throws IOException {
     final ArrayList<Document> docs = new ArrayList<Document>(sdocs.length);
     for (final MockSirenDocument sdoc : sdocs) {
       final Document doc = new Document();
-      doc.add(new Field(DEFAULT_TEST_FIELD, new MockSirenReader(sdoc), this.newFieldType()));
+      doc.add(new Field(DEFAULT_TEST_FIELD, new MockSirenReader(sdoc), newFieldType()));
       docs.add(doc);
     }
     writer.addDocuments(docs);
