@@ -7,7 +7,7 @@ New Features
 Improvements 
 
 * [GH-47] Twig Query API Improvements
-8 [GH-48] Remove the term frequency in the Doc posting list
+* [GH-48] Remove the term frequency in the Doc posting list
 
 Bugs
 
@@ -16,6 +16,7 @@ Bugs
 * [GH-53] Fix constraint management in TwigQuery
 * [GH-54] Fix constraint management in TupleQuery
 * [GH-55] Check hash code and equality of node query classes
+* [GH-57] Review score caching in scoreInNode
 
 Tasks
 
