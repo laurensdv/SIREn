@@ -289,7 +289,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
 
     Query dq = twq(1)
     .with(child(must(nmqInt(field, precisionStep, null, upper, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
 
     TopDocs topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
@@ -303,7 +302,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
 
     dq = twq(1)
     .with(child(must(nmqInt(field, precisionStep, null, upper, false, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
     sd = topDocs.scoreDocs;
@@ -337,7 +335,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
 
     Query dq = twq(1)
     .with(child(must(nmqInt(field, precisionStep, lower, null, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
 
     TopDocs topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
@@ -351,7 +348,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
 
     dq = twq(1)
     .with(child(must(nmqInt(field, precisionStep, lower, null, true, false)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(dq, null, noDocs, Sort.INDEXORDER);
     sd = topDocs.scoreDocs;
@@ -410,63 +406,54 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
 
     Query q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     TopDocs topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, false, false)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, Integer.MIN_VALUE, Integer.MAX_VALUE, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, Integer.MIN_VALUE, Integer.MAX_VALUE, false, false)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 1,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqInt("field4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqFloat("float4", NumericUtils.PRECISION_STEP_DEFAULT, null, null, false, false)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqFloat("float4", NumericUtils.PRECISION_STEP_DEFAULT, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 3,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqFloat("float4", NumericUtils.PRECISION_STEP_DEFAULT, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, false, false)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", 1,  topDocs.scoreDocs.length );
 
     q = twq(1)
     .with(child(must(nmqFloat("float4", NumericUtils.PRECISION_STEP_DEFAULT, Float.NaN, Float.NaN, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     topDocs = index.searcher.search(q, 10);
     assertEquals("Score doc count", FLOAT_NANs.length,  topDocs.scoreDocs.length );
@@ -502,8 +489,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
       // test inclusive range
       MultiNodeTermQuery tq = (MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, true, true).getNodeQuery();
       MultiNodeTermQuery cq = new NodeTermRangeQuery(field, lowerBytes, upperBytes, true, true);
-      tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       TopDocs tTopDocs = index.searcher.search(dq(tq), 1);
       TopDocs cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
@@ -513,8 +498,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
       // test exclusive range
       tq = (MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, false, false).getNodeQuery();
       cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, false, false);
-      tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       tTopDocs = index.searcher.search(dq(tq), 1);
       cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
@@ -524,8 +507,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
       // test left exclusive range
       tq=(MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, false, true).getNodeQuery();
       cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, false, true);
-      tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       tTopDocs = index.searcher.search(dq(tq), 1);
       cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
@@ -535,8 +516,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
       // test right exclusive range
       tq=(MultiNodeTermQuery) nmqInt(field, precisionStep, lower, upper, true, false).getNodeQuery();
       cq=new NodeTermRangeQuery(field, lowerBytes, upperBytes, true, false);
-      tq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
-      cq.setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE);
       tTopDocs = index.searcher.search(dq(tq), 1);
       cTopDocs = index.searcher.search(dq(cq), 1);
       assertEquals("Returned count for NumericRangeQuery and TermRangeQuery must be equal", cTopDocs.totalHits, tTopDocs.totalHits );
@@ -594,28 +573,24 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
       // test inclusive range
       Query dq = twq(1)
       .with(child(must(nmqInt(field, precisionStep, lower, upper, true, true)
-        .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
       TopDocs tTopDocs = index.searcher.search(dq, 1);
       assertEquals("Returned count of range query must be equal to inclusive range length", upper-lower+1, tTopDocs.totalHits );
       // test exclusive range
       dq = twq(1)
       .with(child(must(nmqInt(field, precisionStep, lower, upper, false, false)
-        .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
       tTopDocs = index.searcher.search(dq, 1);
       assertEquals("Returned count of range query must be equal to exclusive range length", Math.max(upper-lower-1, 0), tTopDocs.totalHits );
       // test left exclusive range
       dq = twq(1)
       .with(child(must(nmqInt(field, precisionStep, lower, upper, false, true)
-        .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
       tTopDocs = index.searcher.search(dq, 1);
       assertEquals("Returned count of range query must be equal to half exclusive range length", upper-lower, tTopDocs.totalHits );
       // test right exclusive range
       dq = twq(1)
       .with(child(must(nmqInt(field, precisionStep, lower, upper, true, false)
-        .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
         .bound(2, 2)))).getDocumentQuery();
       tTopDocs = index.searcher.search(dq, 1);
       assertEquals("Returned count of range query must be equal to half exclusive range length", upper-lower, tTopDocs.totalHits );
@@ -652,7 +627,6 @@ public class TestNodeNumericRangeQuery32 extends SirenTestCase {
      */
     Query dq = twq(1)
     .with(child(must(nmqFloat(field, precisionStep, lower, upper, true, true)
-      .setRewriteMethod(MultiNodeTermQuery.CONSTANT_SCORE_BOOLEAN_QUERY_REWRITE)
       .bound(2, 2)))).getDocumentQuery();
     final TopDocs tTopDocs = index.searcher.search(dq, 1);
     assertEquals("Returned count of range query must be equal to inclusive range length", upper-lower+1, tTopDocs.totalHits, 0);

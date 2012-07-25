@@ -115,17 +115,21 @@ public final class NodeNumericRangeQuery<T extends Number> extends MultiNodeTerm
     switch (dataType) {
       case LONG:
       case DOUBLE:
-        this.setRewriteMethod( (precisionStep > 6) ?
-          CONSTANT_SCORE_FILTER_REWRITE :
-          CONSTANT_SCORE_AUTO_REWRITE_DEFAULT
-        );
+        // TODO: to uncomment when filter-based rewrite method is implemented
+//        this.setRewriteMethod( (precisionStep > 6) ?
+//          CONSTANT_SCORE_FILTER_REWRITE :
+//          CONSTANT_SCORE_AUTO_REWRITE_DEFAULT
+//        );
+        this.setRewriteMethod(CONSTANT_SCORE_AUTO_REWRITE_DEFAULT);
         break;
       case INT:
       case FLOAT:
-        this.setRewriteMethod( (precisionStep > 8) ?
-          CONSTANT_SCORE_FILTER_REWRITE :
-          CONSTANT_SCORE_AUTO_REWRITE_DEFAULT
-        );
+        // TODO: to uncomment when filter-based rewrite method is implemented
+//        this.setRewriteMethod( (precisionStep > 8) ?
+//          CONSTANT_SCORE_FILTER_REWRITE :
+//          CONSTANT_SCORE_AUTO_REWRITE_DEFAULT
+//        );
+        this.setRewriteMethod(CONSTANT_SCORE_AUTO_REWRITE_DEFAULT);
         break;
       default:
         // should never happen
