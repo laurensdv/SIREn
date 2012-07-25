@@ -24,6 +24,7 @@ Tasks
 * [GH-30] Upgrade SIREn to use Lucene 4.0 and the new Flex (flexible Indexing) feature
 * [GH-49] Remove SIREn 0.2 codec
 * [GH-56] Port Tuple And Cell query unit tests
+* [GH-58] Update Numeric Analyzers to Lucene4.0
 
 ======================= Release 0.2.3-RC1 2011-12-11 =======================
 
