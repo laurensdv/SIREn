@@ -36,8 +36,6 @@ public class TreeQueryProvider extends QueryProvider {
   private final List<AttributeQueryProvider> rootAttributeProviders = new ArrayList<AttributeQueryProvider>();
   private final List<TreeQueryProvider> ancestorProviders = new ArrayList<TreeQueryProvider>();
 
-  private int counter = 0;
-
   @Override
   public void setSeed(final int seed) {
     for (final AttributeQueryProvider attrProvider : rootAttributeProviders) {
@@ -65,11 +63,6 @@ public class TreeQueryProvider extends QueryProvider {
 
   protected void addAncestorProvider(final TreeQueryProvider treeProvider) {
     ancestorProviders.add(treeProvider);
-  }
-
-  @Override
-  public boolean hasNext() {
-    return counter < nbQueries;
   }
 
   @Override
@@ -131,6 +124,17 @@ public class TreeQueryProvider extends QueryProvider {
       return builder.toString();
     }
 
+  }
+
+  @Override
+  public void reset() {
+    super.reset();
+    for (final AttributeQueryProvider attrProvider : rootAttributeProviders) {
+      attrProvider.reset();
+    }
+    for (final TreeQueryProvider treeProvider : ancestorProviders) {
+      treeProvider.reset();
+    }
   }
 
 }

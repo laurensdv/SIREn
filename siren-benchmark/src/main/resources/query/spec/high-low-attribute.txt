@@ -1,11 +1,17 @@
 {
-
-  "root" : [
-      {
-         "attribute" : { "boolean" : ["HIGH:MUST"] },
-         "value" : { "boolean" : ["LOW:MUST"] }
-      }
  
-    ]
-
+  "size" : 200,
+  
+  "query" : {
+   
+              "root" : [
+                  {
+                     "attribute" : { "boolean" : ["HIGH:MUST"] },
+                     "value" : { "boolean" : ["LOW:MUST"] }
+                  }
+             
+                ]
+           
+            }
+            
 }

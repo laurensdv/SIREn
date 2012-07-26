@@ -35,13 +35,14 @@ import org.apache.lucene.search.TotalHitCountCollector;
 import org.sindice.siren.benchmark.Measurement;
 import org.sindice.siren.benchmark.query.provider.Query;
 import org.sindice.siren.benchmark.query.provider.SirenQueryConverter;
+import org.sindice.siren.search.doc.DocumentQuery;
 import org.sindice.siren.search.node.TwigQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SirenMultiQueryTask extends QueryTask {
 
-  private final List<TwigQuery> queries;
+  private final List<DocumentQuery> queries;
   private final SearcherManager mgr;
 
   protected final Logger logger = LoggerFactory.getLogger(SirenMultiQueryTask.class);
@@ -49,29 +50,27 @@ public class SirenMultiQueryTask extends QueryTask {
   public SirenMultiQueryTask(final List<Query> queries, final SearcherManager mgr)
   throws IOException {
     this.mgr = mgr;
-    this.queries = new ArrayList<TwigQuery>(queries.size());
+    this.queries = new ArrayList<DocumentQuery>(queries.size());
     final SirenQueryConverter converter = new SirenQueryConverter();
     for (final Query query : queries) {
-      logger.debug("Received query: {}", query.toString());
+      // logger.debug("Received query: {}", query.toString());
       final TwigQuery q = converter.convert(query);
-      logger.debug("Converted query into: {}", q.toString());
-      this.queries.add(q);
+      // logger.debug("Converted query into: {}", q.toString());
+      this.queries.add(new DocumentQuery(q));
     }
   }
 
   @Override
   public Measurement call() throws Exception {
     IndexSearcher searcher = this.mgr.acquire();
-    int hits = 0;
+    final TotalHitCountCollector collector = new TotalHitCountCollector();
 
     try {
       for (final org.apache.lucene.search.Query query : queries) {
-        final TotalHitCountCollector collector = new TotalHitCountCollector();
         searcher.search(query, collector);
-        hits += collector.getTotalHits();
       }
 
-      return new Measurement(hits);
+      return new Measurement(collector.getTotalHits());
     }
     finally {
       this.mgr.release(searcher);

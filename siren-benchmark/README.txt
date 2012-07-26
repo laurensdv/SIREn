@@ -116,8 +116,8 @@ execution, you have to execute this command with sudo.
 The benchmark platform executes each query specification in a separate JVM for 
 minimising bias in the measurements.
 For each query specification, the benchmark generates a number of random 
-queries. The number of queries that will be generated is 50 by default but can 
-be modified using the CLI parameter '--nb-queries'.
+queries. The number of queries that will be generated is defined in the JSON
+query specification with the attribute 'size'.
 The benchmark performs 60 measurements. Each measurement records the time to
 execute the generated queries in sequence.
 At the end of the execution, the benchmark outputs the measurement results to

@@ -1,9 +1,15 @@
 {
-
-  "root" : [
-      {
-         "value" : { "boolean" : ["HIGH:MUST", "HIGH:MUST"] }
-      }
-    ]
-
+ 
+  "size" : 50,
+  
+  "query" : {
+   
+              "root" : [
+                  {
+                     "value" : { "boolean" : ["HIGH:MUST", "HIGH:MUST"] }
+                  }
+                ]
+           
+            }
+            
 }

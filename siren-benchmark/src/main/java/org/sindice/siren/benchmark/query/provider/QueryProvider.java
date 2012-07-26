@@ -32,6 +32,13 @@ public abstract class QueryProvider implements Iterator<Query>, Closeable {
 
   protected int nbQueries = 50;
 
+  protected int counter = 0;
+
+  @Override
+  public boolean hasNext() {
+    return counter < nbQueries;
+  }
+
   public abstract void setSeed(final int seed);
 
   public void setNbQueries(final int nbQueries) {
@@ -47,5 +54,8 @@ public abstract class QueryProvider implements Iterator<Query>, Closeable {
     throw new UnsupportedOperationException();
   }
 
+  public void reset() {
+    counter = 0;
+  }
 
 }

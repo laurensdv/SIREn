@@ -1,9 +1,15 @@
 {
-
-  "root" : [
-      {
-         "value" : { "phrase" : "MEDIUM" }
-      }
-    ]
-
+ 
+  "size" : 50,
+  
+  "query" : {
+   
+              "root" : [
+                  {
+                     "value" : { "phrase" : "MEDIUM" }
+                  }
+                ]
+           
+            }
+            
 }

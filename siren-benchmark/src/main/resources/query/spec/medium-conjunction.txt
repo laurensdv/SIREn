@@ -1,9 +1,15 @@
 {
-
-  "root" : [
-      {
-         "value" : { "boolean" : ["MEDIUM:MUST", "MEDIUM:MUST"] }
-      }
-    ]
-
+ 
+  "size" : 500,
+  
+  "query" : {
+   
+              "root" : [
+                  {
+                     "value" : { "boolean" : ["MEDIUM:MUST", "MEDIUM:MUST"] }
+                  }
+                ]
+           
+            }
+            
 }

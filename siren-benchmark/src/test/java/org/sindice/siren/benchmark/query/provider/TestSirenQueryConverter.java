@@ -33,7 +33,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.junit.Test;
-import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.TreeQuerySpecification;
+import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.QuerySpecification;
 import org.sindice.siren.benchmark.query.provider.TreeQueryProvider.TreeQuery;
 import org.sindice.siren.search.node.NodeBooleanQuery;
 import org.sindice.siren.search.node.NodePhraseQuery;
@@ -48,7 +48,7 @@ public class TestSirenQueryConverter {
   @Test
   public void testBoolean() throws IOException {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(new File(querySpecDir, "boolean.txt"));
+    final QuerySpecification spec = parser.parse(new File(querySpecDir, "boolean.txt"));
     final QueryProvider provider = spec.getQueryProvider();
 
     final TreeQuery q = (TreeQuery) provider.next();
@@ -81,7 +81,7 @@ public class TestSirenQueryConverter {
   @Test
   public void testAttribute() throws IOException {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(new File(querySpecDir, "attribute.txt"));
+    final QuerySpecification spec = parser.parse(new File(querySpecDir, "attribute.txt"));
     final QueryProvider provider = spec.getQueryProvider();
 
     final TreeQuery q = (TreeQuery) provider.next();
@@ -106,7 +106,7 @@ public class TestSirenQueryConverter {
   @Test
   public void testTree() throws IOException {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(new File(querySpecDir, "tree.txt"));
+    final QuerySpecification spec = parser.parse(new File(querySpecDir, "tree.txt"));
     final QueryProvider provider = spec.getQueryProvider();
 
     final TreeQuery q = (TreeQuery) provider.next();

@@ -1,9 +1,15 @@
 {
-
-  "root" : [
-      {
-         "value" : { "phrase" : "HIGH" }
-      }
-    ]
-
+ 
+  "size" : 20,
+  
+  "query" : {
+   
+              "root" : [
+                  {
+                     "value" : { "phrase" : "HIGH" }
+                  }
+                ]
+           
+            }
+            
 }
