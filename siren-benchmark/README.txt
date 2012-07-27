@@ -89,7 +89,7 @@ based on the previously fetched dataset sample
 $ ./scripts/index --document Sindice --input /tmp/sindice-dataset-20/ 
   --index Siren10 --output /tmp/sindice-index-20/
 
-The index files are located into a sub-directory '${output_dir}/<index>/'.
+The index files are located into a sub-directory '${output_dir}/index/'.
 
 During the indexing process, the benchmark platform records the time to commit 
 every 100K documents and the time to optimise the index at the end of the 
