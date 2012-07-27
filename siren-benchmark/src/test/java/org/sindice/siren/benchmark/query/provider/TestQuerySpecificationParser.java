@@ -39,7 +39,7 @@ import org.sindice.siren.benchmark.query.provider.BooleanQueryProvider.BooleanQu
 import org.sindice.siren.benchmark.query.provider.EmptyQueryProvider.EmptyQuery;
 import org.sindice.siren.benchmark.query.provider.PhraseQueryProvider.PhraseQuery;
 import org.sindice.siren.benchmark.query.provider.Query.Occur;
-import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.TreeQuerySpecification;
+import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.QuerySpecification;
 import org.sindice.siren.benchmark.query.provider.TreeQueryProvider.TreeQuery;
 
 public class TestQuerySpecificationParser {
@@ -50,8 +50,10 @@ public class TestQuerySpecificationParser {
   @Test
   public void testParsingBoolean() throws IOException {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(new File(querySpecDir, "boolean.txt"));
+    final QuerySpecification spec = parser.parse(new File(querySpecDir, "boolean.txt"));
     final QueryProvider provider = spec.getQueryProvider();
+
+    assertEquals(50, spec.getSize());
 
     int counter = 0;
     while (provider.hasNext()) {
@@ -78,8 +80,10 @@ public class TestQuerySpecificationParser {
   @Test
   public void testParsingAttribute() throws IOException {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(new File(querySpecDir, "attribute.txt"));
+    final QuerySpecification spec = parser.parse(new File(querySpecDir, "attribute.txt"));
     final QueryProvider provider = spec.getQueryProvider();
+
+    assertEquals(50, spec.getSize());
 
     int counter = 0;
     while (provider.hasNext()) {
@@ -98,8 +102,10 @@ public class TestQuerySpecificationParser {
   @Test
   public void testParsingTree() throws IOException {
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(new File(querySpecDir, "tree.txt"));
+    final QuerySpecification spec = parser.parse(new File(querySpecDir, "tree.txt"));
     final QueryProvider provider = spec.getQueryProvider();
+
+    assertEquals(30, spec.getSize());
 
     int counter = 0;
     while (provider.hasNext()) {
@@ -113,7 +119,7 @@ public class TestQuerySpecificationParser {
       assertTrue(q.getAncestorQueries().get(0).getAncestorQueries().isEmpty());
     }
     provider.close();
-    assertEquals(50, counter);
+    assertEquals(30, counter);
   }
 
 }

@@ -43,14 +43,15 @@ import org.sindice.siren.benchmark.query.provider.Query.Term;
  * <p>
  * Grammar: <br>
  * <ul>
- * <li> GROUP     : HIGH | MEDIUM | LOW
- * <li> OCCUR     : MUST | SHOULD | MUST_NOT
- * <li> EMPTY     : NULL
- * <li> PHRASE    : { phrase: GROUP }
- * <li> BOOLEAN   : { boolean: GROUP:OCCUR+ }
- * <li> PRIMITIVE : EMPTY | PHRASE | BOOLEAN
- * <li> ATTRIBUTE : { attribute: PRIMITIVE , value: PRIMITIVE }
- * <li> TREE      : { root: ATTRIBUTE+ , ancestors: TREE* }
+ * <li> QUERY_SPEC : { size : INT, query : TREE }
+ * <li> TREE       : { root: ATTRIBUTE+ , ancestors: TREE* }
+ * <li> ATTRIBUTE  : { attribute: PRIMITIVE , value: PRIMITIVE }
+ * <li> PRIMITIVE  : EMPTY | PHRASE | BOOLEAN
+ * <li> EMPTY      : NULL
+ * <li> PHRASE     : { phrase: GROUP }
+ * <li> BOOLEAN    : { boolean: GROUP:OCCUR+ }
+ * <li> GROUP      : HIGH | MEDIUM | LOW
+ * <li> OCCUR      : MUST | SHOULD | MUST_NOT
  * </ul>
  */
 public class QuerySpecificationParser {
@@ -61,12 +62,15 @@ public class QuerySpecificationParser {
     this.lexiconDir = lexiconDir;
   }
 
-  public TreeQuerySpecification parse(final File jsonQuerySpec)
+  public QuerySpecification parse(final File jsonQuerySpec)
   throws IOException {
     final ObjectMapper mapper = new ObjectMapper();
     final JsonNode node = mapper.readTree(jsonQuerySpec);
 
-    return this.visitTree(node);
+    final QuerySpecification spec = new QuerySpecification();
+    spec.setSize(node.path(QuerySpecification.SIZE_ATTRIBUTE).asInt());
+    spec.setQuery(this.visitTree(node.path(QuerySpecification.QUERY_ATTRIBUTE)));
+    return spec;
   }
 
   private TreeQuerySpecification visitTree(final JsonNode node) {
@@ -132,7 +136,37 @@ public class QuerySpecificationParser {
     return spec;
   }
 
-  public static class TreeQuerySpecification extends QuerySpecification {
+  public static class QuerySpecification extends AbstractQuerySpecification {
+
+    private static String SIZE_ATTRIBUTE = "size";
+    private static String QUERY_ATTRIBUTE = "query";
+
+    private int size;
+    private TreeQuerySpecification query;
+
+    public void setSize(final int size) {
+      this.size = size;
+    }
+
+    public void setQuery(final TreeQuerySpecification tree) {
+      this.query = tree;
+    }
+
+    public int getSize() {
+      return size;
+    }
+
+    @Override
+    public TreeQueryProvider getQueryProvider() throws IOException {
+      final TreeQueryProvider provider = query.getQueryProvider();
+      provider.setNbQueries(size);
+      provider.reset();
+      return provider;
+    }
+
+  }
+
+  public static class TreeQuerySpecification extends AbstractQuerySpecification {
 
     private static String ROOT_ATTRIBUTE = "root";
     private static String ANCESTOR_ATTRIBUTE = "ancestors";
@@ -162,7 +196,7 @@ public class QuerySpecificationParser {
 
   }
 
-  public static class AttributeQuerySpecification extends QuerySpecification {
+  public static class AttributeQuerySpecification extends AbstractQuerySpecification {
 
     private PrimitiveQuerySpecification attribute, value;
     private final File lexiconDir;
@@ -246,13 +280,13 @@ public class QuerySpecificationParser {
 
   }
 
-  public static abstract class QuerySpecification {
+  public static abstract class AbstractQuerySpecification {
 
     public abstract QueryProvider getQueryProvider() throws IOException;
 
   }
 
-  public static abstract class PrimitiveQuerySpecification extends QuerySpecification {
+  public static abstract class PrimitiveQuerySpecification extends AbstractQuerySpecification {
 
     @Override
     public abstract PrimitiveQueryProvider getQueryProvider();

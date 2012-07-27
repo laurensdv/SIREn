@@ -34,8 +34,10 @@ import org.sindice.siren.benchmark.Measurement;
 import org.sindice.siren.benchmark.query.provider.Query;
 import org.sindice.siren.benchmark.query.provider.SirenQueryConverter;
 import org.sindice.siren.search.doc.DocumentQuery;
+import org.sindice.siren.search.node.NodeQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+//github.com/rdelbru/SIREn.git
 
 public class SirenSingleQueryTask extends QueryTask {
 
@@ -49,8 +51,9 @@ public class SirenSingleQueryTask extends QueryTask {
     this.mgr = mgr;
     final SirenQueryConverter converter = new SirenQueryConverter();
     logger.debug("Received query: {}", query.toString());
-    this.query = new DocumentQuery(converter.convert(query));
-    logger.debug("Converted query into: {}", this.query.toString());
+    final NodeQuery nq = converter.convert(query);
+    logger.debug("Converted query into: {}", nq.toString());
+    this.query = new DocumentQuery(nq);
   }
 
   @Override

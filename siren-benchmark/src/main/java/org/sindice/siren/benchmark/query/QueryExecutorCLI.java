@@ -47,7 +47,6 @@ public class QueryExecutorCLI {
   public static final String       LEXICON_DIR         = "lexicon";
   public static final String       QUERY_SPEC          = "query";
 
-  public static final String       NB_QUERIES          = "nb-queries";
   public static final String       COLD_CACHE          = "cold-cache";
   public static final String       SEED                = "seed";
 
@@ -60,9 +59,6 @@ public class QueryExecutorCLI {
         .withRequiredArg().ofType(IndexWrapperType.class);
     parser.accepts(INDEX_DIRECTORY, "Specify the indexing directory.")
         .withRequiredArg().ofType(File.class);
-    parser.accepts(NB_QUERIES, "the number of queries that will be generated " +
-    		"by the QueryProvider.")
-        .withRequiredArg().ofType(Integer.class).defaultsTo(50);
     parser.accepts(COLD_CACHE, "The cache will be flushed before executing the query.")
         .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     parser.accepts(SEED, "The seed for generating random keywords")
@@ -132,15 +128,11 @@ public class QueryExecutorCLI {
     // TermLexiconReader seed
     final int seed = (Integer) opts.valueOf(SEED);
 
-    // Number of queries
-    final int nbQueries = (Integer) opts.valueOf(NB_QUERIES);
-
     // Configure the benchmark
     final File indexPath = new File(indexDirectory, "index");
     final QueryExecutor qe = new QueryExecutor(wrapperType, indexPath,
       querySpec, lexiconDir);
     qe.setColdCache(coldCache);
-    qe.setNbQueries(nbQueries);
     qe.setSeed(seed);
 
     // Execute the benchmark

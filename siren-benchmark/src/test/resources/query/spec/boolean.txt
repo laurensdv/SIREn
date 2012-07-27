@@ -1,10 +1,15 @@
 {
 
-  "root" : [
-      {
-         "value" : { "boolean" : ["HIGH:MUST", "MEDIUM:SHOULD", "LOW:MUST_NOT"] }
-      }
- 
-    ]
-
+  "size" : 50,
+  
+  "query" : {
+      
+              "root" : [
+                  {
+                     "value" : { "boolean" : ["HIGH:MUST", "MEDIUM:SHOULD", "LOW:MUST_NOT"] }
+                  }
+             
+                ]
+            
+            }
 }

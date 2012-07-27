@@ -37,7 +37,7 @@ import org.sindice.siren.benchmark.generator.lexicon.TermLexiconReader;
 import org.sindice.siren.benchmark.query.provider.Query;
 import org.sindice.siren.benchmark.query.provider.QueryProvider;
 import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser;
-import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.TreeQuerySpecification;
+import org.sindice.siren.benchmark.query.provider.QuerySpecificationParser.QuerySpecification;
 import org.sindice.siren.benchmark.query.task.QueryTask;
 import org.sindice.siren.benchmark.util.BenchmarkTimer;
 import org.sindice.siren.benchmark.util.JvmState;
@@ -61,6 +61,8 @@ public class QueryExecutor extends AbstractQueryExecutor {
 
   protected boolean coldCache = false;
 
+  protected boolean resetIfJvmStateChanges = false;
+
   final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
 
   public QueryExecutor(final IndexWrapperType wrapperType,
@@ -69,7 +71,7 @@ public class QueryExecutor extends AbstractQueryExecutor {
                        final File lexiconDir) throws IOException {
     this.wrapper = IndexWrapperFactory.createIndexWrapper(wrapperType, indexDirectory);
     final QuerySpecificationParser parser = new QuerySpecificationParser(lexiconDir);
-    final TreeQuerySpecification spec = parser.parse(querySpec);
+    final QuerySpecification spec = parser.parse(querySpec);
     provider = spec.getQueryProvider();
     querySpecName = querySpec.getName().replace(".txt", "");
   }
@@ -79,13 +81,6 @@ public class QueryExecutor extends AbstractQueryExecutor {
    */
   public void setColdCache(final boolean b) {
     this.coldCache = b;
-  }
-
-  /**
-   * Set the number of queries to use during the execution
-   */
-  public void setNbQueries(final int nbQueries) {
-    this.provider.setNbQueries(nbQueries);
   }
 
   /**
@@ -122,10 +117,12 @@ public class QueryExecutor extends AbstractQueryExecutor {
    * of hits.
    */
   protected void doBenchmark(final QueryTask task) throws Exception {
-    // warmup the jwm
+    // warmup the jvm
     this.warmup(task, WARMUP_TIME);
+
     // determine how many task executions is necessary for one measurement
     final long nExecutions = this.determineNumberExecutions(task);
+
     // do the measurements
     measurements = this.doMeasurements(NUMBER_MEASUREMENTS, task, nExecutions);
     // and compute stats
@@ -169,7 +166,7 @@ public class QueryExecutor extends AbstractQueryExecutor {
      JvmUtils.cleanJvm();
 
      logger.info("Determining how many executions of task are required");
-     long n =1;
+     long n = 1;
      while (true) {
        if (coldCache) { // flush fs cache before starting measurement
          this.flushFSCache();
@@ -180,8 +177,11 @@ public class QueryExecutor extends AbstractQueryExecutor {
          n *= 2; // so double n and retry; note: if n overflows then measure will detect it
          continue;
        }
-       else {  // have obtained a reliable estimate of n
-         logger.info("Determined that {} executions of task are required for executionTimeGoal to be met", n);
+       // have obtained a reliable estimate of n
+       else {
+         logger.info("Determined that {} executions of task with {} queries " +
+         		"are required for executionTimeGoal to be met",
+         		n, this.provider.getNbQueries());
          return n;
        }
      }
@@ -209,7 +209,7 @@ public class QueryExecutor extends AbstractQueryExecutor {
        measurements[i] = this.measure(task, nExecutions);
        logger.debug("Measurement {}: {}", i, measurements[i]);
 
-       if (!measurements[i].getJvmState().equals(jvmState)) {
+       if (resetIfJvmStateChanges && !measurements[i].getJvmState().equals(jvmState)) {
          logger.info("Reset measurement loop. Detected JVM state change: {}", measurements[i].getJvmState().difference(jvmState));
          jvmState = measurements[i].getJvmState();  // reset to the latest JvmState
          i = -1; // causes the loop to restart at i = 0 on its next iteration

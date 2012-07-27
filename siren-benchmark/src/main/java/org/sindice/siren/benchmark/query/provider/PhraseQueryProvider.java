@@ -38,8 +38,6 @@ public class PhraseQueryProvider extends PrimitiveQueryProvider {
 
   private final TermGroup termGroup;
 
-  private int counter = 0;
-
   public PhraseQueryProvider(final TermGroup termGroup) {
    this.termGroup = termGroup;
   }
@@ -48,11 +46,6 @@ public class PhraseQueryProvider extends PrimitiveQueryProvider {
   public void setTermLexicon(final File lexiconDir) throws IOException {
     reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.PHRASE_SUBDIR));
     reader.setSeed(seed);
-  }
-
-  @Override
-  public boolean hasNext() {
-    return (counter < nbQueries) ? true : false;
   }
 
   @Override
@@ -95,6 +88,12 @@ public class PhraseQueryProvider extends PrimitiveQueryProvider {
       builder.append("\"");
       return builder.toString();
     }
+  }
+
+  @Override
+  public void reset() {
+    super.reset();
+    reader.setSeed(seed);
   }
 
 }

@@ -1,27 +1,32 @@
 {
 
-  "root" : [
-      {
-        "attribute" : { "phrase" : "HIGH" },
-        "value" : { "boolean" : ["HIGH:MUST"] }
-      },
-      {
-        "attribute" : { "boolean" : ["HIGH:MUST"] },
-        "value" : { "phrase" : "LOW" }
-      }
-    ],
-    
-  "ancestors" : [
-      {
+  "size" : 30,
+  
+  "query" : {
       
-        "root" : [
-          {
-            "attribute" : { "phrase" : "HIGH" },
-            "value" : { "boolean" : ["HIGH:MUST"] }
-          }
-        ]
-      
-      }
-  ]
-
+              "root" : [
+                  {
+                    "attribute" : { "phrase" : "HIGH" },
+                    "value" : { "boolean" : ["HIGH:MUST"] }
+                  },
+                  {
+                    "attribute" : { "boolean" : ["HIGH:MUST"] },
+                    "value" : { "phrase" : "LOW" }
+                  }
+                ],
+                
+              "ancestors" : [
+                  {
+                  
+                    "root" : [
+                      {
+                        "attribute" : { "phrase" : "HIGH" },
+                        "value" : { "boolean" : ["HIGH:MUST"] }
+                      }
+                    ]
+                  
+                  }
+              ]
+            
+            }
 }

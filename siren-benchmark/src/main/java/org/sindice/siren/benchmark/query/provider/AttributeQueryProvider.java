@@ -34,8 +34,6 @@ public class AttributeQueryProvider extends QueryProvider {
   private PrimitiveQueryProvider attributeProvider;
   private PrimitiveQueryProvider valueProvider;
 
-  private int counter = 0;
-
   @Override
   public void setSeed(final int seed) {
     attributeProvider.setSeed(seed);
@@ -55,11 +53,6 @@ public class AttributeQueryProvider extends QueryProvider {
 
   protected void addValueProvider(final PrimitiveQueryProvider valueProvider) {
     this.valueProvider = valueProvider;
-  }
-
-  @Override
-  public boolean hasNext() {
-    return (counter < nbQueries) ? true : false;
   }
 
   @Override
@@ -104,6 +97,13 @@ public class AttributeQueryProvider extends QueryProvider {
       return builder.toString();
     }
 
+  }
+
+  @Override
+  public void reset() {
+    super.reset();
+    attributeProvider.reset();
+    valueProvider.reset();
   }
 
 }

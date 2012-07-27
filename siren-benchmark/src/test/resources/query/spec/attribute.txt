@@ -1,11 +1,16 @@
 {
 
-  "root" : [
-      {
-         "attribute" : { "phrase" : "HIGH" },
-         "value" : { "boolean" : ["HIGH:MUST"] }
-      }
- 
-    ]
-
+  "size" : 50,
+  
+  "query" : {
+      
+              "root" : [
+                  {
+                     "attribute" : { "phrase" : "HIGH" },
+                     "value" : { "boolean" : ["HIGH:MUST"] }
+                  }
+             
+                ]
+            
+            }
 }

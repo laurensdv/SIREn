@@ -53,9 +53,9 @@ public class SirenMultiQueryTask extends QueryTask {
     this.queries = new ArrayList<DocumentQuery>(queries.size());
     final SirenQueryConverter converter = new SirenQueryConverter();
     for (final Query query : queries) {
-      logger.debug("Received query: {}", query.toString());
+      // logger.debug("Received query: {}", query.toString());
       final TwigQuery q = converter.convert(query);
-      logger.debug("Converted query into: {}", q.toString());
+      // logger.debug("Converted query into: {}", q.toString());
       this.queries.add(new DocumentQuery(q));
     }
   }
@@ -63,16 +63,14 @@ public class SirenMultiQueryTask extends QueryTask {
   @Override
   public Measurement call() throws Exception {
     IndexSearcher searcher = this.mgr.acquire();
-    int hits = 0;
+    final TotalHitCountCollector collector = new TotalHitCountCollector();
 
     try {
       for (final org.apache.lucene.search.Query query : queries) {
-        final TotalHitCountCollector collector = new TotalHitCountCollector();
         searcher.search(query, collector);
-        hits += collector.getTotalHits();
       }
 
-      return new Measurement(hits);
+      return new Measurement(collector.getTotalHits());
     }
     finally {
       this.mgr.release(searcher);

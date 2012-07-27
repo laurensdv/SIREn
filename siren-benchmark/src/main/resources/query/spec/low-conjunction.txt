@@ -1,9 +1,15 @@
 {
-
-  "root" : [
-      {
-         "value" : { "boolean" : ["LOW:MUST", "LOW:MUST"] }
-      }
-    ]
-
+ 
+  "size" : 2000,
+  
+  "query" : {
+   
+              "root" : [
+                  {
+                     "value" : { "boolean" : ["LOW:MUST", "LOW:MUST"] }
+                  }
+                ]
+           
+            }
+            
 }

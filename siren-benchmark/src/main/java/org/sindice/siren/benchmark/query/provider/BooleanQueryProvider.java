@@ -40,7 +40,6 @@ import org.sindice.siren.benchmark.query.provider.Query.Term;
 public class BooleanQueryProvider extends PrimitiveQueryProvider {
 
   private final List<Term> clauses;
-  private int counter = 0;
 
   public BooleanQueryProvider(final List<Term> clauses) {
     this.clauses = clauses;
@@ -50,11 +49,6 @@ public class BooleanQueryProvider extends PrimitiveQueryProvider {
   public void setTermLexicon(final File lexiconDir) throws IOException {
     reader = new TermLexiconReader(new File(lexiconDir, TermLexiconGenerator.TERM_SUBDIR));
     reader.setSeed(seed);
-  }
-
-  @Override
-  public boolean hasNext() {
-    return (counter < nbQueries) ? true : false;
   }
 
   @Override
@@ -103,6 +97,12 @@ public class BooleanQueryProvider extends PrimitiveQueryProvider {
       return builder.toString();
     }
 
+  }
+
+  @Override
+  public void reset() {
+    super.reset();
+    reader.setSeed(seed);
   }
 
 }
