@@ -28,6 +28,7 @@ Tasks
 * [GH-44] Adapt MultiTermQuery to new API
 * [GH-24] Review the SirenMultiTermQuery rewrite method based on recent changes in Lucene 4.0
 * [GH-58] Update Numeric Analyzers to Lucene4.0
+* [GH-43] Create a benchmark module
 
 ======================= Release 0.2.3-RC1 2011-12-11 =======================
 
