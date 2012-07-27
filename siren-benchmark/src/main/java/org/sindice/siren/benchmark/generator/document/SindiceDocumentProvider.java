@@ -391,6 +391,7 @@ public class SindiceDocumentProvider extends DocumentProvider {
       doc = reader.next();
       System.out.println(doc.getContent());
     }
+    reader.close();
   }
 
 }

@@ -33,13 +33,13 @@ import org.apache.lucene.search.TotalHitCountCollector;
 import org.sindice.siren.benchmark.Measurement;
 import org.sindice.siren.benchmark.query.provider.Query;
 import org.sindice.siren.benchmark.query.provider.SirenQueryConverter;
-import org.sindice.siren.search.node.TwigQuery;
+import org.sindice.siren.search.doc.DocumentQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SirenSingleQueryTask extends QueryTask {
 
-  private final TwigQuery query;
+  private final DocumentQuery query;
   private final SearcherManager mgr;
 
   protected final Logger logger = LoggerFactory.getLogger(SirenSingleQueryTask.class);
@@ -49,7 +49,7 @@ public class SirenSingleQueryTask extends QueryTask {
     this.mgr = mgr;
     final SirenQueryConverter converter = new SirenQueryConverter();
     logger.debug("Received query: {}", query.toString());
-    this.query = converter.convert(query);
+    this.query = new DocumentQuery(converter.convert(query));
     logger.debug("Converted query into: {}", this.query.toString());
   }
 

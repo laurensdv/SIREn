@@ -18,7 +18,7 @@ The benchmark platform is pre-configured to work with the Sindice-2011 dataset
 archives. The platform provides four bash scripts located in the "./scripts" 
 folder. Each script is performing one step of the benchmark process: fetching
 the dataset, creating a term lexicon, creating the index and executing the
-suite of queries. Each of this step is described below.
+suite of queries. Each of these steps is described below.
 
 CONFIGURATION
 =============
@@ -30,7 +30,7 @@ JAVA_PARAM variable for tuning the parameters of the Java Virtual Machine.
 
 To enable the benchmark platform to flush the OS cache before each query
 execution (on Linux only), you have to copy the flush-fs-cache script located in
-'./src/main/resources/' to 'usr/sbin/'
+'./src/main/resources/' to '/usr/sbin/'
 
 $ sudo cp ./src/main/resources/flush-fs-cache /usr/sbin/
 
@@ -46,7 +46,7 @@ a given directory.
 Example: To fetch a sample composed of 20 archives (of 64MB each) and store them
 to the directory '/tmp/sindice-dataset-20/'
 
-$ ./scripts/fetcher --output-dir /tmp/sindice-dataset-20/ --sample-size 20
+$ ./scripts/fetcher --output /tmp/sindice-dataset-20/ --size 20
 
 2. Creating the term lexicon
 ----------------------------
@@ -89,11 +89,11 @@ based on the previously fetched dataset sample
 $ ./scripts/index --document Sindice --input /tmp/sindice-dataset-20/ 
   --index Siren10 --output /tmp/sindice-index-20/
 
-The index files are located into a subdirectory '${output_dir}/index/'.
+The index files are located into a sub-directory '${output_dir}/<index>/'.
 
 During the indexing process, the benchmark platform records the time to commit 
 every 100K documents and the time to optimise the index at the end of the 
-process. The time logs are written into the subdirectory 
+process. The time logs are written into the sub-directory 
 '${output_dir}/time-logs/'.
 
 4. Executing the suite of queries
@@ -123,6 +123,52 @@ execute the generated queries in sequence.
 At the end of the execution, the benchmark outputs the measurement results to
 '${input_dir}/benchmark/'. The measurement results include the raw measurements, 
 the average time, the average query rate and the number of hits.
+
+JSON Query Specification Syntax:
+
+  TREE      := { root: ATTRIBUTE+ , ancestors: TREE* }
+  ATTRIBUTE := { attribute: PRIMITIVE , value: PRIMITIVE }
+  PRIMITIVE := EMPTY | PHRASE | BOOLEAN
+  EMPTY     := NULL
+  PHRASE    := { phrase: GROUP }
+  BOOLEAN   := { boolean: GROUP:OCCUR+ }
+  GROUP     := HIGH | MEDIUM | LOW
+  OCCUR     := MUST | SHOULD | MUST_NOT
+
+5. Exporting the benchmark results
+----------------------------------
+
+The script "./scripts/export" exports the results of a benchmark run into a
+human readable format. By default, it is exported as a HTML table.
+
+Example: To export the previous run results
+
+$ ./scripts/export --index Siren10 --index-dir sindice-index-20/
+  --q-results-dir sindice-index-20/benchmark/
+
+It is possible to export results from several indexes by removing the --index
+option and by using the following file hierarchies:
+
+- Query benchmark results file structure:
+
+  <index>/
+  <index>/<query-spec>/
+  <index>/<query-spec>/hits-{WARM,COLD}
+  <index>/<query-spec>/time-{WARM,COLD}
+  <index>/<query-spec>/rate-{WARM,COLD}
+  <index>/<query-spec>/measurement-{WARM,COLD}
+
+<query-spec> is a query specification file name, e.g., low-phrase.
+
+- Index file structure (extracts time-logs + index size):
+
+  <index>/
+  <index>/time-logs/
+  <index>/time-logs/commit.out
+  <index>/time-logs/optimise.out
+  <index>/index/
+
+<index> is an Index type, e.g., Siren10.
 
 --------------------------------------------------------------------------------
 
