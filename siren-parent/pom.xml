@@ -10,7 +10,7 @@
 
   <groupId>org.sindice.siren</groupId>
   <artifactId>siren-parent</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>siren-parent</name>
   <url>http://siren.sindice.org</url>

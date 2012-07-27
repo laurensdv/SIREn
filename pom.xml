@@ -11,7 +11,7 @@
 
   <groupId>org.sindice.siren</groupId>
   <artifactId>siren-aggregator</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>siren-aggregator</name>
 
