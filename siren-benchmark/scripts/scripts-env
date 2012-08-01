@@ -33,4 +33,4 @@ BENCH_HOME=${SCRIPT_HOME}/../
 
 TARGET_DIR=${BENCH_HOME}/target/
 
-JAVA_CP="${TARGET_DIR}siren-benchmark-0.3.0-SNAPSHOT-jar-with-dependencies.jar"
+JAVA_CP="${TARGET_DIR}siren-benchmark-1.0-SNAPSHOT-jar-with-dependencies.jar"
