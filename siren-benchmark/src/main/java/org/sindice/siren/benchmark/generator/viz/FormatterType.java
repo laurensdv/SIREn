@@ -20,24 +20,12 @@
  */
 package org.sindice.siren.benchmark.generator.viz;
 
-
 /**
- * Contains different kinds of measurement, e.g., the index files size or the
- * query benchmark results.
- * @author Stephane Campinas [27 Jul 2012]
+ * The type of the formatter which defines how the results are displayed.
+ * @author Stephane Campinas [14 Aug 2012]
  * @email stephane.campinas@deri.org
  *
  */
-public abstract class BenchmarkResults {
-
-  private String directoryName;
-
-  public void setDirectoryName(String name) {
-    this.directoryName = name;
-  }
-
-  public String getDirectoryName() {
-    return directoryName;
-  }
-
+public enum FormatterType {
+  HTML
 }

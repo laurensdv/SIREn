@@ -31,9 +31,7 @@ import java.io.IOException;
 public class IndexWrapperFactory {
 
   public enum IndexWrapperType {
-    Siren10,
-    // For tests only
-    Mock
+    Siren10
   }
 
   public static final IndexWrapper createIndexWrapper(final IndexWrapperType type, final File indexPath)

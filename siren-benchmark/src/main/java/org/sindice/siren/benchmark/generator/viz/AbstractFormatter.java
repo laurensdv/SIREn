@@ -20,24 +20,45 @@
  */
 package org.sindice.siren.benchmark.generator.viz;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
 
 /**
- * Contains different kinds of measurement, e.g., the index files size or the
- * query benchmark results.
- * @author Stephane Campinas [27 Jul 2012]
+ * 
+ * @author Stephane Campinas [14 Aug 2012]
  * @email stephane.campinas@deri.org
  *
  */
-public abstract class BenchmarkResults {
+public abstract class AbstractFormatter
+implements Formatter {
 
-  private String directoryName;
+  /** To round the measure value */
+  private static int round = 2;
 
-  public void setDirectoryName(String name) {
-    this.directoryName = name;
+  @Override
+  public void format(final Writer out)
+  throws IOException {
+    final List<BenchmarkResults> brs = getSortedList();
+
+    start(out);
+    for (BenchmarkResults br: brs) {
+      addBenchmarkResult(out, br);
+    }
+    end(out);
   }
 
-  public String getDirectoryName() {
-    return directoryName;
+
+  protected String addNumericValue(Number v) {
+    return String.format("%." + round + "f", v);
   }
+
+  protected abstract List<BenchmarkResults> getSortedList();
+
+  protected abstract void start(final Writer out) throws IOException;
+
+  protected abstract void addBenchmarkResult(final Writer out, BenchmarkResults br) throws IOException;
+
+  protected abstract void end(final Writer out) throws IOException;
 
 }

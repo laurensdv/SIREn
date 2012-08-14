@@ -20,24 +20,30 @@
  */
 package org.sindice.siren.benchmark.generator.viz;
 
+import org.sindice.siren.benchmark.generator.viz.index.HtmlIndexFormatter;
+import org.sindice.siren.benchmark.generator.viz.index.IndexResultsIterator;
 
 /**
- * Contains different kinds of measurement, e.g., the index files size or the
- * query benchmark results.
- * @author Stephane Campinas [27 Jul 2012]
+ * Contains the actual implementations to export the set of results
+ * @author Stephane Campinas [14 Aug 2012]
  * @email stephane.campinas@deri.org
  *
  */
-public abstract class BenchmarkResults {
+public interface ResultsExporter {
 
-  private String directoryName;
+  /**
+   * Return the {@link ResultsIterator} implementation which extracts the
+   * desired measurements.
+   */
+  public ResultsIterator getResultsIterator();
 
-  public void setDirectoryName(String name) {
-    this.directoryName = name;
-  }
-
-  public String getDirectoryName() {
-    return directoryName;
-  }
+  /**
+   * Returns the {@link Formatter} implementation, which expects results to be
+   * extracted using the associated {@link ResultsIterator}, e.g.,
+   * {@link IndexResultsIterator} and {@link HtmlIndexFormatter}.
+   * @param ft
+   * @return
+   */
+  public Formatter getFormatter(FormatterType ft);
 
 }

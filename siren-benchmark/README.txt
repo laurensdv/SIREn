@@ -143,9 +143,9 @@ human readable format. By default, it is exported as a HTML table.
 
 Example: To export the previous run results
 
-$ ./scripts/export --index Siren10 --index-dir sindice-index-20/
-  --q-results-dir sindice-index-20/benchmark/
+$ ./scripts/export --directories /tmp/sindice-index-20/
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 This creates the file results.html into the folder /tmp/sindice-index-20/viz.
@@ -183,6 +183,9 @@ option and by using the following file hierarchies:
 >>>>>>> parent of a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
 =======
 >>>>>>> parent of a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
+=======
+This creates the file results.html into the folder /tmp/sindice-index-20/viz.
+>>>>>>> a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
 
 --------------------------------------------------------------------------------
 

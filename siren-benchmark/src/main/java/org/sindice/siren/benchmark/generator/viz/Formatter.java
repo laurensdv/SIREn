@@ -20,24 +20,26 @@
  */
 package org.sindice.siren.benchmark.generator.viz;
 
+import java.io.IOException;
+import java.io.Writer;
 
 /**
- * Contains different kinds of measurement, e.g., the index files size or the
- * query benchmark results.
- * @author Stephane Campinas [27 Jul 2012]
+ * Collects a set of {@link BenchmarkResults}, sort them and export them using
+ * the given {@link FormatterType}.
+ * @author Stephane Campinas [14 Aug 2012]
  * @email stephane.campinas@deri.org
  *
  */
-public abstract class BenchmarkResults {
+public interface Formatter {
 
-  private String directoryName;
+  /**
+   * Collects the given results which will then be exported.
+   */
+  public void collect(BenchmarkResults br);
 
-  public void setDirectoryName(String name) {
-    this.directoryName = name;
-  }
-
-  public String getDirectoryName() {
-    return directoryName;
-  }
+  /**
+   * Export the formatted results into <code>out</code>.
+   */
+  public void format(final Writer out) throws IOException;
 
 }

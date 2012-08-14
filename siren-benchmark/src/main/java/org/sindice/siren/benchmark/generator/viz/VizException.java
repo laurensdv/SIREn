@@ -20,24 +20,21 @@
  */
 package org.sindice.siren.benchmark.generator.viz;
 
+public class VizException
+extends RuntimeException {
 
-/**
- * Contains different kinds of measurement, e.g., the index files size or the
- * query benchmark results.
- * @author Stephane Campinas [27 Jul 2012]
- * @email stephane.campinas@deri.org
- *
- */
-public abstract class BenchmarkResults {
+  private static final long serialVersionUID = 6187054942891143527L;
 
-  private String directoryName;
-
-  public void setDirectoryName(String name) {
-    this.directoryName = name;
+  public VizException() {
+    super();
   }
 
-  public String getDirectoryName() {
-    return directoryName;
+  public VizException(String msg) {
+    super(msg);
+  }
+
+  public VizException(Throwable t) {
+    super(t);
   }
 
 }
