@@ -70,12 +70,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math</artifactId>
-            <version>2.2</version>
-        </dependency>
-
-        <dependency>
             <groupId>net.sf.jsci</groupId>
             <artifactId>jsci</artifactId>
             <version>1.2</version>
