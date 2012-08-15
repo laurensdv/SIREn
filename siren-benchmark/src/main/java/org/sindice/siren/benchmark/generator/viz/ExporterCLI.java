@@ -41,6 +41,7 @@ public class ExporterCLI {
   public static final String   HELP           = "help";
 
   public static final String   DIRECTORIES    = "directories";
+  public static final String   DIFF           = "diff";
   public static final String   FORMATTER_TYPE = "formatter-type";
 
   public ExporterCLI() {
@@ -48,6 +49,7 @@ public class ExporterCLI {
     parser.accepts(HELP, "print this help");
     parser.accepts(DIRECTORIES, "The list of index directories")
         .withRequiredArg().ofType(File.class).withValuesSeparatedBy(',');
+    parser.accepts(DIFF, "Compute the diff of the selected directories");
     parser.accepts(FORMATTER_TYPE, "The formatter to export results with: " +
           Arrays.toString(FormatterType.values()))
           .withRequiredArg().ofType(FormatterType.class).defaultsTo(FormatterType.HTML);
@@ -73,7 +75,11 @@ public class ExporterCLI {
 
     logger.info("Exporting results from {} using formatter={}", directories, ft);
     final Exporter ex = new Exporter();
-    ex.export(ft, directories);
+    if (opts.has(DIFF)) {
+      ex.diff(ft, directories, null);
+    } else {
+      ex.export(ft, directories, null);
+    }
   }
 
   public static void main(String[] args)

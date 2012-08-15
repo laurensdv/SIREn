@@ -18,32 +18,33 @@
  * You should have received a copy of the GNU Affero General Public
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.sindice.siren.benchmark.generator.viz.query;
+package org.sindice.siren.benchmark.generator.viz.index.diff;
 
 import org.sindice.siren.benchmark.generator.viz.Formatter;
 import org.sindice.siren.benchmark.generator.viz.FormatterType;
 import org.sindice.siren.benchmark.generator.viz.ResultsExporter;
 import org.sindice.siren.benchmark.generator.viz.ResultsIterator;
+import org.sindice.siren.benchmark.generator.viz.index.IndexResultsIterator;
 
 /**
- * Query results exporter specifications
+ * Index results exporter specification for Diff-ing
  * @author Stephane Campinas [15 Aug 2012]
  * @email stephane.campinas@deri.org
  *
  */
-public class QueryResultsExporter
+public class IndexDiffResultsExporter
 implements ResultsExporter {
 
   @Override
   public ResultsIterator getResultsIterator() {
-    return new QueryResultsIterator();
+    return new IndexResultsIterator();
   }
 
   @Override
   public Formatter getFormatter(FormatterType ft) {
     switch (ft) {
       case HTML:
-        return new HtmlQueryFormatter();
+        return new HtmlIndexDiffFormatter();
       default:
         throw new EnumConstantNotPresentException(FormatterType.class, ft.toString());
     }

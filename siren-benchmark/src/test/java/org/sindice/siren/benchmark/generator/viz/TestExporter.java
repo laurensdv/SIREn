@@ -22,7 +22,7 @@ package org.sindice.siren.benchmark.generator.viz;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -35,7 +35,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TestExporter {
 
-  private final File          dir = new File("./src/test/resources/benchmark/complete");
+  private final File          complete = new File("./src/test/resources/benchmark/complete");
+  private final File          diff = new File("./src/test/resources/benchmark/diff");
   private final FormatterType ft;
 
   public TestExporter(FormatterType ft) {
@@ -49,28 +50,41 @@ public class TestExporter {
   }
 
   @Test
-  public void testOutput()
-  throws IOException {
-    final Exporter ex = new Exporter();
-    final File[] directories = new File[] {
-      new File(dir, "sindice-afor-20"),
-      new File(dir, "sindice-vint-20")
-    };
-
-    ex.export(ft, directories, new PrintWriter(System.out));
-  }
-
-  @Test
-  public void testOutputToFile()
+  public void testExportOutput()
   throws IOException {
     final File[] directories = new File[] {
-      new File(dir, "sindice-afor-20"),
-      new File(dir, "sindice-vint-20")
+      new File(complete, "sindice-afor-20"),
+      new File(complete, "sindice-vint-20")
     };
 
     try {
+      final StringWriter sw = new StringWriter();
       final Exporter ex = new Exporter();
-      ex.export(ft, directories);
+      ex.export(ft, Arrays.asList(directories), null);
+      ex.export(ft, Arrays.asList(directories), sw);
+      System.out.println(sw);
+    } finally {
+      for (File d: directories) {
+        FileUtils.deleteDirectory(new File(d, "viz"));
+      }
+    }
+  }
+
+  @Test
+  public void testDiffOutput()
+  throws IOException {
+    final File[] directories = new File[] {
+      new File(diff, "sindice-afor-20"),
+      new File(diff, "sindice-vint-20"),
+      new File(diff, "sindice-pfor-20")
+    };
+
+    try {
+      final StringWriter sw = new StringWriter();
+      final Exporter ex = new Exporter();
+      ex.diff(ft, Arrays.asList(directories), null);
+      ex.diff(ft, Arrays.asList(directories), sw);
+      System.out.println(sw);
     } finally {
       for (File d: directories) {
         FileUtils.deleteDirectory(new File(d, "viz"));

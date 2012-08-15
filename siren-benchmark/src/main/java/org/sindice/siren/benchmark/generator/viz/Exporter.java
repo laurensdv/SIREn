@@ -26,74 +26,57 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.sindice.siren.benchmark.generator.viz.index.IndexResultsExporter;
+import org.sindice.siren.benchmark.generator.viz.index.diff.IndexDiffResultsExporter;
 import org.sindice.siren.benchmark.generator.viz.query.QueryResultsExporter;
+import org.sindice.siren.benchmark.generator.viz.query.diff.QueryDiffResultsExporter;
 
 /**
- * 
+ * Export the set of results using the given formatter type and the set of exporters.
  * @author Stephane Campinas [14 Aug 2012]
  * @email stephane.campinas@deri.org
- *
  */
 public class Exporter {
 
   @SuppressWarnings("serial")
-  private final ArrayList<ResultsExporter> resExporters = new ArrayList<ResultsExporter>() {{
-    add(new QueryResultsExporter());
-    add(new IndexResultsExporter());
-  }};
+  private final ArrayList<ResultsExporter> resExporters  = new ArrayList<ResultsExporter>() {
+                                                           {
+                                                             add(new QueryResultsExporter());
+                                                             add(new IndexResultsExporter());
+                                                           }
+                                                         };
 
-  /**
-   * Iterates through each <code>directories</code> results, then export them
-   * using the given {@link FormatterType} <code>ft</code>. The display is
-   * written to the given {@link Writer} <code>o</code>.
-   */
-  public void export(FormatterType ft, File[] directories, Writer o)
-  throws IOException {
-    final BufferedWriter out = new BufferedWriter(o);
-
-    try {
-      for (ResultsExporter re: resExporters) {
-        final Formatter formatter = re.getFormatter(ft);
-        for (File dir: directories) {
-          final ResultsIterator ri = re.getResultsIterator();
-          ri.init(dir);
-          while (ri.hasNext()) {
-            formatter.collect(ri.next());
-          }
-        }
-        formatter.format(out);
-        out.append("\n*************************\n\n");
-      }
-    } finally {
-      out.close();
-    }
-  }
-
-  public void export(FormatterType ft, File[] directories)
-  throws IOException {
-    this.export(ft, Arrays.asList(directories));
-  }
+  @SuppressWarnings("serial")
+  private final ArrayList<ResultsExporter> diffExporters = new ArrayList<ResultsExporter>() {
+                                                           {
+                                                             add(new QueryDiffResultsExporter());
+                                                             add(new IndexDiffResultsExporter());
+                                                           }
+                                                         };
 
   /**
    * Iterates through each directories results, then export them using the given
-   * {@link FormatterType}. The display is written in each folder of directories,
-   * into <code>viz/results.html</code>.
+   * {@link FormatterType}. The display is written in each folder of
+   * directories, into <code>viz/results.html</code>.
    */
-  public void export(FormatterType ft, List<File> directories)
+  public void export(FormatterType ft, List<File> directories, Writer o)
   throws IOException {
-    for (File dir: directories) {
-      final File vizDir = new File(dir, "viz");
-      vizDir.mkdir();
-      final BufferedWriter out = new BufferedWriter(new FileWriter(new File(vizDir, "results.html")));
+    Writer out = o;
+
+    for (File dir : directories) {
+      if (o == null) {
+        final File vizDir = new File(dir, "viz");
+        vizDir.mkdir();
+        out = new BufferedWriter(new FileWriter(new File(vizDir, "results.html")));
+      }
       try {
-        for (ResultsExporter re: resExporters) {
+        for (ResultsExporter re : resExporters) {
           final ResultsIterator ri = re.getResultsIterator();
           final Formatter formatter = re.getFormatter(ft);
-  
+
           ri.init(dir);
           while (ri.hasNext()) {
             formatter.collect(ri.next());
@@ -101,8 +84,54 @@ public class Exporter {
           formatter.format(out);
           out.append("\n*************************\n\n");
         }
-      } finally {
+      }
+      finally {
         out.close();
+      }
+    }
+  }
+
+  /**
+   * Iterates through each directories results, then export them using the given
+   * {@link FormatterType}. The display is written in each folder of
+   * directories, into <code>viz/results.html</code>.
+   */
+  public void diff(FormatterType ft, List<File> directories, Writer o)
+  throws IOException {
+    Writer out = o;
+
+    for (File dir : directories) {
+      if (o == null) {
+        final File vizDir = new File(dir, "viz");
+        if (vizDir.isDirectory()) {
+          FileUtils.deleteQuietly(new File(vizDir, "diff.html"));
+        }
+      }
+    }
+    for (ResultsExporter re : diffExporters) {
+      final ResultsIterator ri = re.getResultsIterator();
+      final Formatter formatter = re.getFormatter(ft);
+
+      for (File dir : directories) {
+        ri.init(dir);
+        while (ri.hasNext()) {
+          formatter.collect(ri.next());
+        }
+      }
+      for (File dir : directories) {
+        if (o == null) {
+          final File vizDir = new File(dir, "viz");
+          vizDir.mkdir();
+          out = new BufferedWriter(new FileWriter(new File(vizDir, "diff.html"), true));
+        }
+        try {
+          formatter.setDirectoryName(dir.getName());
+          formatter.format(out);
+          out.append("\n*************************\n\n");
+        }
+        finally {
+          out.close();
+        }
       }
     }
   }

@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.sindice.siren.benchmark.generator.viz.index;
+package org.sindice.siren.benchmark.generator.viz.index.diff;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,12 +29,13 @@ import org.sindice.siren.benchmark.generator.viz.AbstractFormatter;
 import org.sindice.siren.benchmark.generator.viz.BenchmarkResults;
 
 /**
- * Collects a set of Index measures, sort them by the directory name
+ * Collects a set of Index measures, sort them by the directory name. The currently
+ * processed directory is always displayed first.
  * @author Stephane Campinas [15 Aug 2012]
  * @email stephane.campinas@deri.org
  *
  */
-public abstract class IndexFormatter
+public abstract class IndexDiffFormatter
 extends AbstractFormatter {
 
   protected final ArrayList<BenchmarkResults> brIndexList = new ArrayList<BenchmarkResults>();
@@ -46,10 +47,18 @@ extends AbstractFormatter {
 
   @Override
   public List<BenchmarkResults> getSortedList() {
+    final String dirName = directoryName;
     Collections.sort(brIndexList, new Comparator<BenchmarkResults>() {
       @Override
       public int compare(BenchmarkResults o1, BenchmarkResults o2) {
-        return o1.getDirectoryName().compareTo(o2.getDirectoryName());
+        final int cmp = o1.getDirectoryName().compareTo(o2.getDirectoryName());
+        if (cmp != 0) {
+          if ((cmp > 0 && o1.getDirectoryName().equals(dirName)) ||
+              (cmp < 0 && o2.getDirectoryName().equals(dirName))) {
+            return - cmp;
+          }
+        }
+        return cmp;
       }
     });
     return brIndexList;

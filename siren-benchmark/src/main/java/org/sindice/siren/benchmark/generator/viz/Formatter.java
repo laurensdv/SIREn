@@ -33,6 +33,11 @@ import java.io.Writer;
 public interface Formatter {
 
   /**
+   * Set the currently processed directory
+   */
+  public void setDirectoryName(String name);
+
+  /**
    * Collects the given results which will then be exported.
    */
   public void collect(BenchmarkResults br);

@@ -25,7 +25,7 @@ import java.io.Writer;
 import java.util.List;
 
 /**
- * 
+ * Generic format implementation
  * @author Stephane Campinas [14 Aug 2012]
  * @email stephane.campinas@deri.org
  *
@@ -33,8 +33,15 @@ import java.util.List;
 public abstract class AbstractFormatter
 implements Formatter {
 
+  protected String directoryName;
+
   /** To round the measure value */
   private static int round = 2;
+
+  @Override
+  public void setDirectoryName(String name) {
+    this.directoryName = name;
+  }
 
   @Override
   public void format(final Writer out)
@@ -48,6 +55,9 @@ implements Formatter {
     end(out);
   }
 
+  protected double diffAsPercentage(double a, double b) {
+    return b == 0 ? 0 : ((a - b) / b) * 100;
+  }
 
   protected String addNumericValue(Number v) {
     return String.format("%." + round + "f", v);
