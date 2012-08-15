@@ -147,12 +147,15 @@ $ ./scripts/export --index Siren10 --index-dir sindice-index-20/
   --q-results-dir sindice-index-20/benchmark/
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 This creates the file results.html into the folder /tmp/sindice-index-20/viz.
 Multiple directories may be given, by separating each directory path by a comma.
 
 It is possible to compare a set of directories using the "--diff" option. This
 will create the file diff.html into the "viz" sub-folder of each directory.
 =======
+=======
+>>>>>>> parent of a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
 It is possible to export results from several indexes by removing the --index
 option and by using the following file hierarchies:
 
@@ -176,6 +179,9 @@ option and by using the following file hierarchies:
   <index>/index/
 
 <index> is an Index type, e.g., Siren10.
+<<<<<<< HEAD
+>>>>>>> parent of a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
+=======
 >>>>>>> parent of a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
 
 --------------------------------------------------------------------------------
