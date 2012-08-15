@@ -18,32 +18,25 @@
  * You should have received a copy of the GNU Affero General Public
  * License along with SIREn. If not, see <http://www.gnu.org/licenses/>.
  */
-/**
- * @project siren-benchmark
- * @author Renaud Delbru [ 6 Jul 2012 ]
- * @link http://renaud.delbru.fr/
- */
-package org.sindice.siren.benchmark.wrapper;
+package org.sindice.siren.benchmark.generator.viz;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.Writer;
 
-public class IndexWrapperFactory {
+public class BenchmarkResultsFormatterFactory {
 
-  public enum IndexWrapperType {
-    Siren10,
-    // For tests only
-    Mock
+  public enum FormatterType {
+    HTML
   }
 
-  public static final IndexWrapper createIndexWrapper(final IndexWrapperType type, final File indexPath)
-  throws IOException {
-    switch (type) {
-      case Siren10:
-        return new Siren10IndexWrapper(indexPath);
-
+  public static BenchmarkResultsFormatter getFormatter(FormatterType ft,
+                                                       Writer out,
+                                                       BenchmarkResultsIterator bri) {
+    switch (ft) {
+      case HTML:
+        return new HtmlBenchmarkResultsFormatter(out, bri);
       default:
-        throw new IllegalArgumentException("IndexWrapperFactory: Error: There is no " + type + " IndexWrapper to implement.");
+        throw new EnumConstantNotPresentException(FormatterType.class, ft.toString());
     }
   }
+
 }

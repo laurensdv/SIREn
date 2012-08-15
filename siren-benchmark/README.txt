@@ -143,13 +143,40 @@ human readable format. By default, it is exported as a HTML table.
 
 Example: To export the previous run results
 
-$ ./scripts/export --directories /tmp/sindice-index-20/
+$ ./scripts/export --index Siren10 --index-dir sindice-index-20/
+  --q-results-dir sindice-index-20/benchmark/
 
+<<<<<<< HEAD
 This creates the file results.html into the folder /tmp/sindice-index-20/viz.
 Multiple directories may be given, by separating each directory path by a comma.
 
 It is possible to compare a set of directories using the "--diff" option. This
 will create the file diff.html into the "viz" sub-folder of each directory.
+=======
+It is possible to export results from several indexes by removing the --index
+option and by using the following file hierarchies:
+
+- Query benchmark results file structure:
+
+  <index>/
+  <index>/<query-spec>/
+  <index>/<query-spec>/hits-{WARM,COLD}
+  <index>/<query-spec>/time-{WARM,COLD}
+  <index>/<query-spec>/rate-{WARM,COLD}
+  <index>/<query-spec>/measurement-{WARM,COLD}
+
+<query-spec> is a query specification file name, e.g., low-phrase.
+
+- Index file structure (extracts time-logs + index size):
+
+  <index>/
+  <index>/time-logs/
+  <index>/time-logs/commit.out
+  <index>/time-logs/optimise.out
+  <index>/index/
+
+<index> is an Index type, e.g., Siren10.
+>>>>>>> parent of a1ec4c2... OPEN - task #69: Improvement over the benchmark result exporter 
 
 --------------------------------------------------------------------------------
 
