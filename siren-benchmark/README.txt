@@ -146,6 +146,10 @@ Example: To export the previous run results
 $ ./scripts/export --directories /tmp/sindice-index-20/
 
 This creates the file results.html into the folder /tmp/sindice-index-20/viz.
+Multiple directories may be given, by separating each directory path by a comma.
+
+It is possible to compare a set of directories using the "--diff" option. This
+will create the file diff.html into the "viz" sub-folder of each directory.
 
 --------------------------------------------------------------------------------
 
