@@ -45,12 +45,12 @@ extends QueryDiffFormatter {
 
     out.append("  <tr>\n");
     out.append("    <th rowspan=\"2\"></th><th rowspan=\"2\">OS Cache</th>" +
-               "<th rowspan=\"2\">Directory</th><th colspan=\"2\">" +
+               "<th rowspan=\"2\">Index</th><th colspan=\"2\">" +
                "Query Rate (q/s)</th><th rowspan=\"2\">Hits</th>\n");
     out.append("  </tr>");
 
     out.append("  <tr>\n");
-    out.append("    <th>Mean</th><th>SD</th>\n");
+    out.append("    <th>Mean</th><th>Pct Diff</th>\n");
     out.append("  </tr>\n");
   }
 
@@ -74,12 +74,11 @@ extends QueryDiffFormatter {
          .append(qbr.getDirectoryName()).append("</td>")
          .append("<td style=\"text-align: right;\">")
          .append(addNumericValue(qbr.getRate().getMean())).append("</td>")
-         .append("<td style=\"text-align: right;\">")
-         .append(addNumericValue(qbr.getRate().getSd())).append("</td>")
-         .append("<td style=\"text-align: right;\">")
+         .append("<td></td><td style=\"text-align: right;\">")
          .append(Long.toString(qbr.getHits())).append("</td>\n");
       out.append("  </tr>\n");
     } else {
+      checkHits(qbr.getHits(), baseline.getHits());
       doDeltas(out, qbr);
     }
     cntCache--;
@@ -88,33 +87,40 @@ extends QueryDiffFormatter {
 
   private void doDeltas(final Writer out, QueryBenchmarkResults qbr)
   throws IOException {
-    final double meanDelta = diffAsPercentage(qbr.getRate().getMean(), baseline.getRate().getMean());
-    final double sdDelta = qbr.getRate().getSd() - baseline.getRate().getSd();
-
     out.append("  <tr>\n")
        .append("<td style=\"font-style:italic; text-align: left;\">")
-       .append(qbr.getDirectoryName()).append("</td>");
-    diffCellAsPercentage(out, meanDelta);
-    diffCell(out, sdDelta);
+       .append(qbr.getDirectoryName()).append("</td>")
+       .append("<td style=\"font-style:italic; text-align: right;\">")
+       .append(addNumericValue(qbr.getRate().getMean()) + "</td>");
+    htmlPctDiff(out, baseline.getRate().getMean(), baseline.getRate().getSd(),
+      qbr.getRate().getMean(), qbr.getRate().getSd());
     out.append("<td style=\"font-style:italic; text-align: right;\">")
        .append(Long.toString(qbr.getHits())).append("</td>\n");
     out.append("  </tr>\n");
   }
 
-  private void diffCell(final Writer out, double delta)
+  private void htmlPctDiff(Writer out,
+                           double qpsBase,
+                           double qpsStdDevBase,
+                           double qpsCmp,
+                           double qpsStdDevCmp)
   throws IOException {
-    final String color = delta >= 0 ? "green" : "red";
+    final int[] pctDiff = computePctDiff(qpsBase, qpsStdDevBase, qpsCmp, qpsStdDevCmp);
 
-    out.append("<td style=\"color:" + color + "; font-style:italic; text-align: right;\">")
-    .append((delta >= 0 ? "+" : "-") + addNumericValue(delta)).append("</td>");
-  }
-
-  private void diffCellAsPercentage(final Writer out, double delta)
-  throws IOException {
-    final String color = delta >= 0 ? "green" : "red";
-
-    out.append("<td style=\"color:" + color + "; font-style:italic; text-align: right;\">")
-    .append((delta >= 0 ? "+" : "-") + addNumericValue(delta)).append("%</td>");
+    out.append("<td style=\"font-style:italic; text-align: right;\">(");
+    // ps worst
+    if (pctDiff[0] >= 0) {
+      out.append("<font color=\"green\">").append(pctDiff[0] + "%</font>   -   ");
+    } else {
+      out.append(pctDiff[0] + "% - ");
+    }
+    // ps best
+    if (pctDiff[1] < 0) {
+      out.append("<font color=\"red\">").append(pctDiff[1] + "%</font>");
+    } else {
+      out.append(pctDiff[1] + "%");
+    }
+    out.append(")</td>");
   }
 
   @Override

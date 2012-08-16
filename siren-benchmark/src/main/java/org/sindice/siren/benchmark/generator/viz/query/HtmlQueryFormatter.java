@@ -40,7 +40,7 @@ extends QueryFormatter {
     out.append("<table width=\"100%\">\n");
 
     out.append("  <tr>\n");
-    out.append("    <th rowspan=\"2\"></th><th rowspan=\"2\">Query Spec</th>" +
+    out.append("    <th rowspan=\"2\">Index</th><th rowspan=\"2\">Query Spec</th>" +
                "<th rowspan=\"2\">OS Cache</th><th colspan=\"2\">" +
                "Query Rate (q/s)</th><th rowspan=\"2\">Hits</th>\n");
     out.append("  </tr>");

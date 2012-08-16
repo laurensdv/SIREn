@@ -48,7 +48,7 @@ extends IndexDiffFormatter {
   throws IOException {
     out.append("<table width=\"100%\">\n");
     out.append("  <tr>\n");
-    out.append("    <th rowspan=\"2\"></th><th colspan=\"4\">Index Size (MB)</th>" +
+    out.append("    <th rowspan=\"2\">Index</th><th colspan=\"4\">Index Size (MB)</th>" +
     "<th rowspan=\"2\">Commit (ms)</th><th rowspan=\"2\">Optimise (ms)</th>\n");
     out.append("  </tr>");
 
@@ -92,30 +92,25 @@ extends IndexDiffFormatter {
 
   private void doDeltas(final Writer out, IndexBenchmarkResults ibr)
   throws IOException {
-    final double docDelta = diffAsPercentage(ibr.getDocSizeInBytes(), baseline.getDocSizeInBytes());
-    final double nodDelta = diffAsPercentage(ibr.getNodSizeInBytes(), baseline.getNodSizeInBytes());
-    final double posDelta = diffAsPercentage(ibr.getPosSizeInBytes(), baseline.getPosSizeInBytes());
-    final double skpDelta = diffAsPercentage(ibr.getSkpSizeInBytes(), baseline.getSkpSizeInBytes());
-    final double commitDelta = diffAsPercentage(ibr.getCommitTime(), baseline.getCommitTime());
-    final double optimiseDelta = diffAsPercentage(ibr.getOptimiseTime(), baseline.getOptimiseTime());
-    
     out.append("  <tr>")
        .append("    <td style=\"font-style:italic; text-align: left;\">")
        .append(ibr.getDirectoryName()).append("</td>");
-    diffRow(out, docDelta);
-    diffRow(out, nodDelta);
-    diffRow(out, posDelta);
-    diffRow(out, skpDelta);
-    diffRow(out, commitDelta);
-    diffRow(out, optimiseDelta);
+    diffRow(out, ibr.getDocSizeInBytes(), baseline.getDocSizeInBytes());
+    diffRow(out, ibr.getNodSizeInBytes(), baseline.getNodSizeInBytes());
+    diffRow(out, ibr.getPosSizeInBytes(), baseline.getPosSizeInBytes());
+    diffRow(out, ibr.getSkpSizeInBytes(), baseline.getSkpSizeInBytes());
+    diffRow(out, ibr.getCommitTime(), baseline.getCommitTime());
+    diffRow(out, ibr.getOptimiseTime(), baseline.getOptimiseTime());
     out.append("  </tr>\n");
   }
 
-  private void diffRow(final Writer out, double delta)
+  private void diffRow(final Writer out, double newValue, double baseValue)
   throws IOException {
+    final double delta = diffAsPercentage(newValue, baseValue);
     final String color = delta >= 0 ? "red" : "green";
     out.append("<td style=\"color:" + color + "; font-style:italic; text-align: right;\">")
-      .append((delta >= 0 ? "+" : "-") + addNumericValue(delta)).append("%</td>");
+       .append(addNumericValue(newValue) + " (" + (delta >= 0 ? "+" : "-") + addNumericValue(delta))
+       .append("%)</td>");
   }
 
   @Override

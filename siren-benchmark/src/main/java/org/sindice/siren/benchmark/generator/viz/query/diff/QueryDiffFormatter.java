@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.sindice.siren.benchmark.generator.viz.AbstractFormatter;
 import org.sindice.siren.benchmark.generator.viz.BenchmarkResults;
+import org.sindice.siren.benchmark.generator.viz.VizException;
 import org.sindice.siren.benchmark.generator.viz.query.QueryBenchmarkResults;
 
 /**
@@ -95,6 +96,55 @@ extends AbstractFormatter {
     addBenchmarkResult(out, qSpecs.get(qSpec), qSpecsCache.get(qSpecCache), qbr);
   }
 
-  protected abstract void addBenchmarkResult(final Writer out, int nbQSpecs, int nbQSpecsCache, QueryBenchmarkResults br) throws IOException;
+  protected abstract void addBenchmarkResult(final Writer out,
+                                             int nbQSpecs,
+                                             int nbQSpecsCache,
+                                             QueryBenchmarkResults br)
+  throws IOException;
+
+  /**
+   * Check that compared index has the same number of hits as the baseline.
+   * @param newHits new index hits
+   * @param baseHits baseline index hits
+   */
+  protected void checkHits(long newHits, long baseHits) {
+    if (newHits != baseHits) {
+      throw new VizException("baseline found " + baseHits + " hits but new found " + newHits + " hits");
+    }
+  }
+
+  /**
+   * Computes the difference percentage between the baseline and compared algorithms.
+   * <p>
+   * @see <a href="http://code.google.com/a/apache-extras.org/p/luceneutil/source/browse/benchUtil.py#928">benchUtils.py</a>
+   * of luceneutil
+   * @param qpsBase
+   * @param qpsStdDevBase
+   * @param qpsCmp
+   * @param qpsStdDevCmp
+   * @return
+   */
+  protected int[] computePctDiff(double qpsBase,
+                                 double qpsStdDevBase,
+                                 double qpsCmp,
+                                 double qpsStdDevCmp) {
+    final double qpsBaseBest = qpsBase + qpsStdDevBase;
+    final double qpsBaseWorst = qpsBase - qpsStdDevBase;
+
+    final double qpsCmpBest = qpsCmp + qpsStdDevCmp;
+    final double qpsCmpWorst = qpsCmp - qpsStdDevCmp;
+
+    final int psBest;
+    final int psWorst;
+
+    if (qpsBaseWorst == 0.0 ||
+        (qpsBaseBest == qpsCmpBest && qpsBaseWorst == qpsCmpWorst)) {
+      psBest = psWorst = 0;
+    } else {
+      psBest = (int) (100.0 * (qpsCmpBest - qpsBaseWorst)/qpsBaseWorst);
+      psWorst = (int) (100.0 * (qpsCmpWorst - qpsBaseBest)/qpsBaseBest);
+    }
+    return new int[] { psWorst, psBest };
+  }
 
 }

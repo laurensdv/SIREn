@@ -39,8 +39,8 @@ extends IndexFormatter {
   throws IOException {
     out.append("<table width=\"100%\">\n");
     out.append("  <tr>\n");
-    out.append("    <th rowspan=\"2\"></th><th colspan=\"4\">Index Size (MB)</th>" +
-    "<th rowspan=\"2\">Commit Time (ms)</th><th rowspan=\"2\">Optimise Time (ms)</th>\n");
+    out.append("    <th rowspan=\"2\">Index</th><th colspan=\"4\">Index Size (MB)</th>" +
+    "<th rowspan=\"2\">Commit (ms)</th><th rowspan=\"2\">Optimise (ms)</th>\n");
     out.append("  </tr>");
 
     out.append("  <tr>\n");

@@ -40,14 +40,14 @@ public class ExporterCLI {
 
   public static final String   HELP           = "help";
 
-  public static final String   DIRECTORIES    = "directories";
+  public static final String   INDEX          = "index";
   public static final String   DIFF           = "diff";
   public static final String   FORMATTER_TYPE = "formatter-type";
 
   public ExporterCLI() {
     parser = new OptionParser();
     parser.accepts(HELP, "print this help");
-    parser.accepts(DIRECTORIES, "The list of index directories")
+    parser.accepts(INDEX, "The list of index directories")
         .withRequiredArg().ofType(File.class).withValuesSeparatedBy(',');
     parser.accepts(DIFF, "Compute the diff of the selected directories");
     parser.accepts(FORMATTER_TYPE, "The formatter to export results with: " +
@@ -62,13 +62,13 @@ public class ExporterCLI {
       return;
     }
 
-    // DIRECTORIES
+    // INDEX
     List<File> directories = null;
-    if (opts.has(DIRECTORIES)) {
-      directories = (List<File>) opts.valuesOf(DIRECTORIES);
+    if (opts.has(INDEX)) {
+      directories = (List<File>) opts.valuesOf(INDEX);
     } else {
       parser.printHelpOn(System.out);
-      throw new RuntimeException("Missing option: " + DIRECTORIES);
+      throw new RuntimeException("Missing option: " + INDEX);
     }
     // FORMATTER_TYPE
     final FormatterType ft = (FormatterType) opts.valueOf(FORMATTER_TYPE);
