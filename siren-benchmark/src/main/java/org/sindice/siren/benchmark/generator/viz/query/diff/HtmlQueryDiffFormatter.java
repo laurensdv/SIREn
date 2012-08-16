@@ -66,7 +66,6 @@ extends QueryDiffFormatter {
            .append(qbr.getQuerySpec()).append("</td>");
       }
       if (cntCache == 0) {
-        cntCache = nbQSpecsCache;
         out.append("<td style=\"text-align: left;\" rowspan=\"" + nbQSpecsCache + "\">")
            .append(qbr.isWarm() ? "WARM" : "COLD").append("</td>");
       }
@@ -74,8 +73,12 @@ extends QueryDiffFormatter {
          .append(qbr.getDirectoryName()).append("</td>")
          .append("<td style=\"text-align: right;\">")
          .append(addNumericValue(qbr.getRate().getMean())).append("</td>")
-         .append("<td></td><td style=\"text-align: right;\">")
-         .append(Long.toString(qbr.getHits())).append("</td>\n");
+         .append("<td></td>");
+      if (cntCache == 0) {
+        cntCache = nbQSpecsCache;
+        out.append("<td style=\"text-align: left;\" rowspan=\"" + nbQSpecsCache + "\">")
+           .append(Long.toString(qbr.getHits())).append("</td>");
+      }
       out.append("  </tr>\n");
     } else {
       checkHits(qbr.getHits(), baseline.getHits());
@@ -94,8 +97,6 @@ extends QueryDiffFormatter {
        .append(addNumericValue(qbr.getRate().getMean()) + "</td>");
     htmlPctDiff(out, baseline.getRate().getMean(), baseline.getRate().getSd(),
       qbr.getRate().getMean(), qbr.getRate().getSd());
-    out.append("<td style=\"font-style:italic; text-align: right;\">")
-       .append(Long.toString(qbr.getHits())).append("</td>\n");
     out.append("  </tr>\n");
   }
 
