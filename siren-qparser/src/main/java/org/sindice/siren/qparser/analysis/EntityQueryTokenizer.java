@@ -71,7 +71,7 @@ public final class EntityQueryTokenizer extends Tokenizer {
    * <code>input</code> to a newly created JFlex scanner.
    */
   public EntityQueryTokenizer(final Reader input) {
-    this.input = input;
+    super(input);
     this._scanner = new EntityQueryTokenizerImpl(input);
     cTermAtt = this.addAttribute(CharTermAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);

@@ -15,8 +15,8 @@ Expression    ::= {SimpleExpression} TuplePattern:tp
 
 TuplePattern  ::= Value*
 
-Value         ::=   {URIPattern} "org.sindice.siren.qparser.tuple.CellValue":up
-                  | {Literal} "org.sindice.siren.qparser.tuple.CellValue":l
-                  | {LiteralPattern} "org.sindice.siren.qparser.tuple.CellValue":lp
+Value         ::=   {URIPattern} "org.sindice.siren.qparser.tree.NodeValue":up
+                  | {Literal} "org.sindice.siren.qparser.tree.NodeValue":l
+                  | {LiteralPattern} "org.sindice.siren.qparser.tree.NodeValue":lp
 
 Operator      ::= enum AND, OR, MINUS

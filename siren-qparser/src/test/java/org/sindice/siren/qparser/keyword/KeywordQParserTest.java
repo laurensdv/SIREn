@@ -21,17 +21,16 @@
 package org.sindice.siren.qparser.keyword;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser.Operator;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.LuceneTestCase;
 import org.junit.Before;
@@ -62,8 +61,9 @@ public class KeywordQParserTest {
   @Test
   public void testDistinctAnalyzer() throws ParseException {
     final Analyzer analyzer = new WhitespaceAnalyzer(LuceneTestCase.TEST_VERSION_CURRENT);
-    final PerFieldAnalyzerWrapper analyzerWrapper = new PerFieldAnalyzerWrapper(analyzer);
-    analyzerWrapper.addAnalyzer("label", new StandardAnalyzer(LuceneTestCase.TEST_VERSION_CURRENT));
+    final HashMap<String, Analyzer> fields = new HashMap<String, Analyzer>();
+    fields.put("label", new StandardAnalyzer(LuceneTestCase.TEST_VERSION_CURRENT));
+    final PerFieldAnalyzerWrapper analyzerWrapper = new PerFieldAnalyzerWrapper(analyzer, fields);
     final KeywordQParserImpl parser = new KeywordQParserImpl(analyzerWrapper, boosts, false);
     final Query q = parser.parse("hELlo");
     assertEquals("explicit-content:hELlo label:hello^2.5",
@@ -115,22 +115,14 @@ public class KeywordQParserTest {
     assertEquals("format:MICROFORMAT", q.toString());
   }
 
-  @Test
+  @Test(expected=ParseException.class)
   public void testFuzzyQuery() throws Exception {
-    try {
-      final Query q = parser.parse("michele~0.9");
-      fail("Expected ParseException");
-    } catch (final ParseException e) {
-    }
+    parser.parse("michele~0.9");
   }
 
-  @Test
+  @Test(expected=ParseException.class)
   public void testWildcardQuery() throws Exception {
-    try {
-      final Query q = parser.parse("miche*");
-      fail("Expected ParseException");
-    } catch (final ParseException e) {
-    }
+    parser.parse("miche*");
   }
   
   @Test
@@ -252,7 +244,6 @@ public class KeywordQParserTest {
     parser.setDefaultOperator(Operator.AND);
 
     final Query q = parser.parse("Test AND ((literal OR uri OR resource) AND (pattern OR patterns OR query))");
-    System.out.println(q.toString());
     assertEquals("+explicit-content:Test " +
                  "+(+(explicit-content:literal explicit-content:uri explicit-content:resource) " +
                  "+(explicit-content:pattern explicit-content:patterns explicit-content:query))",

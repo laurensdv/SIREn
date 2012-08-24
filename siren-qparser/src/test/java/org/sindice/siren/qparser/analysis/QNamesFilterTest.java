@@ -36,7 +36,7 @@ import junit.framework.Assert;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.Version;
@@ -49,7 +49,7 @@ import org.sindice.siren.util.XSDDatatype;
 public class QNamesFilterTest {
 
   private final Version matchVersion = LuceneTestCase.TEST_VERSION_CURRENT;
-  
+
   @Test
   public void testQName() throws Exception {
     final String query = "foaf:name";
@@ -62,7 +62,7 @@ public class QNamesFilterTest {
     Assert.assertEquals("http://xmlns.com/foaf/0.1/name", cTermAtt.toString());
     filter.close();
   }
-  
+
   @Test
   public void testNotQName() throws Exception {
     final String query = "mailto:aidan.hogan@deri.org";

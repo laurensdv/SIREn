@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 /* Import the class that will store information about a value, e.g., the datatype
  * or the cell constraint.
  */
-import org.sindice.siren.qparser.tuple.CellValue;
+import org.sindice.siren.qparser.tree.NodeValue;
 
 /* Parser code to change the way the parser reports errors (include
    line and column number of the error). */
@@ -88,7 +88,7 @@ parser code {:
    the next line down. */
    
 terminal          AND, OR, MINUS, LPAREN, RPAREN;
-terminal org.sindice.siren.qparser.tuple.CellValue          URIPATTERN, LITERAL, LPATTERN;
+terminal org.sindice.siren.qparser.tree.NodeValue          URIPATTERN, LITERAL, LPATTERN;
    
 /* Non terminals used in the grammar section.  
 

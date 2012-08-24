@@ -27,7 +27,7 @@
 package org.sindice.siren.qparser.keyword;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryParser.standard.StandardQueryParser;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.sindice.siren.qparser.keyword.config.KeywordQueryConfigHandler;
 import org.sindice.siren.qparser.keyword.query.KeywordQueryNodeProcessorPipeline;
 

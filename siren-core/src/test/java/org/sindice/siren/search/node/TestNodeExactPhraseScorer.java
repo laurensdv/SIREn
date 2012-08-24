@@ -35,8 +35,6 @@ import java.util.ArrayList;
 import org.junit.Test;
 import org.sindice.siren.index.codecs.RandomSirenCodec.PostingsFormatType;
 import org.sindice.siren.search.AbstractTestSirenScorer;
-import org.sindice.siren.search.node.NodePhraseScorer;
-import org.sindice.siren.search.node.NodeQuery;
 
 public class TestNodeExactPhraseScorer extends AbstractTestSirenScorer {
 

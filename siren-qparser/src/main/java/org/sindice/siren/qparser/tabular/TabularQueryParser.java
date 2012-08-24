@@ -36,14 +36,14 @@ import java_cup.runtime.Symbol;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.util.Version;
-import org.sindice.siren.analysis.attributes.CellAttribute;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 import org.sindice.siren.qparser.analysis.TabularQueryTokenizerImpl;
 import org.sindice.siren.qparser.tabular.query.ScatteredTabularQueryBuilder;
@@ -52,7 +52,7 @@ import org.sindice.siren.qparser.tabular.query.model.Literal;
 import org.sindice.siren.qparser.tabular.query.model.LiteralPattern;
 import org.sindice.siren.qparser.tabular.query.model.TabularQuery;
 import org.sindice.siren.qparser.tabular.query.model.URIPattern;
-import org.sindice.siren.qparser.tuple.CellValue;
+import org.sindice.siren.qparser.tree.NodeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +84,7 @@ public class TabularQueryParser {
                                   final String field,
                                   final Analyzer tabularAnalyzer,
                                   final Map<String, Analyzer> datatypeConfig,
-                                  final DefaultOperatorAttribute.Operator op)
+                                  final StandardQueryConfigHandler.Operator op)
   throws ParseException {
     // Parse NTriple and create abstract syntax tree
     final TokenStream tokenStream = prepareTokenStream(qstr, tabularAnalyzer);
@@ -116,7 +116,7 @@ public class TabularQueryParser {
                                   final Map<String, Float> boosts,
                                   final Analyzer tabularAnalyzer,
                                   final Map<String, Map<String, Analyzer>> datatypeConfigs,
-                                  final DefaultOperatorAttribute.Operator op,
+                                  final StandardQueryConfigHandler.Operator op,
                                   final boolean scattered)
   throws ParseException {
     if (boosts.isEmpty()) {
@@ -141,14 +141,17 @@ public class TabularQueryParser {
    * @param qstr The tabular query
    * @param tabularAnalyzer A Tabluar Analyzer
    * @return A stream of tokens
+   * @throws ParseException 
    */
   private static TokenStream prepareTokenStream(final String qstr,
-                                                final Analyzer tabularAnalyzer) {
-    TokenStream tokenStream = null;
+                                                final Analyzer tabularAnalyzer)
+  throws ParseException {
+    final TokenStream tokenStream;
     try {
-      tokenStream = tabularAnalyzer.reusableTokenStream("", new StringReader(qstr));
-    } catch (final IOException e) {
       tokenStream = tabularAnalyzer.tokenStream("", new StringReader(qstr));
+    } catch (IOException e) {
+      // TODO: Is it the right thing to do ?
+      throw new ParseException(e.getLocalizedMessage());
     }
     return tokenStream;
   }
@@ -213,7 +216,7 @@ public class TabularQueryParser {
                                              final Version matchVersion,
                                              final String field,
                                              final Map<String, Analyzer> datatypeConfig,
-                                             final DefaultOperatorAttribute.Operator op)
+                                             final StandardQueryConfigHandler.Operator op)
   throws ParseException {
     final SimpleTabularQueryBuilder translator = new SimpleTabularQueryBuilder(matchVersion, field, datatypeConfig);
     translator.setDefaultOperator(op);
@@ -238,7 +241,7 @@ public class TabularQueryParser {
                                             final Version matchVersion,
                                             final Map<String, Float> boosts,
                                             final Map<String, Map<String, Analyzer>> datatypeConfigs,
-                                            final DefaultOperatorAttribute.Operator op)
+                                            final StandardQueryConfigHandler.Operator op)
   throws ParseException {
     final BooleanQuery bq = new BooleanQuery(true);
     for (final String field : boosts.keySet()) {
@@ -273,7 +276,7 @@ public class TabularQueryParser {
                                                      final Version matchVersion,
                                                      final Map<String, Float> boosts,
                                                      final Map<String, Map<String, Analyzer>> datatypeConfigs,
-                                                     final DefaultOperatorAttribute.Operator op)
+                                                     final StandardQueryConfigHandler.Operator op)
   throws ParseException {
     final ScatteredTabularQueryBuilder translator = new ScatteredTabularQueryBuilder(matchVersion, boosts, datatypeConfigs);
     translator.setDefaultOperator(op);
@@ -289,14 +292,14 @@ public class TabularQueryParser {
     private final CharTermAttribute cTermAtt;
     private final TypeAttribute typeAtt;
     private final DatatypeAttribute dataTypeAtt;
-    private final CellAttribute cellAtt;
+    private final PayloadAttribute plAtt;
 
     public CupScannerWrapper(final TokenStream stream) {
       _stream = stream;
       cTermAtt = _stream.getAttribute(CharTermAttribute.class);
       typeAtt = _stream.getAttribute(TypeAttribute.class);
       dataTypeAtt = stream.getAttribute(DatatypeAttribute.class);
-      cellAtt = stream.getAttribute(CellAttribute.class);
+      plAtt = stream.getAttribute(PayloadAttribute.class);
     }
 
     /* (non-Javadoc)
@@ -320,9 +323,9 @@ public class TabularQueryParser {
         if (idx == TabularQueryTokenizerImpl.URIPATTERN ||
             idx == TabularQueryTokenizerImpl.LITERAL ||
             idx == TabularQueryTokenizerImpl.LPATTERN) {
-          return new Symbol(idx, new CellValue(dataTypeAtt.datatypeURI(),
+          return new Symbol(idx, new NodeValue(dataTypeAtt.datatypeURI(),
                                                cTermAtt.toString(),
-                                               cellAtt.cell()));
+                                               byteArrayToInt(plAtt.getPayload().bytes)));
         } else {
           return new Symbol(idx);
         }
@@ -330,6 +333,9 @@ public class TabularQueryParser {
       return null;
     }
 
+    private int byteArrayToInt(byte[] a) {
+      return a[0] | (a[1] << 8) | (a[2] << 16) | (a[3] << 24);
+    }
   }
 
 }

@@ -125,4 +125,8 @@ public class DocumentQuery extends Query {
     return Float.floatToIntBits(this.getBoost()) ^ nodeQuery.hashCode();
   }
 
+  public NodeQuery getNodeQuery() {
+    return nodeQuery;
+  }
+
 }

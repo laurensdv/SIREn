@@ -29,10 +29,9 @@ package org.sindice.siren.qparser.keyword;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser.Operator;
-import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
 import org.apache.lucene.search.Query;
 import org.sindice.siren.qparser.util.EscapeLuceneCharacters;
 
@@ -82,10 +81,10 @@ public class KeywordQParserImpl {
 
   public void setDefaultOperator(final Operator operator) {
     if (operator == Operator.OR) {
-      parser.setDefaultOperator(DefaultOperatorAttribute.Operator.OR);
+      parser.setDefaultOperator(Operator.OR);
     }
     else {
-      parser.setDefaultOperator(DefaultOperatorAttribute.Operator.AND);
+      parser.setDefaultOperator(Operator.AND);
     }
   }
 

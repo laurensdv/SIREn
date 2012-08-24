@@ -42,7 +42,7 @@ public class TestNodeBooleanQuery extends SirenTestCase {
     bq2.add(new NodeTermQuery(new Term("field", "value1")), NodeBooleanClause.Occur.SHOULD);
     bq2.add(new NodeTermQuery(new Term("field", "value2")), NodeBooleanClause.Occur.SHOULD);
 
-    assertEquals(bq1, bq1);
+    assertEquals(bq2, bq1);
   }
 
   @Test

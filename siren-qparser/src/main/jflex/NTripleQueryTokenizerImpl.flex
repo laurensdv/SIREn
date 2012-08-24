@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.lucene.analysis.Token;
 import java_cup.runtime.*;
 import org.sindice.siren.util.XSDDatatype;
-import org.sindice.siren.qparser.tuple.CellValue;
+import org.sindice.siren.qparser.tree.NodeValue;
 
 %%
 
@@ -131,7 +131,7 @@ import org.sindice.siren.qparser.tuple.CellValue;
 	  return new Symbol(type, yyline, yycolumn, value);
 	}
 	
-	private Symbol symbol(int type, CellValue dl) {
+	private Symbol symbol(int type, NodeValue dl) {
 	logger.debug("Obtain token {} \"{}\"", type, dl);
     return new Symbol(type, yyline, yycolumn, dl);
 	}
@@ -145,29 +145,12 @@ import org.sindice.siren.qparser.tuple.CellValue;
 	}
 
 	/**
-	 * Fills Lucene token with the current token text, removing the first and 
-	 * last characters.
-	 */
-	final void getURIText(Token t) {
-	  t.setTermBuffer(zzBuffer, zzStartRead + 1, zzMarkedPos - zzStartRead - 2);
-	}
-	
-	/**
 	 * Return the current string buffer.
 	 */
 	final String getLiteralText() {
 		return new String(buffer);
 	}
-	
-	/**
-	 * Fills Lucene token with the current string buffer.
-	 */
-	final void getLiteralText(Token t) {
-    char[] chars = new char[buffer.length()];
-    buffer.getChars(0, buffer.length(), chars, 0);
-	  t.setTermBuffer(chars, 0, chars.length);
-	}
-	
+
 	/**
    * Return the datatype URI.
    *

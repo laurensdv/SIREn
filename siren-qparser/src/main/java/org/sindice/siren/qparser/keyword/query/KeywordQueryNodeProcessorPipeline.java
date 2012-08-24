@@ -26,32 +26,33 @@
  */
 package org.sindice.siren.qparser.keyword.query;
 
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.core.processors.NoChildOptimizationQueryNodeProcessor;
-import org.apache.lucene.queryParser.core.processors.QueryNodeProcessorPipeline;
-import org.apache.lucene.queryParser.core.processors.RemoveDeletedQueryNodesProcessor;
-import org.apache.lucene.queryParser.standard.builders.StandardQueryTreeBuilder;
-import org.apache.lucene.queryParser.standard.config.StandardQueryConfigHandler;
-import org.apache.lucene.queryParser.standard.parser.StandardSyntaxParser;
-import org.apache.lucene.queryParser.standard.processors.AllowLeadingWildcardProcessor;
-import org.apache.lucene.queryParser.standard.processors.BooleanSingleChildOptimizationQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.BoostQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.DefaultPhraseSlopQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.FuzzyQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.LowercaseExpandedTermsQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.MatchAllDocsQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.MultiTermRewriteMethodProcessor;
-import org.apache.lucene.queryParser.standard.processors.ParametricRangeQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.PhraseSlopQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.RemoveEmptyNonLeafQueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.processors.StandardQueryNodeProcessorPipeline;
-import org.apache.lucene.queryParser.standard.processors.WildcardQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.core.processors.NoChildOptimizationQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.core.processors.QueryNodeProcessorPipeline;
+import org.apache.lucene.queryparser.flexible.core.processors.RemoveDeletedQueryNodesProcessor;
+import org.apache.lucene.queryparser.flexible.standard.builders.StandardQueryTreeBuilder;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.standard.parser.StandardSyntaxParser;
+import org.apache.lucene.queryparser.flexible.standard.processors.AllowLeadingWildcardProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.BooleanSingleChildOptimizationQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.BoostQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.DefaultPhraseSlopQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.FuzzyQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.LowercaseExpandedTermsQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.MatchAllDocsQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.OpenRangeQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.PhraseSlopQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.RemoveEmptyNonLeafQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.StandardQueryNodeProcessorPipeline;
+import org.apache.lucene.queryparser.flexible.standard.processors.TermRangeQueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.processors.WildcardQueryNodeProcessor;
 import org.apache.lucene.search.Query;
 import org.sindice.siren.qparser.keyword.query.processors.AllowFuzzyAndWildcardProcessor;
 import org.sindice.siren.qparser.keyword.query.processors.AnalyzerQueryNodeProcessor;
 import org.sindice.siren.qparser.keyword.query.processors.ChangeDefaultOperatorNodeProcessor;
 import org.sindice.siren.qparser.keyword.query.processors.GroupQueryNodeProcessor;
 import org.sindice.siren.qparser.keyword.query.processors.MultiFieldQueryNodeProcessor;
+import org.sindice.siren.qparser.tree.query.processors.MultiNodeTermRewriteMethodProcessor;
 
 /**
  * This pipeline has all the processors needed to process a query node tree,
@@ -80,26 +81,31 @@ extends QueryNodeProcessorPipeline {
   public KeywordQueryNodeProcessorPipeline(final QueryConfigHandler queryConfig) {
     super(queryConfig);
 
+    // TODO: What about this commented processor ?
 //    this.add(new AddDefaultModifierNodeProcessor());
-    this.add(new ChangeDefaultOperatorNodeProcessor());
-    this.add(new WildcardQueryNodeProcessor());
-    this.add(new MultiFieldQueryNodeProcessor());
-    this.add(new FuzzyQueryNodeProcessor());
-    this.add(new MatchAllDocsQueryNodeProcessor());
-    this.add(new LowercaseExpandedTermsQueryNodeProcessor());
-    this.add(new ParametricRangeQueryNodeProcessor());
-    this.add(new AllowFuzzyAndWildcardProcessor());
-    this.add(new AllowLeadingWildcardProcessor());
-    this.add(new AnalyzerQueryNodeProcessor());
-    this.add(new PhraseSlopQueryNodeProcessor());
-    this.add(new GroupQueryNodeProcessor());
-    this.add(new NoChildOptimizationQueryNodeProcessor());
-    this.add(new RemoveDeletedQueryNodesProcessor());
-    this.add(new RemoveEmptyNonLeafQueryNodeProcessor());
-    this.add(new BooleanSingleChildOptimizationQueryNodeProcessor());
-    this.add(new DefaultPhraseSlopQueryNodeProcessor());
-    this.add(new BoostQueryNodeProcessor());
-    this.add(new MultiTermRewriteMethodProcessor());
+    add(new ChangeDefaultOperatorNodeProcessor());
+    add(new WildcardQueryNodeProcessor());    
+    add(new MultiFieldQueryNodeProcessor());
+    add(new FuzzyQueryNodeProcessor());
+    add(new MatchAllDocsQueryNodeProcessor());
+    add(new OpenRangeQueryNodeProcessor());
+    // TODO: To support numeric queries with the keyword parser
+//    add(new NumericQueryNodeProcessor());
+//    add(new NumericRangeQueryNodeProcessor());
+    add(new LowercaseExpandedTermsQueryNodeProcessor());
+    add(new TermRangeQueryNodeProcessor());
+    add(new AllowFuzzyAndWildcardProcessor());
+    add(new AllowLeadingWildcardProcessor());
+    add(new AnalyzerQueryNodeProcessor());
+    add(new PhraseSlopQueryNodeProcessor());
+    add(new GroupQueryNodeProcessor());
+    add(new NoChildOptimizationQueryNodeProcessor());
+    add(new RemoveDeletedQueryNodesProcessor());
+    add(new RemoveEmptyNonLeafQueryNodeProcessor());
+    add(new BooleanSingleChildOptimizationQueryNodeProcessor());
+    add(new DefaultPhraseSlopQueryNodeProcessor());
+    add(new BoostQueryNodeProcessor());
+    add(new MultiNodeTermRewriteMethodProcessor());
   }
 
 }

@@ -30,11 +30,11 @@ import java.util.Enumeration;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.standard.config.NumericConfig;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.flexible.standard.config.NumericConfig;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.qparser.tabular.query.model.BinaryClause;
 import org.sindice.siren.qparser.tabular.query.model.ClauseQuery;
@@ -49,14 +49,15 @@ import org.sindice.siren.qparser.tabular.query.model.TuplePattern;
 import org.sindice.siren.qparser.tabular.query.model.URIPattern;
 import org.sindice.siren.qparser.tabular.query.model.UnaryClause;
 import org.sindice.siren.qparser.tabular.query.model.Value;
-import org.sindice.siren.qparser.tuple.CellValue;
-import org.sindice.siren.qparser.tuple.QueryBuilderException;
-import org.sindice.siren.qparser.tuple.ResourceQueryParser;
+import org.sindice.siren.qparser.tree.NodeValue;
+import org.sindice.siren.qparser.tree.QueryBuilderException;
+import org.sindice.siren.qparser.tree.TreeQueryParser;
 import org.sindice.siren.qparser.util.EscapeLuceneCharacters;
-import org.sindice.siren.search.SirenCellQuery;
-import org.sindice.siren.search.SirenPrimitiveQuery;
-import org.sindice.siren.search.SirenTupleClause;
-import org.sindice.siren.search.SirenTupleQuery;
+import org.sindice.siren.search.doc.DocumentQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeQuery;
+import org.sindice.siren.search.node.TupleQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,18 +134,18 @@ public class SimpleTabularQueryBuilder extends AbstractTabularQueryBuilder {
     switch (op) {
       case Operator.AND:
         logger.debug("{} AND {}", l.toString(), r.toString());
-        query.add(l, Occur.MUST);
-        query.add(r, Occur.MUST);
+        query.add(l, BooleanClause.Occur.MUST);
+        query.add(r, BooleanClause.Occur.MUST);
         break;
       case Operator.OR:
         logger.debug("{} OR {}", l.toString(), r.toString());
-        query.add(l, Occur.SHOULD);
-        query.add(r, Occur.SHOULD);
+        query.add(l, BooleanClause.Occur.SHOULD);
+        query.add(r, BooleanClause.Occur.SHOULD);
         break;
       case Operator.MINUS:
         logger.debug("{} MINUS {}", l.toString(), r.toString());
-        query.add(l, Occur.MUST);
-        query.add(r, Occur.MUST_NOT);
+        query.add(l, BooleanClause.Occur.MUST);
+        query.add(r, BooleanClause.Occur.MUST_NOT);
         break;
       default:
         break;
@@ -169,7 +170,7 @@ public class SimpleTabularQueryBuilder extends AbstractTabularQueryBuilder {
   public void visit(final TuplePattern tp) {
     logger.debug("Visiting TuplePattern - Enter");
 
-    final SirenTupleQuery tupleQuery = new SirenTupleQuery();
+    final TupleQuery tupleQuery = new TupleQuery();
 
     if (!this.hasError()) {
       final Enumeration<Value> values = tp.elements();
@@ -177,24 +178,26 @@ public class SimpleTabularQueryBuilder extends AbstractTabularQueryBuilder {
         final Value value = values.nextElement();
         
         if (value != null) {
-          // we should always receive a SirenPrimitiveQuery
-          SirenCellQuery cellQuery = null;
+          final NodeBooleanQuery nbq = new NodeBooleanQuery();
           if (value != null && value instanceof URIPattern) {
-            cellQuery = new SirenCellQuery((SirenPrimitiveQuery) ((URIPattern) value).getQuery());
-            cellQuery.setConstraint(value.getUp().getCellConstraint());
+            nbq.add((NodeQuery) ((URIPattern) value).getQuery(), NodeBooleanClause.Occur.MUST);
+            nbq.setNodeConstraint(value.getUp().getNodeConstraint());
+            tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
           } else if (value != null && value instanceof LiteralPattern) {
-            cellQuery = new SirenCellQuery((SirenPrimitiveQuery) ((LiteralPattern) value).getQuery());
-            cellQuery.setConstraint(value.getLp().getCellConstraint());
+            nbq.add((NodeQuery) ((LiteralPattern) value).getQuery(), NodeBooleanClause.Occur.MUST);
+            nbq.setNodeConstraint(value.getLp().getNodeConstraint());
+            tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
           } else if (value != null && value instanceof Literal) {
-            cellQuery = new SirenCellQuery((SirenPrimitiveQuery) ((Literal) value).getQuery());
-            cellQuery.setConstraint(value.getL().getCellConstraint());
+            nbq.add((NodeQuery) ((Literal) value).getQuery(), NodeBooleanClause.Occur.MUST);
+            nbq.setNodeConstraint(value.getL().getNodeConstraint());
+            tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
           }
-          tupleQuery.add(cellQuery, SirenTupleClause.Occur.MUST);
+          tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
         }
       }
     }
 
-    tp.setQuery(tupleQuery);
+    tp.setQuery(new DocumentQuery(tupleQuery));
     logger.debug("Visiting TuplePattern - Exit");
   }
 
@@ -206,11 +209,11 @@ public class SimpleTabularQueryBuilder extends AbstractTabularQueryBuilder {
   @Override
   public void visit(final Literal l) {
     logger.debug("Visiting Literal");
-    final CellValue dtLit = l.getL();
+    final NodeValue dtLit = l.getL();
 
     try {
       final Analyzer analyzer = this.getAnalyzer(dtLit.getDatatypeURI());
-      final ResourceQueryParser qph = this.getResourceQueryParser(analyzer);
+      final TreeQueryParser qph = this.getResourceQueryParser(analyzer);
       // Add quotes so that the parser evaluates it as a phrase query
       l.setQuery(qph.parse("\"" + dtLit.getValue() + "\"", field));
     }
@@ -228,11 +231,11 @@ public class SimpleTabularQueryBuilder extends AbstractTabularQueryBuilder {
   @Override
   public void visit(final LiteralPattern lp) {
     logger.debug("Visiting Literal Pattern");
-    final CellValue dtLit = lp.getLp();
+    final NodeValue dtLit = lp.getLp();
 
     try {
       final Analyzer analyzer = this.getAnalyzer(dtLit.getDatatypeURI());
-      final ResourceQueryParser qph = this.getResourceQueryParser(analyzer);
+      final TreeQueryParser qph = this.getResourceQueryParser(analyzer);
       lp.setQuery(qph.parse(dtLit.getValue(), field));
     }
     catch (final Exception e) {
@@ -248,13 +251,13 @@ public class SimpleTabularQueryBuilder extends AbstractTabularQueryBuilder {
   @Override
   public void visit(final URIPattern u) {
     logger.debug("Visiting URIPattern");
-    final CellValue dtLit = u.getUp();
+    final NodeValue dtLit = u.getUp();
     // URI schemes and special Lucene characters handling
     final String uri = EscapeLuceneCharacters.escape(dtLit.getValue());
 
     try {
       final Analyzer analyzer = this.getAnalyzer(dtLit.getDatatypeURI());
-      final ResourceQueryParser qph = this.getResourceQueryParser(analyzer);
+      final TreeQueryParser qph = this.getResourceQueryParser(analyzer);
       u.setQuery(qph.parse(uri, field));
     }
     catch (final Exception e) {

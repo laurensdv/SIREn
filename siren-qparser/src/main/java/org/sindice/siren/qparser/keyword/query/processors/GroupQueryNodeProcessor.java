@@ -29,20 +29,20 @@ package org.sindice.siren.qparser.keyword.query.processors;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.core.nodes.AndQueryNode;
-import org.apache.lucene.queryParser.core.nodes.BooleanQueryNode;
-import org.apache.lucene.queryParser.core.nodes.GroupQueryNode;
-import org.apache.lucene.queryParser.core.nodes.ModifierQueryNode;
-import org.apache.lucene.queryParser.core.nodes.ModifierQueryNode.Modifier;
-import org.apache.lucene.queryParser.core.nodes.OrQueryNode;
-import org.apache.lucene.queryParser.core.nodes.QueryNode;
-import org.apache.lucene.queryParser.core.parser.SyntaxParser;
-import org.apache.lucene.queryParser.core.processors.QueryNodeProcessor;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute.Operator;
-import org.apache.lucene.queryParser.standard.nodes.BooleanModifierNode;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.core.nodes.AndQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.BooleanQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.GroupQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.ModifierQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.ModifierQueryNode.Modifier;
+import org.apache.lucene.queryparser.flexible.core.nodes.OrQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.QueryNode;
+import org.apache.lucene.queryparser.flexible.core.parser.SyntaxParser;
+import org.apache.lucene.queryparser.flexible.core.processors.QueryNodeProcessor;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.ConfigurationKeys;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
+import org.apache.lucene.queryparser.flexible.standard.nodes.BooleanModifierNode;
 
 /**
  * The {@link SyntaxParser}
@@ -71,13 +71,13 @@ public class GroupQueryNodeProcessor implements QueryNodeProcessor {
 
   public QueryNode process(QueryNode queryTree) throws QueryNodeException {
 
-    if (!this.getQueryConfigHandler().hasAttribute(DefaultOperatorAttribute.class)) {
+    if (!this.getQueryConfigHandler().has(ConfigurationKeys.DEFAULT_OPERATOR)) {
       throw new IllegalArgumentException(
           "DefaultOperatorAttribute should be set on the QueryConfigHandler");
     }
 
     this.usingAnd = Operator.AND == this.getQueryConfigHandler()
-        .getAttribute(DefaultOperatorAttribute.class).getOperator() ? true : false;
+    .get(ConfigurationKeys.DEFAULT_OPERATOR) ? true : false;
 
     if (queryTree instanceof GroupQueryNode) {
       queryTree = ((GroupQueryNode) queryTree).getChild();

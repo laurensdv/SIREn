@@ -27,16 +27,14 @@
 package org.sindice.siren.qparser.ntriple.query;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.analysis.NumericAnalyzer;
 import org.sindice.siren.qparser.ntriple.query.model.LiteralPattern;
 import org.sindice.siren.qparser.ntriple.query.model.VisitorAdaptor;
-import org.sindice.siren.qparser.tuple.QueryBuilderException;
-import org.sindice.siren.qparser.tuple.ResourceQueryParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.sindice.siren.qparser.tree.QueryBuilderException;
+import org.sindice.siren.qparser.tree.TreeQueryParser;
 
 /**
  * The visitor for translating the AST into a Siren NTriple Query.
@@ -51,15 +49,12 @@ public abstract class AbstractNTripleQueryBuilder extends VisitorAdaptor {
   /**
    * The default operator to use in the inner parsers
    */
-  DefaultOperatorAttribute.Operator defaultOp = DefaultOperatorAttribute.Operator.AND;
+  StandardQueryConfigHandler.Operator defaultOp = StandardQueryConfigHandler.Operator.AND;
 
   /**
    * Exception handling during building a query
    */
   private QueryBuilderException     queryException    = null;
-
-  private static final
-  Logger logger = LoggerFactory.getLogger(AbstractNTripleQueryBuilder.class);
 
   public AbstractNTripleQueryBuilder(final Version matchVersion) {
     this.wsAnalyzer = new WhitespaceAnalyzer(matchVersion);
@@ -74,7 +69,7 @@ public abstract class AbstractNTripleQueryBuilder extends VisitorAdaptor {
     return queryException.toString();
   }
 
-  public void setDefaultOperator(final DefaultOperatorAttribute.Operator op) {
+  public void setDefaultOperator(final StandardQueryConfigHandler.Operator op) {
     defaultOp = op;
   }
 
@@ -97,16 +92,16 @@ public abstract class AbstractNTripleQueryBuilder extends VisitorAdaptor {
   }
 
   /**
-   * Instantiate a {@link ResourceQueryParser} depending on the object type.
+   * Instantiate a {@link TreeQueryParser} depending on the object type.
    * Then, set the default operator.
    */
-  protected ResourceQueryParser getResourceQueryParser(final Analyzer analyzer) {
-    final ResourceQueryParser qph;
+  protected TreeQueryParser getResourceQueryParser(final Analyzer analyzer) {
+    final TreeQueryParser qph;
     
     if (analyzer instanceof NumericAnalyzer)
-      qph = new ResourceQueryParser(wsAnalyzer, (NumericAnalyzer) analyzer);
+      qph = new TreeQueryParser(wsAnalyzer, (NumericAnalyzer) analyzer);
     else
-      qph = new ResourceQueryParser(analyzer);
+      qph = new TreeQueryParser(analyzer);
     qph.setDefaultOperator(defaultOp);
     return qph;
   }

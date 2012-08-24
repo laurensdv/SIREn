@@ -37,23 +37,23 @@ import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.core.nodes.FieldQueryNode;
-import org.apache.lucene.queryParser.core.nodes.FuzzyQueryNode;
-import org.apache.lucene.queryParser.core.nodes.GroupQueryNode;
-import org.apache.lucene.queryParser.core.nodes.NoTokenFoundQueryNode;
-import org.apache.lucene.queryParser.core.nodes.OrQueryNode;
-import org.apache.lucene.queryParser.core.nodes.ParametricQueryNode;
-import org.apache.lucene.queryParser.core.nodes.QueryNode;
-import org.apache.lucene.queryParser.core.nodes.QuotedFieldQueryNode;
-import org.apache.lucene.queryParser.core.nodes.TextableQueryNode;
-import org.apache.lucene.queryParser.core.nodes.TokenizedPhraseQueryNode;
-import org.apache.lucene.queryParser.core.processors.QueryNodeProcessorImpl;
-import org.apache.lucene.queryParser.standard.config.AnalyzerAttribute;
-import org.apache.lucene.queryParser.standard.config.PositionIncrementsAttribute;
-import org.apache.lucene.queryParser.standard.nodes.MultiPhraseQueryNode;
-import org.apache.lucene.queryParser.standard.nodes.WildcardQueryNode;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.core.nodes.FieldQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.FuzzyQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.GroupQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.NoTokenFoundQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.OrQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.QueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.QuotedFieldQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.RangeQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.TextableQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.TokenizedPhraseQueryNode;
+import org.apache.lucene.queryparser.flexible.core.processors.QueryNodeProcessorImpl;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.ConfigurationKeys;
+import org.apache.lucene.queryparser.flexible.standard.nodes.MultiPhraseQueryNode;
+import org.apache.lucene.queryparser.flexible.standard.nodes.RegexpQueryNode;
+import org.apache.lucene.queryparser.flexible.standard.nodes.WildcardQueryNode;
 
 /**
  * This processor verifies if the attribute {@link AnalyzerQueryNodeProcessor}
@@ -96,18 +96,15 @@ public class AnalyzerQueryNodeProcessor extends QueryNodeProcessorImpl {
   @Override
   public QueryNode process(final QueryNode queryTree) throws QueryNodeException {
 
-    if (this.getQueryConfigHandler().hasAttribute(AnalyzerAttribute.class)) {
+    if (this.getQueryConfigHandler().has(ConfigurationKeys.ANALYZER)) {
 
-      this.analyzer = this.getQueryConfigHandler().getAttribute(
-          AnalyzerAttribute.class).getAnalyzer();
+      this.analyzer = this.getQueryConfigHandler().get(ConfigurationKeys.ANALYZER);
 
       this.positionIncrementsEnabled = false;
 
-      if (this.getQueryConfigHandler().hasAttribute(
-          PositionIncrementsAttribute.class)) {
+      if (this.getQueryConfigHandler().has(ConfigurationKeys.ENABLE_POSITION_INCREMENTS)) {
 
-        if (this.getQueryConfigHandler().getAttribute(
-            PositionIncrementsAttribute.class).isPositionIncrementsEnabled()) {
+        if (this.getQueryConfigHandler().get(ConfigurationKeys.ENABLE_POSITION_INCREMENTS)) {
 
           this.positionIncrementsEnabled = true;
 
@@ -129,28 +126,34 @@ public class AnalyzerQueryNodeProcessor extends QueryNodeProcessorImpl {
   protected QueryNode postProcessNode(final QueryNode node) throws QueryNodeException {
 
     if (node instanceof TextableQueryNode
-        && !(node instanceof WildcardQueryNode)
-        && !(node instanceof FuzzyQueryNode)
-        && !(node instanceof ParametricQueryNode)) {
+    && !(node instanceof WildcardQueryNode)
+    && !(node instanceof FuzzyQueryNode)
+    && !(node instanceof RegexpQueryNode)
+    && !(node.getParent() instanceof RangeQueryNode)) {
 
       final FieldQueryNode fieldNode = ((FieldQueryNode) node);
       final String text = fieldNode.getTextAsString();
       final String field = fieldNode.getFieldAsString();
-
-      final TokenStream source = this.analyzer.tokenStream(field, new StringReader(
-          text));
-      final CachingTokenFilter buffer = new CachingTokenFilter(source);
 
       PositionIncrementAttribute posIncrAtt = null;
       int numTokens = 0;
       int positionCount = 0;
       boolean severalTokensAtSamePosition = false;
 
-      if (buffer.hasAttribute(PositionIncrementAttribute.class)) {
-        posIncrAtt = buffer.getAttribute(PositionIncrementAttribute.class);
+      final TokenStream source;
+      try {
+        source = this.analyzer.tokenStream(field, new StringReader(text));
+      } catch (IOException e1) {
+        // return the query node untouched
+        return node;
       }
+      // TODO: Shouldn't this stream be closed ?
+      final CachingTokenFilter buffer = new CachingTokenFilter(source);
 
       try {
+        if (buffer.hasAttribute(PositionIncrementAttribute.class)) {
+          posIncrAtt = buffer.getAttribute(PositionIncrementAttribute.class);
+        }
 
         while (buffer.incrementToken()) {
           numTokens++;
@@ -164,12 +167,6 @@ public class AnalyzerQueryNodeProcessor extends QueryNodeProcessorImpl {
           }
 
         }
-
-      } catch (final IOException e) {
-        // ignore
-      }
-
-      try {
         // rewind the buffer stream
         buffer.reset();
 
@@ -187,7 +184,6 @@ public class AnalyzerQueryNodeProcessor extends QueryNodeProcessorImpl {
 
       if (numTokens == 0) {
         return new NoTokenFoundQueryNode();
-
       }
       else if (numTokens == 1) {
         String term = null;

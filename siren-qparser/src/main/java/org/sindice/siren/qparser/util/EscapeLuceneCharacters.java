@@ -94,7 +94,7 @@ public class EscapeLuceneCharacters {
     sbTemp.setLength(0);
     for (int i = 0; i < match.length(); i++) {
       final char c = match.charAt(i);
-      if (c == ':' || c == '?' ||
+      if (c == ':' || c == '?' || c == '/' || c == '=' ||
           // tilde at the end or tilde before a float number
           (c == '~' && !isFloatOrEOL(match, i + 1))) {
         sbTemp.append("\\\\");
@@ -146,6 +146,19 @@ public class EscapeLuceneCharacters {
     ind = index;
     while ((ind = sbEscaped.indexOf(":", ind)) != -1 && ind < highBound) {
       sbEscaped.replace(ind, ind + 1, "\\:");
+      ind += 2; // skip the semi-colon and the \\
+      count++;
+    }
+    /*
+     * TODO: Clarify what to do here. What should we escape in non-URI terms ?
+     * Problematic characters are '/' (and maybe '=' also). This pose a problem
+     * when we use some queries on URIs, e.g., a Prefix query http://steph*.
+     * Here http://steph is not matched as a URI, and therefore the characters '/'
+     * are not escaped. This is linked to the comment for the issue GH-59.
+     */
+    ind = index;
+    while ((ind = sbEscaped.indexOf("/", ind)) != -1 && ind < highBound) {
+      sbEscaped.replace(ind, ind + 1, "\\/");
       ind += 2; // skip the semi-colon and the \\
       count++;
     }

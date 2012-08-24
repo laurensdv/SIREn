@@ -31,8 +31,9 @@ import java.io.Reader;
 
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.sindice.siren.analysis.attributes.CellAttribute;
+import org.apache.lucene.util.BytesRef;
 import org.sindice.siren.analysis.attributes.DatatypeAttribute;
 
 /**
@@ -44,7 +45,8 @@ public final class TabularQueryTokenizer extends Tokenizer {
   private final CharTermAttribute cTermAtt;
   private final TypeAttribute typeAtt;
   private final DatatypeAttribute dataTypeAtt;
-  private final CellAttribute cellAtt;
+  // Contains Node constraints values
+  private final PayloadAttribute plAtt;
   
   /** A private instance of the JFlex-constructed scanner */
   private final TabularQueryTokenizerImpl _scanner;
@@ -66,12 +68,12 @@ public final class TabularQueryTokenizer extends Tokenizer {
    * <code>input</code> to a newly created JFlex scanner.
    */
   public TabularQueryTokenizer(final Reader input) {
-    this.input = input;
+    super(input);
     this._scanner = new TabularQueryTokenizerImpl(input);
     cTermAtt = this.addAttribute(CharTermAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);
     dataTypeAtt = this.addAttribute(DatatypeAttribute.class);
-    cellAtt = this.addAttribute(CellAttribute.class);
+    plAtt = this.addAttribute(PayloadAttribute.class);
   }
 
   @Override
@@ -97,7 +99,7 @@ public final class TabularQueryTokenizer extends Tokenizer {
         cTermAtt.setEmpty();
         cTermAtt.append(_scanner.getURIText());
         dataTypeAtt.setDatatypeURI(_scanner.getDatatypeURI());
-        cellAtt.setCell(_scanner.getCellConstraint());
+        plAtt.setPayload(new BytesRef(intToByteArray(_scanner.getNodeConstraint())));
         break;
 
       case TabularQueryTokenizer.LITERAL:
@@ -105,7 +107,7 @@ public final class TabularQueryTokenizer extends Tokenizer {
         cTermAtt.setEmpty();
         cTermAtt.append(_scanner.getLiteralText());
         dataTypeAtt.setDatatypeURI(_scanner.getDatatypeURI());
-        cellAtt.setCell(_scanner.getCellConstraint());
+        plAtt.setPayload(new BytesRef(intToByteArray(_scanner.getNodeConstraint())));
         break;
 
       case TabularQueryTokenizer.LPATTERN:
@@ -113,7 +115,7 @@ public final class TabularQueryTokenizer extends Tokenizer {
         cTermAtt.setEmpty();
         cTermAtt.append(_scanner.getLiteralText());
         dataTypeAtt.setDatatypeURI(_scanner.getDatatypeURI());
-        cellAtt.setCell(_scanner.getCellConstraint());
+        plAtt.setPayload(new BytesRef(intToByteArray(_scanner.getNodeConstraint())));
         break;
 
       case TabularQueryTokenizer.EOF:
@@ -121,6 +123,16 @@ public final class TabularQueryTokenizer extends Tokenizer {
         return false;
     }
     return true;
+  }
+
+  private byte[] intToByteArray(int v) {
+    final byte[] a = new byte[4];
+
+    a[0] = (byte) (v & 0xFF);
+    a[1] = (byte) ((v >> 8) & 0xFF);
+    a[2] = (byte) ((v >> 16) & 0xFF);
+    a[3] = (byte) ((v >> 24) & 0xFF);
+    return a;
   }
 
   /**
@@ -132,6 +144,12 @@ public final class TabularQueryTokenizer extends Tokenizer {
   public void reset(final Reader input) throws IOException {
     super.reset(input);
     _scanner.yyreset(input);
+  }
+
+  @Override
+  public void close()
+  throws IOException {
+    _scanner.yyclose();
   }
 
 }

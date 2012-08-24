@@ -27,22 +27,24 @@ package org.sindice.siren.analysis;
 
 import java.io.Reader;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.document.FieldType.NumericType;
 
 public class LongNumericAnalyzer
-extends Analyzer {
-
-  private final int precisionStep;
+extends NumericAnalyzer {
 
   public LongNumericAnalyzer(final int precisionStep) {
-    this.precisionStep = precisionStep;
+    super(precisionStep);
   }
 
   @Override
-  protected TokenStreamComponents createComponents(String fieldName,
-                                                   Reader reader) {
-    final Tokenizer sink = new LongNumericTokenizer(reader, precisionStep);
-    return new TokenStreamComponents(sink);
+  protected NumericTokenizer getNumericTokenizer(Reader aReader,
+                                                 int precisionStep) {
+    return new LongNumericTokenizer(aReader, precisionStep);
   }
+
+  @Override
+  public NumericType getNumericType() {
+    return NumericType.LONG;
+  }
+
 }

@@ -26,22 +26,28 @@
  */
 package org.sindice.siren.qparser.keyword.config;
 
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.standard.config.AllowLeadingWildcardAttribute;
-import org.apache.lucene.queryParser.standard.config.AnalyzerAttribute;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
-import org.apache.lucene.queryParser.standard.config.DefaultPhraseSlopAttribute;
-import org.apache.lucene.queryParser.standard.config.FieldBoostMapFCListener;
-import org.apache.lucene.queryParser.standard.config.FieldDateResolutionFCListener;
-import org.apache.lucene.queryParser.standard.config.FuzzyAttribute;
-import org.apache.lucene.queryParser.standard.config.LocaleAttribute;
-import org.apache.lucene.queryParser.standard.config.LowercaseExpandedTermsAttribute;
-import org.apache.lucene.queryParser.standard.config.MultiTermRewriteMethodAttribute;
-import org.apache.lucene.queryParser.standard.config.PositionIncrementsAttribute;
-import org.apache.lucene.queryParser.standard.config.RangeCollatorAttribute;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+
+import org.apache.lucene.document.DateTools;
+import org.apache.lucene.queryparser.flexible.core.config.ConfigurationKey;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.standard.config.FieldBoostMapFCListener;
+import org.apache.lucene.queryparser.flexible.standard.config.FieldDateResolutionFCListener;
+import org.apache.lucene.queryparser.flexible.standard.config.FuzzyConfig;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.ConfigurationKeys;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
+import org.sindice.siren.qparser.tree.TreeQueryParser.TreeConfigurationKeys;
+import org.sindice.siren.search.node.MultiNodeTermQuery;
 
 public class KeywordQueryConfigHandler
 extends QueryConfigHandler {
+
+  /**
+   * Key used to set fuzzy and wildcard queries are allowed.
+   */
+  final public static ConfigurationKey<Boolean> ALLOW_FUZZY_AND_WILDCARD = ConfigurationKey.newInstance();
 
   public KeywordQueryConfigHandler() {
     // Add listener that will build the FieldConfig attributes.
@@ -49,19 +55,20 @@ extends QueryConfigHandler {
     this.addFieldConfigListener(new FieldDateResolutionFCListener(this));
 
     // Default Values
-    this.addAttribute(RangeCollatorAttribute.class);
-    this.addAttribute(DefaultOperatorAttribute.class);
-    this.addAttribute(AnalyzerAttribute.class);
-    this.addAttribute(FuzzyAttribute.class);
-    this.addAttribute(LowercaseExpandedTermsAttribute.class);
-    this.addAttribute(MultiTermRewriteMethodAttribute.class);
-    this.addAttribute(AllowFuzzyAndWildcardAttribute.class);
-    this.addAttribute(AllowLeadingWildcardAttribute.class);
-    this.addAttribute(PositionIncrementsAttribute.class).setPositionIncrementsEnabled(true);
-    this.addAttribute(LocaleAttribute.class);
-    this.addAttribute(DefaultPhraseSlopAttribute.class);
-    this.addAttribute(MultiTermRewriteMethodAttribute.class);
+    set(ConfigurationKeys.ALLOW_LEADING_WILDCARD, false); // default in 2.9
+    set(ConfigurationKeys.ANALYZER, null); //default value 2.4
+    set(ConfigurationKeys.PHRASE_SLOP, 0); //default value 2.4
+    set(ConfigurationKeys.LOWERCASE_EXPANDED_TERMS, true); //default value 2.4
+    set(ConfigurationKeys.FIELD_BOOST_MAP, new LinkedHashMap<String, Float>());
+    set(ConfigurationKeys.FUZZY_CONFIG, new FuzzyConfig());
+    set(ConfigurationKeys.LOCALE, Locale.getDefault());
+    set(ConfigurationKeys.FIELD_DATE_RESOLUTION_MAP, new HashMap<CharSequence, DateTools.Resolution>());
 
+    // SIREn Default Values
+    this.set(ConfigurationKeys.ENABLE_POSITION_INCREMENTS, true);
+    this.set(ALLOW_FUZZY_AND_WILDCARD, false);
+    this.set(ConfigurationKeys.DEFAULT_OPERATOR, Operator.OR);
+    this.set(TreeConfigurationKeys.MULTI_NODE_TERM_REWRITE_METHOD, MultiNodeTermQuery.CONSTANT_SCORE_AUTO_REWRITE_DEFAULT);
   }
 
 }

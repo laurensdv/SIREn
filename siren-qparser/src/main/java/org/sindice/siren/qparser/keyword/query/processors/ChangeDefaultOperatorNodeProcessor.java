@@ -28,14 +28,14 @@ package org.sindice.siren.qparser.keyword.query.processors;
 
 import java.util.List;
 
-import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.core.nodes.ModifierQueryNode;
-import org.apache.lucene.queryParser.core.nodes.ModifierQueryNode.Modifier;
-import org.apache.lucene.queryParser.core.nodes.QueryNode;
-import org.apache.lucene.queryParser.core.processors.QueryNodeProcessorImpl;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute;
-import org.apache.lucene.queryParser.standard.config.DefaultOperatorAttribute.Operator;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.core.nodes.ModifierQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.ModifierQueryNode.Modifier;
+import org.apache.lucene.queryparser.flexible.core.nodes.QueryNode;
+import org.apache.lucene.queryparser.flexible.core.processors.QueryNodeProcessorImpl;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.ConfigurationKeys;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
 
 /**
  * This processor change the default operator if a unary operator +
@@ -57,14 +57,11 @@ extends QueryNodeProcessorImpl {
       if (hasUnaryReqOperator) { // we found a req modifier in the tree
 
         final QueryConfigHandler conf = this.getQueryConfigHandler();
-        if (!conf.hasAttribute(DefaultOperatorAttribute.class)) {
+        if (!conf.has(ConfigurationKeys.DEFAULT_OPERATOR)) {
           throw new IllegalArgumentException(
               "DefaultOperatorAttribute should be set on the QueryConfigHandler");
         }
-
-        final DefaultOperatorAttribute opAttr = conf.getAttribute(DefaultOperatorAttribute.class);
-
-        opAttr.setOperator(Operator.OR);
+        conf.set(ConfigurationKeys.DEFAULT_OPERATOR, Operator.OR);
       }
     }
     return node;

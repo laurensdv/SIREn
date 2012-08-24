@@ -61,7 +61,7 @@ public final class NTripleQueryTokenizer extends Tokenizer {
    * <code>input</code> to a newly created JFlex scanner.
    */
   public NTripleQueryTokenizer(final Reader input) {
-    this.input = input;
+    super(input);
     this._scanner = new NTripleQueryTokenizerImpl(input);
     cTermAtt = this.addAttribute(CharTermAttribute.class);
     typeAtt = this.addAttribute(TypeAttribute.class);

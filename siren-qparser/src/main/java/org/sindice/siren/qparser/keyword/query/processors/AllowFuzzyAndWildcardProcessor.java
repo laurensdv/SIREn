@@ -28,15 +28,15 @@ package org.sindice.siren.qparser.keyword.query.processors;
 
 import java.util.List;
 
-import org.apache.lucene.messages.MessageImpl;
-import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.core.nodes.FuzzyQueryNode;
-import org.apache.lucene.queryParser.core.nodes.QueryNode;
-import org.apache.lucene.queryParser.core.processors.QueryNodeProcessorImpl;
-import org.apache.lucene.queryParser.standard.nodes.WildcardQueryNode;
-import org.apache.lucene.queryParser.standard.parser.EscapeQuerySyntaxImpl;
-import org.sindice.siren.qparser.keyword.config.AllowFuzzyAndWildcardAttribute;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.core.nodes.FuzzyQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.QueryNode;
+import org.apache.lucene.queryparser.flexible.core.processors.QueryNodeProcessorImpl;
+import org.apache.lucene.queryparser.flexible.messages.MessageImpl;
+import org.apache.lucene.queryparser.flexible.standard.nodes.WildcardQueryNode;
+import org.apache.lucene.queryparser.flexible.standard.parser.EscapeQuerySyntaxImpl;
+import org.sindice.siren.qparser.keyword.config.KeywordQueryConfigHandler;
 
 /**
  * This processor verifies if the attribute
@@ -58,15 +58,11 @@ extends QueryNodeProcessorImpl {
   @Override
   public QueryNode process(final QueryNode queryTree) throws QueryNodeException {
 
-    if (this.getQueryConfigHandler().hasAttribute(AllowFuzzyAndWildcardAttribute.class)) {
-
-      final AllowFuzzyAndWildcardAttribute alwAttr= this.getQueryConfigHandler().getAttribute(AllowFuzzyAndWildcardAttribute.class);
-      if (!alwAttr.isAllowFuzzyAndWildcard()) {
+    if (this.getQueryConfigHandler().has(KeywordQueryConfigHandler.ALLOW_FUZZY_AND_WILDCARD)) {
+      if (!this.getQueryConfigHandler().get(KeywordQueryConfigHandler.ALLOW_FUZZY_AND_WILDCARD)) {
         return super.process(queryTree);
       }
-
     }
-
     return queryTree;
   }
 

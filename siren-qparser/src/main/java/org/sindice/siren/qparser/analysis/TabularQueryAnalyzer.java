@@ -20,11 +20,9 @@
  */
 package org.sindice.siren.qparser.analysis;
 
-import java.io.IOException;
 import java.io.Reader;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
 
 /**
  * Create a {@link TabularQueryTokenizer} stream
@@ -37,26 +35,9 @@ public class TabularQueryAnalyzer extends Analyzer {
   public TabularQueryAnalyzer() {}
 
   @Override
-  public final TokenStream tokenStream(final String fieldName, final Reader reader) {
+  protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
     final TabularQueryTokenizer stream = new TabularQueryTokenizer(reader);
-    return stream;
-  }
-
-  @Override
-  public final TokenStream reusableTokenStream(final String fieldName, final Reader reader) throws IOException {
-    SavedStreams streams = (SavedStreams) this.getPreviousTokenStream();
-    if (streams == null) {
-      streams = new SavedStreams();
-      this.setPreviousTokenStream(streams);
-      streams.tokenStream = new TabularQueryTokenizer(reader);
-    } else {
-      streams.tokenStream.reset(reader);
-    }
-    return streams.tokenStream;
-  }
-
-  private static final class SavedStreams {
-    TabularQueryTokenizer tokenStream;
+    return new TokenStreamComponents(stream);
   }
 
 }

@@ -30,10 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryParser.standard.config.NumericConfig;
+import org.apache.lucene.queryparser.flexible.standard.config.NumericConfig;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.util.Version;
 import org.sindice.siren.qparser.ntriple.query.model.BinaryClause;
 import org.sindice.siren.qparser.ntriple.query.model.ClauseQuery;
@@ -48,13 +48,15 @@ import org.sindice.siren.qparser.ntriple.query.model.TriplePattern;
 import org.sindice.siren.qparser.ntriple.query.model.URIPattern;
 import org.sindice.siren.qparser.ntriple.query.model.UnaryClause;
 import org.sindice.siren.qparser.ntriple.query.model.Wildcard;
-import org.sindice.siren.qparser.tuple.CellValue;
-import org.sindice.siren.qparser.tuple.QueryBuilderException;
-import org.sindice.siren.qparser.tuple.ResourceQueryParser;
+import org.sindice.siren.qparser.tree.NodeValue;
+import org.sindice.siren.qparser.tree.QueryBuilderException;
+import org.sindice.siren.qparser.tree.TreeQueryParser;
 import org.sindice.siren.qparser.util.EscapeLuceneCharacters;
-import org.sindice.siren.search.SirenCellQuery;
-import org.sindice.siren.search.SirenPrimitiveQuery;
-import org.sindice.siren.search.SirenTupleQuery;
+import org.sindice.siren.search.doc.DocumentQuery;
+import org.sindice.siren.search.node.NodeBooleanClause;
+import org.sindice.siren.search.node.NodeBooleanQuery;
+import org.sindice.siren.search.node.NodeQuery;
+import org.sindice.siren.search.node.TupleQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,18 +134,18 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
     switch (op) {
       case Operator.AND:
         logger.debug("{} AND {}", l.toString(), r.toString());
-        query.add(l, Occur.MUST);
-        query.add(r, Occur.MUST);
+        query.add(l, BooleanClause.Occur.MUST);
+        query.add(r, BooleanClause.Occur.MUST);
         break;
       case Operator.OR:
         logger.debug("{} OR {}", l.toString(), r.toString());
-        query.add(l, Occur.SHOULD);
-        query.add(r, Occur.SHOULD);
+        query.add(l, BooleanClause.Occur.SHOULD);
+        query.add(r, BooleanClause.Occur.SHOULD);
         break;
       case Operator.MINUS:
         logger.debug("{} MINUS {}", l.toString(), r.toString());
-        query.add(l, Occur.MUST);
-        query.add(r, Occur.MUST_NOT);
+        query.add(l, BooleanClause.Occur.MUST);
+        query.add(r, BooleanClause.Occur.MUST_NOT);
         break;
       default:
         break;
@@ -172,12 +174,12 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
 
     if (!this.hasError()) {
       for (final String fieldName : boosts.keySet()) {
-        final SirenTupleQuery tupleQuery = new SirenTupleQuery();
+        final TupleQuery tupleQuery = new TupleQuery();
         this.visitSubject(tp, tupleQuery, fieldName);
         this.visitPredicate(tp, tupleQuery, fieldName);
         this.visitObject(tp, tupleQuery, fieldName);
         tupleQuery.setBoost(boosts.get(fieldName));
-        bq.add(tupleQuery, Occur.SHOULD);
+        bq.add(new DocumentQuery(tupleQuery), BooleanClause.Occur.SHOULD);
       }
     }
 
@@ -187,38 +189,38 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   }
 
   private void visitSubject(final TriplePattern tp,
-                            final SirenTupleQuery tupleQuery,
+                            final TupleQuery tupleQuery,
                             final String fieldName) {
-    SirenCellQuery cellQuery = null;
+    NodeBooleanQuery nbq = null;
     if (tp.getS() != null && !(tp.getS() instanceof Wildcard)) {
-      // we should always receive a SirenPrimitiveQuery
-      cellQuery = new SirenCellQuery((SirenPrimitiveQuery) tp.getS().getQueries().get(fieldName));
-      cellQuery.setConstraint(0);
-      tupleQuery.add(cellQuery, org.sindice.siren.search.SirenTupleClause.Occur.MUST);
+      nbq = new NodeBooleanQuery();
+      nbq.add((NodeQuery) tp.getS().getQueries().get(fieldName), NodeBooleanClause.Occur.MUST);
+      nbq.setNodeConstraint(0);
+      tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
     }
   }
 
   private void visitPredicate(final TriplePattern tp,
-                              final SirenTupleQuery tupleQuery,
+                              final TupleQuery tupleQuery,
                               final String fieldName) {
-    SirenCellQuery cellQuery = null;
+    NodeBooleanQuery nbq = null;
     if (tp.getP() != null && !(tp.getP() instanceof Wildcard)) {
-      // we should always receive a SirenPrimitiveQuery
-      cellQuery = new SirenCellQuery((SirenPrimitiveQuery) tp.getP().getQueries().get(fieldName));
-      cellQuery.setConstraint(1);
-      tupleQuery.add(cellQuery, org.sindice.siren.search.SirenTupleClause.Occur.MUST);
+      nbq = new NodeBooleanQuery();
+      nbq.add((NodeQuery) tp.getP().getQueries().get(fieldName), NodeBooleanClause.Occur.MUST);
+      nbq.setNodeConstraint(1);
+      tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
     }
   }
 
   private void visitObject(final TriplePattern tp,
-                           final SirenTupleQuery tupleQuery,
+                           final TupleQuery tupleQuery,
                            final String fieldName) {
-    SirenCellQuery cellQuery = null;
+    NodeBooleanQuery nbq = null;
     if (tp.getO() != null && !(tp.getO() instanceof Wildcard)) {
-      // we should always receive a SirenPrimitiveQuery
-      cellQuery = new SirenCellQuery((SirenPrimitiveQuery) tp.getO().getQueries().get(fieldName));
-      cellQuery.setConstraint(2, Integer.MAX_VALUE);
-      tupleQuery.add(cellQuery, org.sindice.siren.search.SirenTupleClause.Occur.MUST);
+      nbq = new NodeBooleanQuery();
+      nbq.add((NodeQuery) tp.getO().getQueries().get(fieldName), NodeBooleanClause.Occur.MUST);
+      nbq.setNodeConstraint(2, Integer.MAX_VALUE);
+      tupleQuery.add(nbq, NodeBooleanClause.Occur.MUST);
     }
   }
 
@@ -230,11 +232,11 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   @Override
   public void visit(final Literal l) {
     logger.debug("Visiting Literal");
-    final CellValue dtLit = l.getL();
+    final NodeValue dtLit = l.getL();
 
     try {
       Analyzer analyzer;
-      ResourceQueryParser qph;
+      TreeQueryParser qph;
 
       if (l.getQueries() == null) {
         l.setQueries(new HashMap<String, Query>());
@@ -253,7 +255,7 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   }
 
   /**
-   * Use the {@link ResourceQueryParser} to parse the Literal pattern and create
+   * Use the {@link TreeQueryParser} to parse the Literal pattern and create
    * a SIREn query.
    * <p>
    * The query is expanded to each of the field found in the boost parameter.
@@ -261,11 +263,11 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   @Override
   public void visit(final LiteralPattern lp) {
     logger.debug("Visiting Literal Pattern");
-    final CellValue dtLit = lp.getLp();
+    final NodeValue dtLit = lp.getLp();
 
     try {
       Analyzer analyzer;
-      ResourceQueryParser qph;
+      TreeQueryParser qph;
 
       if (lp.getQueries() == null) {
         lp.setQueries(new HashMap<String, Query>());
@@ -283,7 +285,7 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   }
 
   /**
-   * Use the {@link ResourceQueryParser} to parse the URI pattern and create
+   * Use the {@link TreeQueryParser} to parse the URI pattern and create
    * a SIREn query.
    * <p>
    * The query is expanded to each of the field found in the boost parameter.
@@ -291,12 +293,12 @@ public class ScatteredNTripleQueryBuilder extends AbstractNTripleQueryBuilder {
   @Override
   public void visit(final URIPattern u) {
     logger.debug("Visiting URI");
-    final CellValue dtLit = u.getUp();
+    final NodeValue dtLit = u.getUp();
 
     final String uri = EscapeLuceneCharacters.escape(dtLit.getValue()); // URI schemes handling
     try {
       Analyzer analyzer;
-      ResourceQueryParser qph;
+      TreeQueryParser qph;
 
       if (u.getQueries() == null) {
         u.setQueries(new HashMap<String, Query>());

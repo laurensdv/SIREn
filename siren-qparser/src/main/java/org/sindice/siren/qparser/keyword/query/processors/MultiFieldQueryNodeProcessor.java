@@ -29,15 +29,15 @@ package org.sindice.siren.qparser.keyword.query.processors;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.lucene.queryParser.core.QueryNodeException;
-import org.apache.lucene.queryParser.core.config.QueryConfigHandler;
-import org.apache.lucene.queryParser.core.nodes.BooleanQueryNode;
-import org.apache.lucene.queryParser.core.nodes.FieldableNode;
-import org.apache.lucene.queryParser.core.nodes.GroupQueryNode;
-import org.apache.lucene.queryParser.core.nodes.OrQueryNode;
-import org.apache.lucene.queryParser.core.nodes.QueryNode;
-import org.apache.lucene.queryParser.core.processors.QueryNodeProcessorImpl;
-import org.apache.lucene.queryParser.standard.config.MultiFieldAttribute;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.core.config.QueryConfigHandler;
+import org.apache.lucene.queryparser.flexible.core.nodes.BooleanQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.FieldableNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.GroupQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.OrQueryNode;
+import org.apache.lucene.queryparser.flexible.core.nodes.QueryNode;
+import org.apache.lucene.queryparser.flexible.core.processors.QueryNodeProcessorImpl;
+import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.ConfigurationKeys;
 
 /**
  * This processor is used to expand terms so the query looks for the same term
@@ -93,13 +93,12 @@ public class MultiFieldQueryNodeProcessor extends QueryNodeProcessorImpl {
 
       if (fieldNode.getField() == null) {
 
-        if (!this.getQueryConfigHandler().hasAttribute(MultiFieldAttribute.class)) {
+        if (!this.getQueryConfigHandler().has(ConfigurationKeys.MULTI_FIELDS)) {
           throw new IllegalArgumentException(
               "MultiFieldAttribute should be set on the QueryConfigHandler");
         }
 
-        final CharSequence[] fields = this.getQueryConfigHandler().getAttribute(
-            MultiFieldAttribute.class).getFields();
+        final CharSequence[] fields = this.getQueryConfigHandler().get(ConfigurationKeys.MULTI_FIELDS);
 
         if (fields != null && fields.length > 0) {
           fieldNode.setField(fields[0]);
