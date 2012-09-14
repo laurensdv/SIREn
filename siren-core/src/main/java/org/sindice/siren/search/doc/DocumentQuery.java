@@ -36,6 +36,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.ToStringUtils;
 import org.sindice.siren.search.node.NodeQuery;
 import org.sindice.siren.search.node.NodeScorer;
 
@@ -106,8 +107,12 @@ public class DocumentQuery extends Query {
   throws IOException {
     final Query rewroteQuery = nodeQuery.rewrite(reader);
 
-    return nodeQuery == rewroteQuery ? this
-                                 : new DocumentQuery((NodeQuery) rewroteQuery);
+    if (nodeQuery == rewroteQuery) {
+      return this;
+    }
+    DocumentQuery q = new DocumentQuery((NodeQuery) rewroteQuery);
+    q.setBoost(getBoost());
+    return q;
   }
 
   @Override
@@ -117,7 +122,7 @@ public class DocumentQuery extends Query {
 
   @Override
   public String toString(final String field) {
-    return "documentQuery(" + nodeQuery.toString(field) + ")";
+    return "documentQuery(" + nodeQuery.toString(field) + ")" + ToStringUtils.boost(this.getBoost());
   }
 
   @Override
@@ -127,6 +132,12 @@ public class DocumentQuery extends Query {
 
   public NodeQuery getNodeQuery() {
     return nodeQuery;
+  }
+
+  @Override
+  public void setBoost(float b) {
+    super.setBoost(b);
+    nodeQuery.setBoost(b);
   }
 
 }
