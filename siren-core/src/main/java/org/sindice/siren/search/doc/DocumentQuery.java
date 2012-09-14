@@ -136,7 +136,6 @@ public class DocumentQuery extends Query {
 
   @Override
   public void setBoost(float b) {
-    super.setBoost(b);
     nodeQuery.setBoost(b);
   }
 

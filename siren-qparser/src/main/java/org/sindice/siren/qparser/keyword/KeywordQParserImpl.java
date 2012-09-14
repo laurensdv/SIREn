@@ -33,6 +33,7 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler.Operator;
 import org.apache.lucene.search.Query;
+import org.sindice.siren.qparser.keyword.config.KeywordQueryConfigHandler;
 import org.sindice.siren.qparser.util.EscapeLuceneCharacters;
 
 /**
@@ -75,7 +76,7 @@ public class KeywordQParserImpl {
       }
     }
     catch (final QueryNodeException e) {
-      throw new ParseException("Invalid keyword query");
+      throw new ParseException("Invalid keyword query", e);
     }
   }
 
@@ -86,6 +87,15 @@ public class KeywordQParserImpl {
     else {
       parser.setDefaultOperator(Operator.AND);
     }
+  }
+
+  /**
+   * Set to <code>true</code> to allow fuzzy and wildcard queries.
+   * <p>
+   * Default: false.
+   */
+  public void setAllowLeadingWildcard(boolean allowFuzzyWildcard) {
+    parser.getQueryConfigHandler().set(KeywordQueryConfigHandler.ALLOW_FUZZY_AND_WILDCARD, allowFuzzyWildcard);
   }
 
 }

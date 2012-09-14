@@ -28,9 +28,13 @@
 package org.sindice.siren.qparser.tree;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -44,9 +48,11 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.util.LuceneTestCase;
 import org.sindice.siren.qparser.analysis.NTripleQueryAnalyzer;
 import org.sindice.siren.qparser.analysis.TabularQueryAnalyzer;
 import org.sindice.siren.qparser.analysis.TupleTestHelper;
+import org.sindice.siren.qparser.keyword.KeywordQParserImpl;
 import org.sindice.siren.qparser.ntriple.NTripleQueryParser;
 import org.sindice.siren.qparser.tabular.TabularQueryParser;
 import org.slf4j.Logger;
@@ -73,7 +79,8 @@ public class TupleQueryParserTestHelper extends TupleTestHelper {
   }
 
   public static boolean match(final Map<String, String> ntriples,
-                              final Map<String, Float> boosts, final String query,
+                              final Map<String, Float> boosts,
+                              final String query,
                               final boolean scattered)
   throws CorruptIndexException, LockObtainFailedException, IOException, ParseException {
     RAMDirectory ramDir = null;
@@ -274,7 +281,7 @@ public class TupleQueryParserTestHelper extends TupleTestHelper {
   }
 
   public enum QueryParserEnum {
-    NTRIPLE, TABULAR
+    NTRIPLE, TABULAR, KEYWORD
   }
 
   /**
@@ -306,10 +313,35 @@ public class TupleQueryParserTestHelper extends TupleTestHelper {
       case NTRIPLE:
         testQuery = tupleQuery;
         break;
+      case KEYWORD:
+        testQuery = kwQuery;
+        break;
       default:
         throw new EnumConstantNotPresentException(QueryParserEnum.class, qpe.toString());
     }
   }
+
+  // For testing Keyword queries
+  private static final TestQuery kwQuery = new TestQuery() {
+    @Override
+    public Query getScatteredQuery(String query,
+                                   Map<String, Float> boosts,
+                                   boolean scattered)
+    throws ParseException {
+      return this.getQuery(null, query);
+    }
+
+    @Override
+    public Query getQuery(String field, String query)
+    throws ParseException {
+      final Analyzer analyzer = new WhitespaceAnalyzer(LuceneTestCase.TEST_VERSION_CURRENT);
+      final PerFieldAnalyzerWrapper analyzerWrapper = new PerFieldAnalyzerWrapper(analyzer);
+      final Map<String, Float> boosts = new HashMap<String, Float>();
+      boosts.put(_defaultField, 1.0f);
+      boosts.put(_implicitField, 2.5f);
+      return new KeywordQParserImpl(analyzerWrapper, boosts, false).parse(query);
+    }
+  };
 
   // For testing Tuple queries
   private static final TestQuery tupleQuery = new TestQuery() {

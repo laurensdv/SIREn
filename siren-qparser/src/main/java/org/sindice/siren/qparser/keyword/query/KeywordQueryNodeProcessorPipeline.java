@@ -52,6 +52,7 @@ import org.sindice.siren.qparser.keyword.query.processors.AnalyzerQueryNodeProce
 import org.sindice.siren.qparser.keyword.query.processors.ChangeDefaultOperatorNodeProcessor;
 import org.sindice.siren.qparser.keyword.query.processors.GroupQueryNodeProcessor;
 import org.sindice.siren.qparser.keyword.query.processors.MultiFieldQueryNodeProcessor;
+import org.sindice.siren.qparser.keyword.query.processors.SirenQueryNodeProcessor;
 import org.sindice.siren.qparser.tree.query.processors.MultiNodeTermRewriteMethodProcessor;
 
 /**
@@ -84,7 +85,7 @@ extends QueryNodeProcessorPipeline {
     // TODO: What about this commented processor ?
 //    this.add(new AddDefaultModifierNodeProcessor());
     add(new ChangeDefaultOperatorNodeProcessor());
-    add(new WildcardQueryNodeProcessor());    
+    add(new WildcardQueryNodeProcessor());
     add(new MultiFieldQueryNodeProcessor());
     add(new FuzzyQueryNodeProcessor());
     add(new MatchAllDocsQueryNodeProcessor());
@@ -106,6 +107,7 @@ extends QueryNodeProcessorPipeline {
     add(new DefaultPhraseSlopQueryNodeProcessor());
     add(new BoostQueryNodeProcessor());
     add(new MultiNodeTermRewriteMethodProcessor());
+    add(new SirenQueryNodeProcessor());
   }
 
 }

@@ -143,6 +143,8 @@ public class AnalyzerQueryNodeProcessor extends QueryNodeProcessorImpl {
       final TokenStream source;
       try {
         source = this.analyzer.tokenStream(field, new StringReader(text));
+        // The source is reset in the original AnalyzerQueryNodeProcessor class
+        source.reset();
       } catch (IOException e1) {
         // return the query node untouched
         return node;

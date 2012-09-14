@@ -30,6 +30,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.sindice.siren.qparser.keyword.config.KeywordQueryConfigHandler;
 import org.sindice.siren.qparser.keyword.query.KeywordQueryNodeProcessorPipeline;
+import org.sindice.siren.qparser.keyword.query.builders.KeywordQueryTreeBuilder;
 
 public class KeywordQueryParser
 extends StandardQueryParser {
@@ -41,6 +42,7 @@ extends StandardQueryParser {
     super();
     this.setQueryConfigHandler(new KeywordQueryConfigHandler());
     this.setQueryNodeProcessor(new KeywordQueryNodeProcessorPipeline(this.getQueryConfigHandler()));
+    this.setQueryBuilder(new KeywordQueryTreeBuilder());
   }
 
   /**
