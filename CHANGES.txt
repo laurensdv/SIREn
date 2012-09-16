@@ -17,6 +17,7 @@ Bugs
 * [GH-54] Fix constraint management in TupleQuery
 * [GH-55] Check hash code and equality of node query classes
 * [GH-57] Review score caching in scoreInNode
+* [GH-71] Boost Queries and DocumentQuery
 
 Tasks
 

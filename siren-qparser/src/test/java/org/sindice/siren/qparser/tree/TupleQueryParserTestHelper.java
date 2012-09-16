@@ -63,7 +63,8 @@ public class TupleQueryParserTestHelper extends TupleTestHelper {
   protected static final Logger logger = LoggerFactory.getLogger(TupleQueryParserTestHelper.class);
 
   public static float getScore(final Map<String, String> ntriples,
-                               final Map<String, Float> boosts, final String query,
+                               final Map<String, Float> boosts,
+                               final String query,
                                final boolean scattered)
   throws CorruptIndexException, LockObtainFailedException, IOException, ParseException {
     RAMDirectory ramDir = null;
@@ -259,7 +260,8 @@ public class TupleQueryParserTestHelper extends TupleTestHelper {
     }
   }
 
-  private static float getScore(final RAMDirectory ramDir, final String query,
+  private static float getScore(final RAMDirectory ramDir,
+                                final String query,
                                   final Map<String, Float> boosts,
                                   final boolean scattered)
   throws CorruptIndexException, LockObtainFailedException, IOException, ParseException {
