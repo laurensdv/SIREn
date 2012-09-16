@@ -94,6 +94,7 @@ public class DocumentQuery extends Query {
 
   public DocumentQuery(final NodeQuery nq) {
     this.nodeQuery = nq;
+    
   }
 
   @Override
@@ -111,7 +112,7 @@ public class DocumentQuery extends Query {
       return this;
     }
     DocumentQuery q = new DocumentQuery((NodeQuery) rewroteQuery);
-    q.setBoost(getBoost());
+    q.setBoost(nodeQuery.getBoost());
     return q;
   }
 
